@@ -12,6 +12,8 @@
     <string name="log_out_warning">Weet je zeker dat je wilt uitloggen?</string>
     <string name="cancel">Annuleer</string>
     <string name="direct_login_failed">Kan geen verbinding maken met de server. Controleer of uw login informatie juist is.</string>
+    <string name="host_not_reachable">Kon het serveradres niet bereiken. Controleer je internetverbinding en de server-URL.</string>
+    <string name="server_not_responding">De server reageert niet. Deze is mogelijk offline of je verbinding wordt geblokkeerd.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API Token</string>
     <string name="news_list_is_empty">Nieuws lijst is leeg</string>

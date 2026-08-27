@@ -12,6 +12,8 @@
     <string name="log_out_warning">Opravdu se chcete odhlásit?</string>
     <string name="cancel">Zrušit</string>
     <string name="direct_login_failed">Nelze se připojit k serveru. Ujistěte se, že vaše přihlašovací údaje jsou správné.</string>
+    <string name="host_not_reachable">Nepodařilo se dosáhnout adresy serveru. Zkontrolujte prosím připojení k internetu a adresu serveru.</string>
+    <string name="server_not_responding">Server neodpovídá. Může být offline, nebo je vaše připojení blokováno.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API token</string>
     <string name="news_list_is_empty">Seznam novinek je prázdný</string>

@@ -12,6 +12,8 @@
     <string name="log_out_warning">Sei sicuro di voler uscire?</string>
     <string name="cancel">Annulla</string>
     <string name="direct_login_failed">Non è stato possibile connettersi al server. Per favore, assicurati che le credenziali siano corrette.</string>
+    <string name="host_not_reachable">Non è stato possibile raggiungere l\'indirizzo del server. Controlla la connessione a Internet e l\'URL del server.</string>
+    <string name="server_not_responding">Il server non risponde. Potrebbe essere offline o la tua connessione potrebbe essere bloccata.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">Token API</string>
     <string name="news_list_is_empty">Non ci sono notizie</string>

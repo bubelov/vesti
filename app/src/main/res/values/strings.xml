@@ -12,6 +12,8 @@
     <string name="log_out_warning">Do you really want to log out?</string>
     <string name="cancel">Cancel</string>
     <string name="direct_login_failed">Could not connect to server. Please make sure your login info is correct.</string>
+    <string name="host_not_reachable">Could not reach the server address. Please check your internet connection and the server URL.</string>
+    <string name="server_not_responding">The server is not responding. It may be offline, or your connection may be blocked.</string>
     <string name="local_network_permission_required" translatable="false">Local network access is required to connect to this address.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API Token</string>

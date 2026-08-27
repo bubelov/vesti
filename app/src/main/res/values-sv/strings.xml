@@ -12,6 +12,8 @@
     <string name="log_out_warning">Är du säker på att du vill logga ut?</string>
     <string name="cancel">Avbryt</string>
     <string name="direct_login_failed">Kan inte ansluta till server. Kontrollera uppgifterna.</string>
+    <string name="host_not_reachable">Kunde inte nå serverns adress. Kontrollera din internetanslutning och serverns URL.</string>
+    <string name="server_not_responding">Servern svarar inte. Den kan vara offline eller så blockeras din anslutning.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API-token</string>
     <string name="news_list_is_empty">Nyhetslistan är tom</string>

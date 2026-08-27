@@ -12,6 +12,8 @@
     <string name="log_out_warning">您确定要登出吗？</string>
     <string name="cancel">取消</string>
     <string name="direct_login_failed">无法连接到服务器。请确认您的登录信息正确。</string>
+    <string name="host_not_reachable">无法访问服务器地址。请检查您的网络连接和服务器网址。</string>
+    <string name="server_not_responding">服务器没有响应。它可能已离线，或您的连接被阻止。</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API 令牌</string>
     <string name="news_list_is_empty">新闻列表是空的</string>

@@ -12,6 +12,8 @@
     <string name="log_out_warning">Chiar vrei sa te deconectezi?</string>
     <string name="cancel">Anulează</string>
     <string name="direct_login_failed">Conexiunea la server nu s-a putut realiza. Te rugăm să verifici datele de conectare.</string>
+    <string name="host_not_reachable">Nu s-a putut accesa adresa serverului. Verificați conexiunea la internet și adresa URL a serverului.</string>
+    <string name="server_not_responding">Serverul nu răspunde. Poate fi offline sau conexiunea dumneavoastră poate fi blocată.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">Token API</string>
     <string name="news_list_is_empty">Lista de știri este goală</string>

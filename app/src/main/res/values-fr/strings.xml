@@ -12,6 +12,8 @@
     <string name="log_out_warning">Voulez vous vraiment vous déconnecter ?</string>
     <string name="cancel">Annuler</string>
     <string name="direct_login_failed">Impossible de se connecter au serveur. Veuillez vous assurer que vos informations de connexion soient correctes.</string>
+    <string name="host_not_reachable">Impossible de joindre l\'adresse du serveur. Vérifiez votre connexion Internet et l\'URL du serveur.</string>
+    <string name="server_not_responding">Le serveur ne répond pas. Il est peut-être hors ligne ou votre connexion est bloquée.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">Jeton API</string>
     <string name="news_list_is_empty">Aucun article disponible</string>

@@ -12,6 +12,8 @@
     <string name="log_out_warning">Haluatko varmasti kirjautua ulos?</string>
     <string name="cancel">Peruuta</string>
     <string name="direct_login_failed">Yhteys palvelimeen epäonnistui. Varmista, että kirjautumistietosi ovat oikein.</string>
+    <string name="host_not_reachable">Palvelimen osoitteeseen ei saatu yhteyttä. Tarkista internet-yhteytesi ja palvelimen osoite.</string>
+    <string name="server_not_responding">Palvelin ei vastaa. Se voi olla poissa käytöstä tai yhteytesi on estetty.</string>
     <string name="server_url_hint">https://esimerkki.com</string>
     <string name="api_token">API-token</string>
     <string name="news_list_is_empty">Uutislista on tyhjä</string>

@@ -12,6 +12,8 @@
     <string name="log_out_warning">هل أنت متأكد من تسجيل الخروج؟</string>
     <string name="cancel">إلغاء</string>
     <string name="direct_login_failed">تعذر الاتصال بالخادم. يرجى التأكد من صحة معلومات تسجيل الدخول الخاصة بك.</string>
+    <string name="host_not_reachable">تعذر الوصول إلى عنوان الخادم. يرجى التحقق من اتصالك بالإنترنت ومن عنوان الخادم.</string>
+    <string name="server_not_responding">الخادم لا يستجيب. قد يكون غير متصل، أو قد يكون اتصالك محجوبًا.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">رمز API</string>
     <string name="news_list_is_empty">قائمة الأخبار فارغة</string>

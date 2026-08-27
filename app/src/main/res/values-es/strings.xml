@@ -12,6 +12,8 @@
     <string name="log_out_warning">¿Realmente quieres cerrar la sesión?</string>
     <string name="cancel">Cancelar</string>
     <string name="direct_login_failed">No se pudo conectar al servidor. Por favor, asegúrese de que su información de inicio de sesión es correcta.</string>
+    <string name="host_not_reachable">No se pudo alcanzar la dirección del servidor. Comprueba tu conexión a Internet y la URL del servidor.</string>
+    <string name="server_not_responding">El servidor no responde. Puede estar desconectado o tu conexión puede estar bloqueada.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">Token API</string>
     <string name="news_list_is_empty">La lista está vacía</string>

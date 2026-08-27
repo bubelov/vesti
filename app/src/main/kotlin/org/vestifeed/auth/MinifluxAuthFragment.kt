@@ -120,7 +120,19 @@ class MinifluxAuthFragment : AppFragment() {
                 // AuthEvents; the activity will log out and pop back to the
                 // backend selection screen, so no dialog is needed here.
             } catch (e: Throwable) {
-                showErrorDialog(e.message ?: getString(R.string.direct_login_failed))
+                showErrorDialog(
+                    when (e) {
+                        is java.net.UnknownHostException,
+                            -> getString(R.string.host_not_reachable)
+
+                        is java.net.ConnectException,
+                        is java.net.SocketTimeoutException,
+                        is java.net.NoRouteToHostException,
+                            -> getString(R.string.server_not_responding)
+
+                        else -> e.message ?: getString(R.string.direct_login_failed)
+                    }
+                )
             } finally {
                 _binding?.progress?.isVisible = false
             }

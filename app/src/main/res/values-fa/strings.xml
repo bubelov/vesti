@@ -12,6 +12,8 @@
     <string name="log_out_warning">آیا واقعاً می‌خواهید خارج شوید؟</string>
     <string name="cancel">فسخ</string>
     <string name="direct_login_failed">نمی‌توان به سرور متصل شد. لطفاً مطمئن شوید اطلاعات ورود شما صحیح است.</string>
+    <string name="host_not_reachable">دسترسی به نشانی سرور امکان‌پذیر نبود. لطفاً اتصال اینترنت و نشانی سرور را بررسی کنید.</string>
+    <string name="server_not_responding">سرور پاسخ نمی‌دهد. ممکن است خاموش باشد یا اتصال شما مسدود شده باشد.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">توکن API</string>
     <string name="news_list_is_empty">فهرست اخبار خالی‌ست</string>

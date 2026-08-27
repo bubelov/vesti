@@ -12,6 +12,8 @@
     <string name="log_out_warning">Möchtest du dich wirklich abmelden?</string>
     <string name="cancel">Abbrechen</string>
     <string name="direct_login_failed">Konnte keine Verbindung zum Server herstellen. Bitte stelle sicher, dass deine Anmeldedaten korrekt sind.</string>
+    <string name="host_not_reachable">Die Serveradresse konnte nicht erreicht werden. Bitte überprüfe deine Internetverbindung und die Server-URL.</string>
+    <string name="server_not_responding">Der Server antwortet nicht. Er ist möglicherweise offline oder deine Verbindung wird blockiert.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API-Token</string>
     <string name="news_list_is_empty">Artikel-Liste ist leer</string>

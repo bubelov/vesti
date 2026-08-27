@@ -12,6 +12,8 @@
     <string name="log_out_warning">Do you really want to log out?</string>
     <string name="cancel">Cancel</string>
     <string name="direct_login_failed">Could not connect to server. Please make sure your login info is correct.</string>
+    <string name="host_not_reachable">Није било могуће доћи до адресе сервера. Проверите интернет везу и URL сервера.</string>
+    <string name="server_not_responding">Сервер не одговара. Можда је офлајн или је ваша веза блокирана.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API Token</string>
     <string name="news_list_is_empty">News list is empty</string>

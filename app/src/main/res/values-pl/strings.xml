@@ -12,6 +12,8 @@
     <string name="log_out_warning">Naprawdę wylogować?</string>
     <string name="cancel">Anuluj</string>
     <string name="direct_login_failed">Nie można połączyć się z serwerem. Upewnij się, że dane logowania są poprawne.</string>
+    <string name="host_not_reachable">Nie udało się połączyć z adresem serwera. Sprawdź połączenie internetowe i adres URL serwera.</string>
+    <string name="server_not_responding">Serwer nie odpowiada. Może być wyłączony lub Twoje połączenie jest blokowane.</string>
     <string name="server_url_hint">https://adres.serwera.com</string>
     <string name="api_token">Token API</string>
     <string name="news_list_is_empty">Lista wiadomości jest pusta</string>

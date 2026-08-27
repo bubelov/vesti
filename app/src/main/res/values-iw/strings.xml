@@ -12,6 +12,8 @@
     <string name="log_out_warning">Do you really want to log out?</string>
     <string name="cancel">Cancel</string>
     <string name="direct_login_failed">Could not connect to server. Please make sure your login info is correct.</string>
+    <string name="host_not_reachable">לא ניתן היה להגיע לכתובת השרת. בדוק את חיבור האינטרנט ואת כתובת השרת.</string>
+    <string name="server_not_responding">השרת אינו מגיב. הוא עשוי להיות לא מחובר, או שהחיבור שלך חסום.</string>
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API Token</string>
     <string name="news_list_is_empty">News list is empty</string>

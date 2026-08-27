@@ -12,6 +12,8 @@
     <string name="log_out_warning">Você realmente quer sair?</string>
     <string name="cancel">Cancelar</string>
     <string name="direct_login_failed">Não foi possível conectar-se ao servidor. Por favor, certifique-se de que seus credenciais estejam corretos.</string>
+    <string name="host_not_reachable">Não foi possível acessar o endereço do servidor. Verifique sua conexão com a internet e o URL do servidor.</string>
+    <string name="server_not_responding">O servidor não está respondendo. Ele pode estar offline ou sua conexão pode estar bloqueada.</string>
     <string name="server_url_hint">https://examplo.com</string>
     <string name="api_token">Token API</string>
     <string name="news_list_is_empty">Nenhum conteúdo na lista de notícias</string>

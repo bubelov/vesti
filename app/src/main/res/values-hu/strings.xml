@@ -12,6 +12,8 @@
     <string name="log_out_warning">Biztosan ki szeretne jelentkezni?</string>
     <string name="cancel">Mégsem</string>
     <string name="direct_login_failed">Nem lehetett kapcsolódni a kiszolgálóhoz. Kérem, ellenőrizze a bejelenkezési adatait.</string>
+    <string name="host_not_reachable">Nem sikerült elérni a kiszolgáló címét. Ellenőrizze az internetkapcsolatot és a kiszolgáló URL-jét.</string>
+    <string name="server_not_responding">A kiszolgáló nem válaszol. Lehet, hogy offline, vagy a kapcsolat blokkolva van.</string>
     <string name="server_url_hint">https://pelda.com</string>
     <string name="api_token">API token</string>
     <string name="news_list_is_empty">Jelenleg nem áll rendelkezésre több hír</string>
