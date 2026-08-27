@@ -549,11 +549,12 @@ class FeedsFragment : AppFragment() {
     }
 
     private fun handleAddFeedIntent() {
-        val url = requireArguments().getString("url", "")
+        val args = arguments ?: return
+        val url = args.getString("url", "")
 
         if (url.isNotBlank()) {
             addFeed(url, null)
-            requireArguments().clear()
+            args.clear()
         }
     }
 
