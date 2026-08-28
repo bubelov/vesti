@@ -759,7 +759,7 @@ class EntryTable(private val conn: SQLiteConnection) {
                             title = stmt.getText(5),
                             feedTitle = stmt.getText(6),
                             published = OffsetDateTime.parse(stmt.getText(7)),
-                            summary = stmt.getText(8),
+                            summary = stmt.getTextOrNull(8),
                             extRead = stmt.getInt(9) == 1,
                             extOpenEntriesInBrowser = stmt.getInt(10) == 1,
                             authorName = stmt.getText(11),
