@@ -434,7 +434,7 @@ class MinifluxTest {
         }
     }
 
-    @Test
+@Test
     fun findOrCreateCategoryCreatesWhenAbsent() {
         val server = MockWebServer().apply { start() }
         try {
@@ -476,5 +476,99 @@ class MinifluxTest {
         } finally {
             server.shutdown()
         }
+    }
+
+    @Test
+    fun getUnreadEntriesPaginatesWhenTotalExceedsPageSize() {
+        val server = MockWebServer().apply { start() }
+        try {
+            // First page: 1000 entries, total reported as 3439.
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(unreadPayload(total = 3439L, ids = (1L..1000L).toList()))
+            )
+            // Second page: 1000 entries.
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(unreadPayload(total = 3439L, ids = (1001L..2000L).toList()))
+            )
+            // Third page: 1000 entries.
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(unreadPayload(total = 3439L, ids = (2001L..3000L).toList()))
+            )
+            // Final page: 439 entries — short page tells us we are done.
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(unreadPayload(total = 3439L, ids = (3001L..3439L).toList()))
+            )
+
+            val api = Miniflux(
+                client = OkHttpClient(),
+                baseUrl = server.url("/v1/"),
+                db = db,
+            )
+
+            val entries = runBlocking { api.getUnreadEntries() }
+
+            assertEquals(3439, entries.size)
+            assertEquals("1", entries.first().first.id)
+            assertEquals("3439", entries.last().first.id)
+            assertEquals(4, server.requestCount)
+
+            val firstPath = server.takeRequest().path!!
+            assertTrue(
+                "Expected first page to ask for offset=0 limit=1000, got: $firstPath",
+                firstPath.contains("offset=0") && firstPath.contains("limit=1000"),
+            )
+            val secondPath = server.takeRequest().path!!
+            assertTrue(
+                "Expected second page to ask for offset=1000 limit=1000, got: $secondPath",
+                secondPath.contains("offset=1000") && secondPath.contains("limit=1000"),
+            )
+            val thirdPath = server.takeRequest().path!!
+            assertTrue(
+                "Expected third page to ask for offset=2000 limit=1000, got: $thirdPath",
+                thirdPath.contains("offset=2000") && thirdPath.contains("limit=1000"),
+            )
+            val fourthPath = server.takeRequest().path!!
+            assertTrue(
+                "Expected fourth page to ask for offset=3000 limit=1000, got: $fourthPath",
+                fourthPath.contains("offset=3000") && fourthPath.contains("limit=1000"),
+            )
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    private fun unreadPayload(total: Long, ids: List<Long>): String {
+        val entries = ids.joinToString(",") { id ->
+            """
+            {
+              "id": $id,
+              "feed_id": 1,
+              "status": "unread",
+              "title": "entry $id",
+              "url": "",
+              "comments_url": "",
+              "published_at": "2024-01-01T00:00:00Z",
+              "created_at": "2024-01-01T00:00:00Z",
+              "changed_at": "2024-01-01T00:00:00Z",
+              "content": "",
+              "author": "",
+              "starred": false,
+              "enclosures": null
+            }
+            """.trimIndent()
+        }
+        return """{"total": $total, "entries": [$entries]}"""
     }
 }

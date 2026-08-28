@@ -61,9 +61,13 @@ class EntriesViewModel(
             sync.running.collect { running ->
                 _state.update { it.copy(running = running) }
                 if (running) {
-                    // If we still don't have any items to show, surface the
-                    // "initial sync" message instead of an empty list.
-                    if (_state.value.items is ItemsState.Loading) {
+                    // If a sync kicks off before we have any rows to show,
+                    // surface the "initial sync" placeholder instead of the
+                    // empty-state message. The Miniflux auth flow starts a
+                    // first sync right before navigating here, so without
+                    // this we'd briefly flash "you have no feeds" before
+                    // any entries landed in the database.
+                    if (_state.value.items !is ItemsState.Showing) {
                         _state.update { it.copy(items = ItemsState.InitialSync) }
                     }
                 } else {
@@ -111,10 +115,15 @@ class EntriesViewModel(
 
         val items = rows.map { EntryRowMapper.toItem(it, conf, now, resources) }
         val title = filter.resolveTitle(db)
-        val itemsState = if (items.isEmpty()) {
-            ItemsState.Empty(filter.emptyMessageRes(feedCount))
-        } else {
-            ItemsState.Showing(items)
+        val itemsState = when {
+            items.isNotEmpty() -> ItemsState.Showing(items)
+            // Don't surface the empty-state message while a sync is in
+            // flight: rows are about to land in the database and the
+            // next reload will pick them up. Showing "you have no feeds"
+            // now would contradict the progress indicator and confuse
+            // users coming from the Miniflux auth flow.
+            sync.running.value -> ItemsState.InitialSync
+            else -> ItemsState.Empty(filter.emptyMessageRes(feedCount))
         }
 
         _state.update { it.copy(title = title.toTitleState(), items = itemsState) }

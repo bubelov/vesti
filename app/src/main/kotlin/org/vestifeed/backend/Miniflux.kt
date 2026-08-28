@@ -173,36 +173,54 @@ open class Miniflux(
     }
 
     open suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
-        // https://miniflux.app/docs/api.html#endpoint-get-entries
-        val urlBuilder = baseUrl.newBuilder().addPathSegment("entries")
-        urlBuilder.addQueryParameter("status", "unread")
-        urlBuilder.addQueryParameter("limit", "0")
-        val req = Request.Builder().url(urlBuilder.build()).get().build()
-        val res = client.newCall(req).executeAsync()
-        return if (res.isSuccessful) {
-            val body = res.body.string()
-            val payload = JsonParser.parseString(body).asJsonObject.toEntriesPayload()
-            payload.entries.map { it.toEntry() }
-        } else {
-            throw IOException("http request failed with response code ${res.code}")
+        return fetchEntriesByFilter { offset, limit ->
+            baseUrl.newBuilder().addPathSegment("entries").apply {
+                addQueryParameter("status", "unread")
+                addQueryParameter("offset", offset.toString())
+                addQueryParameter("limit", limit.toString())
+            }
         }
     }
 
     open suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
-        // https://miniflux.app/docs/api.html#endpoint-get-entries
-        val urlBuilder = baseUrl.newBuilder().addPathSegment("entries")
-        urlBuilder.addQueryParameter("starred", "1")
-        urlBuilder.addQueryParameter("limit", "0")
-        val req = Request.Builder().url(urlBuilder.build()).get().build()
-        val res = client.newCall(req).executeAsync()
-        return if (res.isSuccessful) {
-            val starredBody = res.body.string()
-            val starredPayload =
-                JsonParser.parseString(starredBody).asJsonObject.toEntriesPayload()
-            starredPayload.entries.map { it.toEntry() }
-        } else {
-            throw IOException("http request failed with response code ${res.code}")
+        return fetchEntriesByFilter { offset, limit ->
+            baseUrl.newBuilder().addPathSegment("entries").apply {
+                addQueryParameter("starred", "1")
+                addQueryParameter("offset", offset.toString())
+                addQueryParameter("limit", limit.toString())
+            }
         }
+    }
+
+    /**
+     * Walks the `/v1/entries` endpoint in [MAX_PAGE_SIZE] pages until the
+     * server reports every entry matching [urlBuilder]. The Miniflux API
+     * caps `limit` at 1000 (rejects larger values with HTTP 400), so a
+     * single request never returns more than that many rows even when the
+     * caller asks for an "unlimited" page. The server terminates the walk
+     * naturally by returning a short final page; if for some reason the
+     * final page is also full we additionally guard against an infinite
+     * loop using the `total` field the server reports on every response.
+     */
+    private suspend fun fetchEntriesByFilter(
+        urlBuilder: (offset: Long, limit: Long) -> HttpUrl.Builder,
+    ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
+        val collected = mutableListOf<Pair<EntryTable.Entry, List<LinkTable.Link>>>()
+        var offset = 0L
+        while (true) {
+            val req = Request.Builder().url(urlBuilder(offset, MAX_PAGE_SIZE).build()).get().build()
+            val res = client.newCall(req).executeAsync()
+            if (!res.isSuccessful) {
+                throw IOException("http request failed with response code ${res.code}")
+            }
+            val payload = JsonParser.parseString(res.body.string()).asJsonObject.toEntriesPayload()
+            val page = payload.entries.map { it.toEntry() }
+            collected += page
+            if (page.size < MAX_PAGE_SIZE.toInt()) break
+            if (payload.total > 0 && collected.size >= payload.total) break
+            offset += MAX_PAGE_SIZE
+        }
+        return collected
     }
 
     open suspend fun getEntriesChangedAfter(
@@ -504,5 +522,12 @@ open class Miniflux(
     companion object {
         val JSON = "application/json".toMediaType()
         const val API_PATH = "/v1/"
+        /**
+         * Miniflux rejects `limit` values greater than 1000 with HTTP 400,
+         * so any paginated walk of `/v1/entries` has to use this page size.
+         * The user-configurable `entries_per_page` (default 100) only affects
+         * the web UI and the Miniflux app, not this client.
+         */
+        const val MAX_PAGE_SIZE = 1000L
     }
 }
