@@ -52,6 +52,8 @@
     <string name="previous_match">Previous match</string>
     <string name="next_match">Next match</string>
     <string name="close_search">Close search</string>
+    <string name="og_image_fetch_log">OG image fetch log</string>
+    <string name="og_image_fetch_log_empty">No OG image fetch log entries yet.</string>
     <string name="type_at_least_3_characters_to_search">Type at least 3 characters to search</string>
     <string name="no_results">No results</string>
     <string name="you_have_no_apps_which_can_play_this_podcast">You have no apps which can play this podcast.</string>

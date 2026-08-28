@@ -8,7 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.table.ConfTable
-import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTagTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.TagTable
@@ -33,7 +32,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             val v1Schema = """
@@ -90,7 +89,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             val v2Schema = """
@@ -141,7 +140,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             val v3Schema = """
@@ -193,7 +192,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             val v4Schema = """
@@ -258,7 +257,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             val v5Schema = """
@@ -311,7 +310,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL(LINK_SCHEMA_V7)
@@ -367,7 +366,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
             conn.prepare(
@@ -402,5 +401,35 @@ class DatabaseMigrationTest {
         val played = db.link.selectByFeedId("f1").single()
         assertEquals(true, played.extPlayed)
         assertEquals(null, played.extPlayedAt)
+    }
+
+    @Test
+    fun migrate_v8ToV9_addsExtOgLogColumn() {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
+            conn.execSQL(LINK_SCHEMA_V7)
+
+            conn.execSQL("PRAGMA user_version=8;")
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+
+        // No fetcher has touched this entry yet, so the column defaults to
+        // an empty array of { timestamp, message } objects.
+        val inserted = db.entry.insertOrReplace()
+        val reloaded = db.entry.selectById(inserted.id)!!
+        assertEquals("[]", reloaded.extOpenGraphImageLog)
+
+        db.entry.updateOgLog(
+            extOgLog = """[{"timestamp":"2026-08-28T10:00:00Z","message":"hello"}]""",
+            id = inserted.id,
+        )
+        val updated = db.entry.selectById(inserted.id)!!
+        assertEquals(
+            """[{"timestamp":"2026-08-28T10:00:00Z","message":"hello"}]""",
+            updated.extOpenGraphImageLog,
+        )
     }
 }

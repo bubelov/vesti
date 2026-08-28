@@ -100,6 +100,7 @@ class BackgroundSyncShowsNotificationTest {
                 extOpenGraphImageWidth = 0,
                 extOpenGraphImageHeight = 0,
                 extOpenGraphImageFetchedAt = null,
+                extOpenGraphImageLog = "[]",
             )
         }
         app.db.entry.insertOrReplace(entries)
@@ -192,6 +193,7 @@ class BackgroundSyncShowsNotificationTest {
             extOpenGraphImageWidth = 0,
             extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
         )
         app.db.entry.insertOrReplace(listOf(entry))
 

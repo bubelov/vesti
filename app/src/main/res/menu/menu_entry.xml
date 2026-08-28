@@ -44,4 +44,11 @@
         app:showAsAction="never"
         tools:visible="true" />
 
+    <item
+        android:id="@+id/ogFetchLog"
+        android:title="@string/og_image_fetch_log"
+        android:visible="false"
+        app:showAsAction="never"
+        tools:visible="true" />
+
 </menu>

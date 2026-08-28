@@ -46,6 +46,8 @@ import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.JsonParser
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.dialog.showErrorDialog
 import org.vestifeed.enclosures.EnclosuresAdapter
@@ -413,6 +415,7 @@ class EntryFragment : AppFragment() {
         menu.findItem(R.id.feedSettings)?.isVisible = true
         menu.findItem(R.id.share)?.isVisible = true
         menu.findItem(R.id.findInPage)?.isVisible = true
+        menu.findItem(R.id.ogFetchLog)?.isVisible = true
 
         binding.contentContainer.isVisible = true
         binding.toolbar.title = feedTitle
@@ -506,8 +509,46 @@ class EntryFragment : AppFragment() {
                 toggleFindInPage()
                 return true
             }
+
+            R.id.ogFetchLog -> {
+                showOgFetchLog(entry.extOpenGraphImageLog)
+                return true
+            }
         }
         return false
+    }
+
+    private fun showOgFetchLog(rawJson: String) {
+        val rendered = formatOgLog(rawJson)
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_og_log, null, false)
+        dialogView.findViewById<TextView>(R.id.ogLogText).text = rendered
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.og_image_fetch_log)
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun formatOgLog(rawJson: String): CharSequence {
+        val array = runCatching {
+            JsonParser.parseString(rawJson).asJsonArray
+        }.getOrNull() ?: return getString(R.string.og_image_fetch_log_empty)
+
+        if (array.size() == 0) {
+            return getString(R.string.og_image_fetch_log_empty)
+        }
+
+        val builder = StringBuilder()
+        for (i in 0 until array.size()) {
+            val entry = array.get(i).asJsonObject
+            val timestamp = entry.get("timestamp")?.asString.orEmpty()
+            val message = entry.get("message")?.asString.orEmpty()
+            if (builder.isNotEmpty()) builder.append('\n')
+            builder.append(timestamp).append(" - ").append(message)
+        }
+        return builder
     }
 
     private fun updateBookmarkedButton(bookmarked: Boolean) {

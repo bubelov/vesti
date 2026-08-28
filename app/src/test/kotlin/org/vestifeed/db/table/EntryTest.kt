@@ -27,6 +27,7 @@ class EntryTest {
         assertTrue(statement.contains("feed_id TEXT NOT NULL"))
         assertTrue(statement.contains("ext_og_image_url TEXT NOT NULL"))
         assertTrue(statement.contains("ext_og_image_fetched_at TEXT NOT NULL DEFAULT ''"))
+        assertTrue(statement.contains("ext_og_log TEXT NOT NULL DEFAULT '[]'"))
     }
 
     @Test
@@ -232,6 +233,7 @@ class EntryTest {
         extOpenGraphImageWidth: Int = 0,
         extOpenGraphImageHeight: Int = 0,
         extOpenGraphImageFetchedAt: OffsetDateTime? = null,
+        extOpenGraphImageLog: String = "[]",
     ) = EntryTable.Entry(
         contentType = "html",
         contentSrc = "",
@@ -253,5 +255,6 @@ class EntryTest {
         extOpenGraphImageWidth = extOpenGraphImageWidth,
         extOpenGraphImageHeight = extOpenGraphImageHeight,
         extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
+        extOpenGraphImageLog = extOpenGraphImageLog,
     )
 }

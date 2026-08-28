@@ -141,6 +141,7 @@ class EntriesFragmentScrollPositionTest {
             extOpenGraphImageWidth = 0,
             extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
         )
     }
 

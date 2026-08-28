@@ -173,6 +173,7 @@ internal fun AtomEntry.toEntry(feedId: String): Pair<EntryTable.Entry, List<Link
             extOpenGraphImageWidth = 0,
             extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
         ), links.map {
             LinkTable.Link(
                 id = null,
@@ -262,6 +263,7 @@ internal fun RssItem.toEntry(feedId: String): Pair<EntryTable.Entry, List<LinkTa
             extOpenGraphImageWidth = 0,
             extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
         ), links
     )
 }

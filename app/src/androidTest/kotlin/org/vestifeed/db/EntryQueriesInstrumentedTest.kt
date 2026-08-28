@@ -77,4 +77,5 @@ private fun entry() = Entry(
     extOpenGraphImageWidth = 0,
     extOpenGraphImageHeight = 0,
     extOpenGraphImageFetchedAt = null,
+    extOpenGraphImageLog = "[]",
 )

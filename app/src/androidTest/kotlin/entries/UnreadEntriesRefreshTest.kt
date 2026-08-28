@@ -119,6 +119,7 @@ class UnreadEntriesRefreshTest {
             extOpenGraphImageWidth = 0,
             extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
         )
     }
 

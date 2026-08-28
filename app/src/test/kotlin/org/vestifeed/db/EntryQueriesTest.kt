@@ -305,6 +305,27 @@ class EntryQueriesTest {
         assertEquals(now, updated?.extOpenGraphImageFetchedAt)
         assertEquals(1L, db.entry.countByOgImageFetchedAfter(now.minusSeconds(1)))
     }
+
+    @Test
+    fun updateOgLog_overwritesStoredLog() {
+        val inserted = entry()
+        db.entry.insertOrReplace(listOf(inserted))
+
+        val log = """[{"timestamp":"2026-08-28T10:00:00Z","message":"hello"}]"""
+        db.entry.updateOgLog(extOgLog = log, id = inserted.id)
+
+        val updated = db.entry.selectById(inserted.id)
+        assertEquals(log, updated?.extOpenGraphImageLog)
+    }
+
+    @Test
+    fun insertOrReplace_defaultsOgLogToEmptyArray() {
+        val inserted = entry().copy(extOpenGraphImageLog = "[]")
+        db.entry.insertOrReplace(listOf(inserted))
+
+        val updated = db.entry.selectById(inserted.id)
+        assertEquals("[]", updated?.extOpenGraphImageLog)
+    }
 }
 
 fun EntryTable.insertOrReplace(): EntryTable.Entry {
@@ -334,6 +355,7 @@ fun entry() = EntryTable.Entry(
     extOpenGraphImageWidth = 0,
     extOpenGraphImageHeight = 0,
     extOpenGraphImageFetchedAt = null,
+    extOpenGraphImageLog = "[]",
 )
 
 fun entryWithoutContent() = EntryTable.EntryWithoutContent(
@@ -354,6 +376,7 @@ fun entryWithoutContent() = EntryTable.EntryWithoutContent(
     extOpenGraphImageWidth = 0,
     extOpenGraphImageHeight = 0,
     extOpenGraphImageFetchedAt = null,
+    extOpenGraphImageLog = "[]",
 )
 
 fun EntryTable.Entry.withoutContent() = EntryTable.EntryWithoutContent(
@@ -374,6 +397,7 @@ fun EntryTable.Entry.withoutContent() = EntryTable.EntryWithoutContent(
     extOpenGraphImageWidth = extOpenGraphImageWidth,
     extOpenGraphImageHeight = extOpenGraphImageHeight,
     extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
+    extOpenGraphImageLog = extOpenGraphImageLog,
 )
 
 fun EntryTable.EntryWithoutContent.toEntry(): EntryTable.Entry {
@@ -398,6 +422,7 @@ fun EntryTable.EntryWithoutContent.toEntry(): EntryTable.Entry {
         extOpenGraphImageWidth = extOpenGraphImageWidth,
         extOpenGraphImageHeight = extOpenGraphImageHeight,
         extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
+        extOpenGraphImageLog = extOpenGraphImageLog,
     )
 }
 
