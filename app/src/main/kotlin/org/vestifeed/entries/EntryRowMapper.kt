@@ -13,7 +13,7 @@ import java.time.OffsetDateTime
  */
 interface EntryRowMappable {
     val id: String
-    val extShowPreviewImages: Boolean
+    val extShowPreviewImages: Boolean?
     val extOpenGraphImageUrl: String
     val extOpenGraphImageWidth: Int
     val extOpenGraphImageHeight: Int
@@ -29,6 +29,23 @@ interface EntryRowMappable {
 object EntryRowMapper {
 
     /**
+     * Resolves the per-feed three-state "show preview images" setting against
+     * the global setting. An explicit per-feed value always wins over the
+     * global one; `null` means "follow settings" and falls back to the global
+     * value. Without this the OR-collapse in [toItem] would let the global
+     * "show" setting silently override a per-feed "hide" choice on the unread
+     * and bookmarks screens.
+     */
+    internal fun resolveShowImage(
+        perFeed: Boolean?,
+        global: Boolean,
+    ): Boolean = when (perFeed) {
+        true -> true
+        false -> false
+        null -> global
+    }
+
+    /**
      * @param now the reference point used by [EntryTimeFormatter] to decide
      *   between "just now", relative and strict formatting. Callers should
      *   capture a single value per list build so all rows in one render see
@@ -42,7 +59,7 @@ object EntryRowMapper {
     ): EntriesAdapter.Item {
         return EntriesAdapter.Item(
             id = row.id,
-            showImage = row.extShowPreviewImages || conf.showPreviewImages,
+            showImage = resolveShowImage(row.extShowPreviewImages, conf.showPreviewImages),
             cropImage = conf.cropPreviewImages,
             imageUrl = row.extOpenGraphImageUrl,
             imageWidth = row.extOpenGraphImageWidth,

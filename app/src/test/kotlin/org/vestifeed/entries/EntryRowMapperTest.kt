@@ -65,4 +65,24 @@ class EntryRowMapperTest {
             ),
         )
     }
+
+    @Test
+    fun resolveShowImage_explicitShowOverridesGlobalHide() {
+        assertEquals(true, EntryRowMapper.resolveShowImage(perFeed = true, global = false))
+    }
+
+    @Test
+    fun resolveShowImage_explicitHideOverridesGlobalShow() {
+        assertEquals(false, EntryRowMapper.resolveShowImage(perFeed = false, global = true))
+    }
+
+    @Test
+    fun resolveShowImage_followSettingsFollowsGlobalOn() {
+        assertEquals(true, EntryRowMapper.resolveShowImage(perFeed = null, global = true))
+    }
+
+    @Test
+    fun resolveShowImage_followSettingsFollowsGlobalOff() {
+        assertEquals(false, EntryRowMapper.resolveShowImage(perFeed = null, global = false))
+    }
 }

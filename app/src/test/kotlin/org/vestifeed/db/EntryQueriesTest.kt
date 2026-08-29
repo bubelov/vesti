@@ -326,6 +326,102 @@ class EntryQueriesTest {
         val updated = db.entry.selectById(inserted.id)
         assertEquals("[]", updated?.extOpenGraphImageLog)
     }
+
+    @Test
+    fun selectUnread_preservesNullExtShowPreviewImagesFromFeed() {
+        val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)
+        val hideFeed = createFeed(title = "Hide", extShowPreviewImages = false)
+        val showFeed = createFeed(title = "Show", extShowPreviewImages = true)
+        db.feed.insertOrReplace(listOf(followSettingsFeed, hideFeed, showFeed))
+
+        db.entry.insertOrReplace(
+            listOf(
+                entry().copy(feedId = followSettingsFeed.id, title = "follow"),
+                entry().copy(feedId = hideFeed.id, title = "hide"),
+                entry().copy(feedId = showFeed.id, title = "show"),
+            ),
+        )
+
+        val unread = db.entry.selectUnread().associateBy { it.title }
+
+        assertEquals(null, unread.getValue("follow").extShowPreviewImages)
+        assertEquals(false, unread.getValue("hide").extShowPreviewImages)
+        assertEquals(true, unread.getValue("show").extShowPreviewImages)
+    }
+
+    @Test
+    fun selectBookmarked_preservesNullExtShowPreviewImagesFromFeed() {
+        val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)
+        val hideFeed = createFeed(title = "Hide", extShowPreviewImages = false)
+        db.feed.insertOrReplace(listOf(followSettingsFeed, hideFeed))
+
+        db.entry.insertOrReplace(
+            listOf(
+                entry().copy(feedId = followSettingsFeed.id, title = "follow", extBookmarked = true),
+                entry().copy(feedId = hideFeed.id, title = "hide", extBookmarked = true),
+            ),
+        )
+
+        val bookmarked = db.entry.selectBookmarked().associateBy { it.title }
+
+        assertEquals(null, bookmarked.getValue("follow").extShowPreviewImages)
+        assertEquals(false, bookmarked.getValue("hide").extShowPreviewImages)
+    }
+
+    @Test
+    fun selectByFeedId_preservesNullExtShowPreviewImagesFromFeed() {
+        val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)
+        db.feed.insertOrReplace(followSettingsFeed)
+
+        db.entry.insertOrReplace(
+            listOf(entry().copy(feedId = followSettingsFeed.id, title = "follow")),
+        )
+
+        val rows = db.entry.selectByFeedId(followSettingsFeed.id)
+        assertEquals(1, rows.size)
+        assertEquals(null, rows[0].extShowPreviewImages)
+    }
+
+    @Test
+    fun selectUnreadByFeedIds_preservesNullExtShowPreviewImagesFromFeed() {
+        val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)
+        db.feed.insertOrReplace(followSettingsFeed)
+
+        db.entry.insertOrReplace(
+            listOf(entry().copy(feedId = followSettingsFeed.id, title = "follow")),
+        )
+
+        val rows = db.entry.selectUnreadByFeedIds(listOf(followSettingsFeed.id))
+        assertEquals(1, rows.size)
+        assertEquals(null, rows[0].extShowPreviewImages)
+    }
+
+    @Test
+    fun selectByQuery_preservesNullExtShowPreviewImagesFromFeed() {
+        val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)
+        val hideFeed = createFeed(title = "Hide", extShowPreviewImages = false)
+        db.feed.insertOrReplace(listOf(followSettingsFeed, hideFeed))
+
+        db.entry.insertOrReplace(
+            listOf(
+                entry().copy(
+                    feedId = followSettingsFeed.id,
+                    title = "Follow settings entry",
+                    contentText = "unique marker",
+                ),
+                entry().copy(
+                    feedId = hideFeed.id,
+                    title = "Hide entry",
+                    contentText = "unique marker",
+                ),
+            ),
+        )
+
+        val rows = db.entry.selectByQuery("unique marker").associateBy { it.title }
+
+        assertEquals(null, rows.getValue("Follow settings entry").extShowPreviewImages)
+        assertEquals(false, rows.getValue("Hide entry").extShowPreviewImages)
+    }
 }
 
 fun EntryTable.insertOrReplace(): EntryTable.Entry {

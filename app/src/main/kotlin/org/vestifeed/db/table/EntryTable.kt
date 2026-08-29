@@ -4,6 +4,7 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
 import org.vestifeed.db.bindTextOrNull
+import org.vestifeed.db.getBoolOrNull
 import java.time.OffsetDateTime
 import kotlin.use
 
@@ -206,7 +207,7 @@ class EntryTable(private val conn: SQLiteConnection) {
         override val id: String,
         val feedId: String,
         val extBookmarked: Boolean,
-        override val extShowPreviewImages: Boolean,
+        override val extShowPreviewImages: Boolean?,
         override val extOpenGraphImageUrl: String,
         override val extOpenGraphImageWidth: Int,
         override val extOpenGraphImageHeight: Int,
@@ -651,12 +652,12 @@ class EntryTable(private val conn: SQLiteConnection) {
             id = stmt.getTextOrNull(getColumnIndex(stmt, "id")) ?: "",
             feedId = stmt.getTextOrNull(getColumnIndex(stmt, "feed_id")) ?: "",
             extBookmarked = stmt.getInt(getColumnIndex(stmt, "ext_bookmarked")) == 1,
-            extShowPreviewImages = stmt.getInt(
+            extShowPreviewImages = stmt.getBoolOrNull(
                 getColumnIndex(
                     stmt,
                     "ext_show_preview_images"
                 )
-            ) == 1,
+            ),
             extOpenGraphImageUrl = stmt.getTextOrNull(getColumnIndex(stmt, "ext_og_image_url"))
                 ?: "",
             extOpenGraphImageWidth = stmt.getInt(getColumnIndex(stmt, "ext_og_image_width")),
@@ -688,7 +689,7 @@ class EntryTable(private val conn: SQLiteConnection) {
     private fun statementToSelectByQuery(stmt: SQLiteStatement): SelectByQuery {
         return SelectByQuery(
             id = stmt.getTextOrNull(0) ?: "",
-            extShowPreviewImages = stmt.getInt(1) == 1,
+            extShowPreviewImages = stmt.getBoolOrNull(1),
             extOpenGraphImageUrl = stmt.getTextOrNull(2) ?: "",
             extOpenGraphImageWidth = stmt.getInt(3),
             extOpenGraphImageHeight = stmt.getInt(4),
@@ -735,7 +736,7 @@ class EntryTable(private val conn: SQLiteConnection) {
 
     data class SelectByQuery(
         override val id: String,
-        override val extShowPreviewImages: Boolean,
+        override val extShowPreviewImages: Boolean?,
         override val extOpenGraphImageUrl: String,
         override val extOpenGraphImageWidth: Int,
         override val extOpenGraphImageHeight: Int,
@@ -769,7 +770,7 @@ class EntryTable(private val conn: SQLiteConnection) {
                     add(
                         SelectByQuery(
                             id = stmt.getText(0),
-                            extShowPreviewImages = stmt.getInt(1) == 1,
+                            extShowPreviewImages = stmt.getBoolOrNull(1),
                             extOpenGraphImageUrl = stmt.getText(2),
                             extOpenGraphImageWidth = stmt.getInt(3),
                             extOpenGraphImageHeight = stmt.getInt(4),
