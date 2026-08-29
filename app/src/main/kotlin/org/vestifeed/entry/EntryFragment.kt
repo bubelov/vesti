@@ -481,7 +481,12 @@ class EntryFragment : AppFragment() {
             }
 
             R.id.feedSettings -> {
-                parentFragmentManager.commit {
+                val fragmentManager = if (parentFragment is UnreadPagerFragment) {
+                    requireActivity().supportFragmentManager
+                } else {
+                    parentFragmentManager
+                }
+                fragmentManager.commit {
                     replace(
                         R.id.fragmentContainerView,
                         FeedSettingsFragment::class.java,
