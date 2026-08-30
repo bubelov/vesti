@@ -618,22 +618,52 @@ class EntryTable(private val conn: SQLiteConnection) {
         conn.execSQL("DELETE FROM entry")
     }
 
-    fun selectByOgImageChecked(extOgImageChecked: Boolean, limit: Long): List<EntryWithoutContent> {
-        val res = mutableListOf<EntryWithoutContent>()
+    /**
+     * One pending OG-image job: an unchecked entry paired with the
+     * `ext_show_preview_images` value of its feed. The fetcher uses the
+     * per-feed flag together with the global setting to decide whether to
+     * actually attempt a network fetch; rows whose feed has previews
+     * disabled are returned here so they can be skipped without consuming
+     * network — and without flipping `ext_og_image_checked`, which keeps
+     * the row in the queue for the next time the user enables previews.
+     */
+    data class OgImageCandidate(
+        val id: String,
+        val title: String,
+        val extOpenGraphImageLog: String,
+        val feedShowPreviewImages: Boolean?,
+    )
+
+    /**
+     * Returns up to [limit] entries that have not yet been checked for an
+     * OG image, joined with their feed so the caller can apply the
+     * per-feed "show preview images" gate. Inner-joined on `feed`, so an
+     * entry whose feed has been deleted (orphan) is silently dropped —
+     * which is the right behaviour, since the OG fetcher can't resolve a
+     * `link` row for it either.
+     */
+    fun selectPendingOgImageEntries(limit: Long): List<OgImageCandidate> {
         conn.prepare(
             """
-            SELECT summary, id, feed_id, title, published, updated, author_name,
-                   ext_read, ext_read_synced, ext_bookmarked, ext_bookmarked_synced,
-                   ext_comments_url, ext_og_image_checked, ext_og_image_url,
-                   ext_og_image_width, ext_og_image_height, ext_og_image_fetched_at, ext_og_log
-            FROM entry WHERE ext_og_image_checked = ? ORDER BY published DESC LIMIT ?
-        """
+            SELECT e.id, e.title, e.ext_og_log, f.ext_show_preview_images
+            FROM entry e
+            JOIN feed f ON f.id = e.feed_id
+            WHERE e.ext_og_image_checked = 0
+            ORDER BY e.published DESC
+            LIMIT ?
+            """
         ).use { stmt ->
-            stmt.bindInt(1, if (extOgImageChecked) 1 else 0)
-            stmt.bindLong(2, limit)
+            stmt.bindLong(1, limit)
             return buildList {
                 while (stmt.step()) {
-                    add(statementToEntryWithoutContent(stmt))
+                    add(
+                        OgImageCandidate(
+                            id = stmt.getText(0),
+                            title = stmt.getText(1),
+                            extOpenGraphImageLog = stmt.getText(2),
+                            feedShowPreviewImages = stmt.getBoolOrNull(3),
+                        )
+                    )
                 }
             }
         }
