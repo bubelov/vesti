@@ -49,6 +49,95 @@ class OpenGraphImageFetcherTest {
     }
 
     // ---------------------------------------------------------------------
+    // runOnce short-circuit — gates the entire iteration behind (online,
+    // foreground) so the fetcher doesn't issue network requests when
+    // either is missing. Both branches map to the same delay in
+    // production but the enum is observed distinctly so logs and tests
+    // can tell the two reasons apart.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun ogRunSkip_offlineShortCircuitsRegardlessOfForeground() {
+        assertEquals(
+            OgRunSkip.Offline,
+            OpenGraphImageFetcher.ogRunSkip(isOnline = false, isForeground = true),
+        )
+        assertEquals(
+            OgRunSkip.Offline,
+            OpenGraphImageFetcher.ogRunSkip(isOnline = false, isForeground = false),
+        )
+    }
+
+    @Test
+    fun ogRunSkip_foregroundMissingWhenOnlineShortCircuits() {
+        assertEquals(
+            OgRunSkip.NotForeground,
+            OpenGraphImageFetcher.ogRunSkip(isOnline = true, isForeground = false),
+        )
+    }
+
+    @Test
+    fun ogRunSkip_onlineAndForegroundProceeds() {
+        assertEquals(
+            OgRunSkip.No,
+            OpenGraphImageFetcher.ogRunSkip(isOnline = true, isForeground = true),
+        )
+    }
+
+    // ---------------------------------------------------------------------
+    // Transient-vs-permanent failure classification. The transient branch
+    // is the new behavior — those exceptions used to mark the entry as
+    // "checked" forever, which caused a 12-second DNS blip to permanently
+    // poison two thousand entries' OG-image slot. The permanent branch
+    // still covers HTTP error codes, missing og:image, etc.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun isTransientNetwork_unknownHostIsTransient() {
+        assertTrue(
+            OpenGraphImageFetcher.isTransientNetwork(
+                java.net.UnknownHostException("Unable to resolve host \"beej.us\""),
+            )
+        )
+    }
+
+    @Test
+    fun isTransientNetwork_socketTimeoutIsTransient() {
+        assertTrue(
+            OpenGraphImageFetcher.isTransientNetwork(
+                java.net.SocketTimeoutException("timeout"),
+            )
+        )
+    }
+
+    @Test
+    fun isTransientNetwork_connectExceptionIsTransient() {
+        assertTrue(
+            OpenGraphImageFetcher.isTransientNetwork(
+                java.net.ConnectException("refused"),
+            )
+        )
+    }
+
+    @Test
+    fun isTransientNetwork_noRouteToHostIsTransient() {
+        assertTrue(
+            OpenGraphImageFetcher.isTransientNetwork(
+                java.net.NoRouteToHostException("no route"),
+            )
+        )
+    }
+
+    @Test
+    fun isTransientNetwork_illegalStateIsPermanent() {
+        assertFalse(
+            OpenGraphImageFetcher.isTransientNetwork(
+                IllegalStateException("not a network error"),
+            )
+        )
+    }
+
+    // ---------------------------------------------------------------------
     // End-to-end gating plan — combines the global setting, the per-feed
     // setting on each candidate, and the batch shape into the next action
     // the fetcher should take.

@@ -32,6 +32,8 @@ import kotlin.time.Duration.Companion.seconds
 class OpenGraphImageFetcher(
     private val db: Database,
     private val imageContext: PlatformContext,
+    private val connectivityMonitor: ConnectivityMonitor,
+    private val isForeground: () -> Boolean,
 ) {
     private val httpClient = OkHttpClient.Builder()
         .callTimeout(10, TimeUnit.SECONDS)
@@ -59,8 +61,23 @@ class OpenGraphImageFetcher(
      * Exposed as `internal` so tests can drive it without the infinite
      * loop. The interesting decision is in [planOgImageFetch], which is
      * pure and tested directly without needing a `PlatformContext`.
+     *
+     * Skips entirely when the device has no validated internet
+     * connection or when the app is in the background — both situations
+     * produce a flood of `UnknownHostException` log entries from
+     * Android throttling background network and from a network that has
+     * dropped while the fetcher is mid-loop. The fetcher resumes
+     * immediately when connectivity or foreground state returns.
      */
     internal suspend fun runOnce() {
+        when (ogRunSkip(isOnline = connectivityMonitor.isOnline(), isForeground = isForeground())) {
+            OgRunSkip.Offline -> delay(OFFLINE_INTERVAL)
+            OgRunSkip.NotForeground -> delay(OFFLINE_INTERVAL)
+            OgRunSkip.No -> runOnceBody()
+        }
+    }
+
+    private suspend fun runOnceBody() {
         val conf = withContext(Dispatchers.IO) { db.conf.select() }
         val candidates = withContext(Dispatchers.IO) {
             db.entry.selectPendingOgImageEntries(BATCH_SIZE)
@@ -113,6 +130,13 @@ class OpenGraphImageFetcher(
         val htmlLinkResponse = try {
             httpClient.newCall(Request.Builder().url(htmlLink.href).build()).await()
         } catch (e: Throwable) {
+            if (isTransientNetwork(e)) {
+                appendLog(
+                    candidate.id,
+                    "Transient failure fetching HTML: ${describe(e)}; will retry next iteration",
+                )
+                return false
+            }
             appendLog(candidate.id, "Failed to fetch HTML: ${describe(e)}")
             withContext(Dispatchers.IO) {
                 db.entry.updateOgImageChecked(true, candidate.id)
@@ -167,7 +191,15 @@ class OpenGraphImageFetcher(
             }
 
             is ErrorResult -> {
-                appendLog(candidate.id, "Failed to fetch OG image: ${describe(imageResult.throwable)}")
+                val throwable = imageResult.throwable
+                if (isTransientNetwork(throwable)) {
+                    appendLog(
+                        candidate.id,
+                        "Transient failure fetching OG image: ${describe(throwable)}; will retry next iteration",
+                    )
+                    return false
+                }
+                appendLog(candidate.id, "Failed to fetch OG image: ${describe(throwable)}")
                 withContext(Dispatchers.IO) {
                     db.entry.updateOgImageChecked(true, candidate.id)
                 }
@@ -264,6 +296,17 @@ class OpenGraphImageFetcher(
         val ALL_SKIPPED_INTERVAL: Duration = 2.seconds
 
         /**
+         * How long to sleep when [runOnce] short-circuited because the
+         * device has no validated network or the app is in the
+         * background. Should be long enough that we don't hammer
+         * `ConnectivityManager` while the user is offline or the OS is
+         * throttling our background work, but short enough that we
+         * resume fetching within a few seconds of Wi-Fi returning or
+         * the user foregrounding the app.
+         */
+        val OFFLINE_INTERVAL: Duration = 5.seconds
+
+        /**
          * Three-state resolution: an explicit per-feed value wins over the
          * global value; `null` means "follow settings" and falls back to
          * the global value. Delegates to [EntryRowMapper.resolveShowImage]
@@ -272,6 +315,37 @@ class OpenGraphImageFetcher(
          */
         fun shouldFetchOgImage(perFeed: Boolean?, global: Boolean): Boolean =
             EntryRowMapper.resolveShowImage(perFeed = perFeed, global = global)
+
+        /**
+         * Classifies network-level exceptions that almost certainly mean
+         * "try again later" — a brief DNS blip or a stalled TCP connect
+         * don't justify stamping `ext_og_image_checked = 1`, since that
+         * locks the entry out of the queue forever (before this fix,
+         * that was the source of the 2,000+ "checked but no image" rows
+         * we kept finding). HTTP-level errors (4xx/5xx) and "no
+         * og:image in HTML" failures still hit the permanent branch.
+         */
+        fun isTransientNetwork(t: Throwable): Boolean = when (t) {
+            is java.net.UnknownHostException,
+            is java.net.SocketTimeoutException,
+            is java.net.ConnectException,
+            is java.net.NoRouteToHostException,
+                -> true
+            else -> false
+        }
+
+        /**
+         * Pure gating decision. Given whether the device is online and
+         * whether the app is in the foreground, decides whether [runOnce]
+         * should short-circuit without consulting the DB at all. Tested
+         * directly without any Coil/OkHttp/Context dependencies.
+         */
+        internal fun ogRunSkip(isOnline: Boolean, isForeground: Boolean): OgRunSkip =
+            when {
+                !isOnline -> OgRunSkip.Offline
+                !isForeground -> OgRunSkip.NotForeground
+                else -> OgRunSkip.No
+            }
 
         /**
          * Pure gating decision. Given the current global setting and a
@@ -301,6 +375,23 @@ class OpenGraphImageFetcher(
             }
         }
     }
+}
+
+/**
+ * Short-circuit outcome produced by [OpenGraphImageFetcher.ogRunSkip].
+ *
+ * - [Offline]: device has no validated network — sleep, do nothing.
+ * - [NotForeground]: app is in the background — sleep, do nothing,
+ *   since Android may throttle our network even when it says we're
+ *   online, which is what produced the "UnknownHostException" log
+ *   noise in past releases.
+ * - [No]: both gates pass — proceed with the normal planOgImageFetch
+ *   flow.
+ */
+internal enum class OgRunSkip {
+    Offline,
+    NotForeground,
+    No,
 }
 
 /**
