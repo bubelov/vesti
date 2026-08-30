@@ -99,6 +99,13 @@ class FeedsFragment : AppFragment() {
             }
         }
 
+    private val exportFeedSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri != null) {
+                exportFeedSettings(requireContext().contentResolver.openOutputStream(uri)!!)
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -123,6 +130,7 @@ class FeedsFragment : AppFragment() {
                 R.id.manageTags -> openTagsManager()
                 R.id.importFeeds -> importFeedsLauncher.launch("*/*")
                 R.id.exportFeeds -> exportFeedsLauncher.launch("feeds.opml")
+                R.id.exportFeedSettings -> exportFeedSettingsLauncher.launch("feed-settings.json")
                 R.id.settings -> {
                     parentFragmentManager.commit {
                         replace(R.id.fragmentContainerView, SettingsFragment::class.java, null)
@@ -344,6 +352,19 @@ class FeedsFragment : AppFragment() {
             withContext(Dispatchers.IO) {
                 out.write(opmlDocument.toXmlDocument().toPrettyString().toByteArray())
             }
+        }
+    }
+
+    private fun exportFeedSettings(out: OutputStream) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                val feeds = withContext(Dispatchers.IO) { db().feed.selectAll() }
+                val backend = withContext(Dispatchers.IO) { db().conf.select().backend }
+                val json = org.vestifeed.feedsettings.exportFeedSettings(feeds, backend)
+                withContext(Dispatchers.IO) {
+                    out.write(json.toByteArray())
+                }
+            }.onFailure { e -> showErrorDialog(e) }
         }
     }
 
