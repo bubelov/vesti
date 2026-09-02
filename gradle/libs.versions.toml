@@ -1,7 +1,7 @@
 [versions]
 # Android extensions for Gradle
 # https://developer.android.com/build/releases/gradle-plugin
-agp = "9.3.1"
+agp = "9.3.2"
 # Enables suspending functions
 # https://github.com/Kotlin/kotlinx.coroutines/releases
 coroutines = "1.11.0"
