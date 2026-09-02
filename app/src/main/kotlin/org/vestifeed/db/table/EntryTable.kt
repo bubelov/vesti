@@ -619,36 +619,39 @@ class EntryTable(private val conn: SQLiteConnection) {
     }
 
     /**
-     * One pending OG-image job: an unchecked entry paired with the
-     * `ext_show_preview_images` value of its feed. The fetcher uses the
-     * per-feed flag together with the global setting to decide whether to
-     * actually attempt a network fetch; rows whose feed has previews
-     * disabled are returned here so they can be skipped without consuming
-     * network — and without flipping `ext_og_image_checked`, which keeps
-     * the row in the queue for the next time the user enables previews.
+     * One pending OG-image job: an unchecked entry. Per-feed previews-
+     * disabled rows are filtered out at the SQL level, so the fetcher
+     * never needs to re-check this candidate against the per-feed
+     * setting — it can hand every row straight to the network path.
      */
     data class OgImageCandidate(
         val id: String,
         val title: String,
         val extOpenGraphImageLog: String,
-        val feedShowPreviewImages: Boolean?,
     )
 
     /**
      * Returns up to [limit] entries that have not yet been checked for an
-     * OG image, joined with their feed so the caller can apply the
-     * per-feed "show preview images" gate. Inner-joined on `feed`, so an
-     * entry whose feed has been deleted (orphan) is silently dropped —
-     * which is the right behaviour, since the OG fetcher can't resolve a
-     * `link` row for it either.
+     * OG image, skipping rows whose feed has `ext_show_preview_images = 0`
+     * (an explicit per-feed "hide" — only the `null` "follow global" and
+     * the explicit `1` cases reach the fetcher). The filter is at the SQL
+     * level so the loop doesn't repeatedly load, log, and re-query the
+     * same per-feed-hidden rows every iteration. Rows are left
+     * `ext_og_image_checked = 0` here, so flipping the per-feed toggle on
+     * later will surface them on the next iteration.
+     *
+     * Inner-joined on `feed`, so an entry whose feed has been deleted
+     * (orphan) is silently dropped — which is the right behaviour, since
+     * the OG fetcher can't resolve a `link` row for it either.
      */
     fun selectPendingOgImageEntries(limit: Long): List<OgImageCandidate> {
         conn.prepare(
             """
-            SELECT e.id, e.title, e.ext_og_log, f.ext_show_preview_images
+            SELECT e.id, e.title, e.ext_og_log
             FROM entry e
             JOIN feed f ON f.id = e.feed_id
             WHERE e.ext_og_image_checked = 0
+              AND (f.ext_show_preview_images IS NULL OR f.ext_show_preview_images != 0)
             ORDER BY e.published DESC
             LIMIT ?
             """
@@ -661,7 +664,6 @@ class EntryTable(private val conn: SQLiteConnection) {
                             id = stmt.getText(0),
                             title = stmt.getText(1),
                             extOpenGraphImageLog = stmt.getText(2),
-                            feedShowPreviewImages = stmt.getBoolOrNull(3),
                         )
                     )
                 }

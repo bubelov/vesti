@@ -138,23 +138,24 @@ class OpenGraphImageFetcherTest {
     }
 
     // ---------------------------------------------------------------------
-    // End-to-end gating plan — combines the global setting, the per-feed
-    // setting on each candidate, and the batch shape into the next action
-    // the fetcher should take.
+    // End-to-end gating plan — combines the global setting and the batch
+    // shape into the next action the fetcher should take. Per-feed
+    // previews-disabled rows are now filtered at the SQL level, so this
+    // function only sees rows the fetcher can act on when the global
+    // toggle is on.
     // ---------------------------------------------------------------------
 
     @Test
     fun plan_globalOff_returnsGlobalOffRegardlessOfCandidates() {
         db.conf.update { it.copy(showPreviewImages = false) }
-        val follow = candidate(feedShowPreviewImages = null)
-        val show = candidate(feedShowPreviewImages = true)
-        val hide = candidate(feedShowPreviewImages = false)
+        val follow = candidate()
+        val show = candidate()
 
         assertEquals(
             OgFetchPlan.GlobalOff,
             OpenGraphImageFetcher.planOgImageFetch(
                 conf = db.conf.select(),
-                candidates = listOf(follow, show, hide),
+                candidates = listOf(follow, show),
             ),
         )
     }
@@ -171,59 +172,26 @@ class OpenGraphImageFetcherTest {
     }
 
     @Test
-    fun plan_globalOnAndAllEligible_returnsToFetchWithNoSkipped() {
-        val a = candidate(feedShowPreviewImages = true)
-        val b = candidate(feedShowPreviewImages = null) // follows settings → on
+    fun plan_globalOnWithCandidates_returnsFetch() {
+        val a = candidate()
+        val b = candidate()
 
         val plan = OpenGraphImageFetcher.planOgImageFetch(
             conf = db.conf.select(),
             candidates = listOf(a, b),
         )
 
-        assertEquals(OgFetchPlan.ToFetch(toFetch = listOf(a, b), skipped = emptyList()), plan)
+        assertEquals(OgFetchPlan.Fetch(candidates = listOf(a, b)), plan)
     }
 
     @Test
-    fun plan_globalOnAndAllSkippedByPerFeed_returnsAllSkipped() {
-        val a = candidate(feedShowPreviewImages = false)
-        val b = candidate(feedShowPreviewImages = false)
-
-        val plan = OpenGraphImageFetcher.planOgImageFetch(
-            conf = db.conf.select(),
-            candidates = listOf(a, b),
-        )
-
-        assertEquals(OgFetchPlan.AllSkipped(candidates = listOf(a, b)), plan)
-    }
-
-    @Test
-    fun plan_mixedBatch_partitionsEligibleAndSkipped() {
-        val eligibleShow = candidate(feedShowPreviewImages = true)
-        val eligibleFollow = candidate(feedShowPreviewImages = null)
-        val skipped = candidate(feedShowPreviewImages = false)
-
-        val plan = OpenGraphImageFetcher.planOgImageFetch(
-            conf = db.conf.select(),
-            candidates = listOf(eligibleShow, skipped, eligibleFollow),
-        )
-
-        assertEquals(
-            OgFetchPlan.ToFetch(
-                toFetch = listOf(eligibleShow, eligibleFollow),
-                skipped = listOf(skipped),
-            ),
-            plan,
-        )
-    }
-
-    @Test
-    fun plan_globalOffEvenWithAllSkippedBatch_returnsGlobalOff() {
+    fun plan_globalOffEvenWithCandidates_returnsGlobalOff() {
         // The global gate wins over the batch composition: if the user
         // has globally disabled preview images, no per-feed entry should
         // ever reach the fetcher.
         db.conf.update { it.copy(showPreviewImages = false) }
-        val a = candidate(feedShowPreviewImages = true)
-        val b = candidate(feedShowPreviewImages = null)
+        val a = candidate()
+        val b = candidate()
 
         assertEquals(
             OgFetchPlan.GlobalOff,
@@ -235,31 +203,45 @@ class OpenGraphImageFetcherTest {
     }
 
     // ---------------------------------------------------------------------
-    // SQL query — confirms the JOIN pulls the per-feed setting onto each
-    // candidate and the WHERE clause filters out already-checked entries.
+    // SQL query — confirms the WHERE clause drops already-checked rows
+    // and skips rows whose feed has previews explicitly disabled, so the
+    // fetcher loop never loads a row it can't act on.
     // ---------------------------------------------------------------------
 
     @Test
-    fun selectPendingOgImageEntries_returnsOnlyUncheckedJoinedWithFeedSetting() {
+    fun selectPendingOgImageEntries_returnsOnlyUncheckedAndEligibleCandidates() {
         val showFeed = insertFeed(extShowPreviewImages = true)
         val hideFeed = insertFeed(extShowPreviewImages = false)
         val followFeed = insertFeed(extShowPreviewImages = null)
 
         val showEntry = insertEntry(feedId = showFeed.id, checked = false)
-        insertEntry(feedId = showFeed.id, checked = true) // already checked
-        val hideEntry = insertEntry(feedId = hideFeed.id, checked = false)
-        val followEntry = insertEntry(feedId = followFeed.id, checked = false)
+        insertEntry(feedId = showFeed.id, checked = true) // already checked → dropped
+        insertEntry(feedId = hideFeed.id, checked = false) // per-feed hidden → dropped
+        val followEntry = insertEntry(feedId = followFeed.id, checked = false) // null → eligible
 
         val result = db.entry.selectPendingOgImageEntries(limit = 50)
 
         assertEquals(
-            mapOf(
-                showEntry.id to true,
-                hideEntry.id to false,
-                followEntry.id to null,
-            ),
-            result.associate { it.id to it.feedShowPreviewImages },
+            setOf(showEntry.id, followEntry.id),
+            result.map { it.id }.toSet(),
         )
+    }
+
+    @Test
+    fun selectPendingOgImageEntries_includesRowOnceUserReEnablesFeed() {
+        // The user toggled the feed "hide previews" off after entries
+        // were added under it; the per-feed-hidden filter must release
+        // them so the fetcher picks them up on the next iteration. This
+        // is exactly the situation that prompted moving the filter from
+        // the in-memory partitioning (which was re-loading the same
+        // skipped rows forever) into the SQL query.
+        val feed = insertFeed(extShowPreviewImages = false)
+        val entry = insertEntry(feedId = feed.id, checked = false)
+        assertEquals(emptyList<String>(), db.entry.selectPendingOgImageEntries(limit = 50).map { it.id })
+
+        db.feed.insertOrReplace(feed.copy(extShowPreviewImages = true))
+
+        assertEquals(listOf(entry.id), db.entry.selectPendingOgImageEntries(limit = 50).map { it.id })
     }
 
     @Test
@@ -309,12 +291,11 @@ class OpenGraphImageFetcherTest {
     // Helpers
     // ---------------------------------------------------------------------
 
-    private fun candidate(feedShowPreviewImages: Boolean?): EntryTable.OgImageCandidate =
+    private fun candidate(): EntryTable.OgImageCandidate =
         EntryTable.OgImageCandidate(
             id = UUID.randomUUID().toString(),
             title = "Some Title",
             extOpenGraphImageLog = "[]",
-            feedShowPreviewImages = feedShowPreviewImages,
         )
 
     private fun insertFeed(extShowPreviewImages: Boolean?): FeedTable.Feed =

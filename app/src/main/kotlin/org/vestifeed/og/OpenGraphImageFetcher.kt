@@ -54,9 +54,8 @@ class OpenGraphImageFetcher(
 
     /**
      * One tick of the watcher. Reads conf, fetches a batch of unchecked
-     * entries, partitions them by eligibility, then either fetches the
-     * eligible ones, logs+skips the ineligible ones, or sleeps when
-     * nothing is pending.
+     * entries (the SQL query already excluded per-feed-hidden rows), then
+     * either fetches them, or sleeps when nothing is pending.
      *
      * Exposed as `internal` so tests can drive it without the infinite
      * loop. The interesting decision is in [planOgImageFetch], which is
@@ -85,23 +84,8 @@ class OpenGraphImageFetcher(
         when (val plan = planOgImageFetch(conf, candidates)) {
             is OgFetchPlan.GlobalOff -> delay(GLOBAL_OFF_INTERVAL)
             is OgFetchPlan.Empty -> delay(EMPTY_INTERVAL)
-            is OgFetchPlan.AllSkipped -> {
+            is OgFetchPlan.Fetch -> {
                 for (candidate in plan.candidates) {
-                    appendLog(
-                        candidate.id,
-                        "Skipping OG image fetch: preview images disabled for feed '${candidate.title}'",
-                    )
-                }
-                delay(ALL_SKIPPED_INTERVAL)
-            }
-            is OgFetchPlan.ToFetch -> {
-                for (candidate in plan.skipped) {
-                    appendLog(
-                        candidate.id,
-                        "Skipping OG image fetch: preview images disabled for feed '${candidate.title}'",
-                    )
-                }
-                for (candidate in plan.toFetch) {
                     fetchOneEntry(candidate)
                 }
             }
@@ -265,10 +249,10 @@ class OpenGraphImageFetcher(
         const val MAX_LOG_ENTRIES = 50
 
         /**
-         * How many unchecked entries to load per iteration. Larger than 1
-         * so a batch that is entirely hidden by per-feed settings doesn't
-         * tight-loop on the same row; small enough that a single iteration
-         * can't pin Coil / OkHttp for too long.
+         * How many unchecked entries to load per iteration. The SQL
+         * filter already excluded per-feed-hidden rows, so a batch is
+         * always a string of work the fetcher can act on; small enough
+         * that a single iteration can't pin Coil / OkHttp for too long.
          */
         const val BATCH_SIZE = 10L
 
@@ -287,13 +271,6 @@ class OpenGraphImageFetcher(
          * wake up faster than that to keep that watermark useful.
          */
         val EMPTY_INTERVAL: Duration = 1.seconds
-
-        /**
-         * How long to sleep when every candidate in the batch was
-         * hidden by per-feed settings — prevents tight-looping on the
-         * same skipped rows until the user flips a feed-level toggle.
-         */
-        val ALL_SKIPPED_INTERVAL: Duration = 2.seconds
 
         /**
          * How long to sleep when [runOnce] short-circuited because the
@@ -348,10 +325,11 @@ class OpenGraphImageFetcher(
             }
 
         /**
-         * Pure gating decision. Given the current global setting and a
-         * batch of pending candidates (each carrying its feed's
-         * per-feed setting), decides what the fetcher should do next.
-         * Tested directly without any Coil/OkHttp/Context dependencies.
+         * Pure gating decision. The SQL query already filtered out rows
+         * whose feed explicitly hides preview images, so by the time we
+         * reach this function every remaining candidate is eligible if
+         * the global toggle is on. Tested directly without any
+         * Coil/OkHttp/Context dependencies.
          */
         internal fun planOgImageFetch(
             conf: ConfTable.Conf,
@@ -363,16 +341,7 @@ class OpenGraphImageFetcher(
             if (candidates.isEmpty()) {
                 return OgFetchPlan.Empty
             }
-            val (eligible, skipped) = candidates.partition { candidate ->
-                shouldFetchOgImage(
-                    perFeed = candidate.feedShowPreviewImages,
-                    global = conf.showPreviewImages,
-                )
-            }
-            return when {
-                eligible.isEmpty() -> OgFetchPlan.AllSkipped(skipped)
-                else -> OgFetchPlan.ToFetch(toFetch = eligible, skipped = skipped)
-            }
+            return OgFetchPlan.Fetch(candidates)
         }
     }
 }
@@ -401,19 +370,12 @@ internal enum class OgRunSkip {
  *
  * - [GlobalOff]: global toggle is off; sleep, do nothing.
  * - [Empty]: global on but no unchecked entries; sleep, do nothing.
- * - [AllSkipped]: global on, candidates exist, but every one is hidden
- *   by per-feed settings; log each and sleep. Crucially, none of these
- *   are marked `ext_og_image_checked = 1`, so they reappear once the
- *   per-feed toggle is flipped.
- * - [ToFetch]: at least one candidate passed both gates; fetch the
- *   eligible ones, log+skip the rest.
+ * - [Fetch]: at least one candidate passed both gates (the SQL query
+ *   filters out per-feed-hidden rows before we get here); hand each
+ *   one to the network path.
  */
 internal sealed interface OgFetchPlan {
     object GlobalOff : OgFetchPlan
     object Empty : OgFetchPlan
-    data class AllSkipped(val candidates: List<EntryTable.OgImageCandidate>) : OgFetchPlan
-    data class ToFetch(
-        val toFetch: List<EntryTable.OgImageCandidate>,
-        val skipped: List<EntryTable.OgImageCandidate>,
-    ) : OgFetchPlan
+    data class Fetch(val candidates: List<EntryTable.OgImageCandidate>) : OgFetchPlan
 }
