@@ -12,7 +12,7 @@ Usage:
   ./devtools app install       Install debug build
   ./devtools app run           Install and run debug build
   ./devtools app uninstall     Uninstall the app
-  ./devtools app deploy        Build a signed nightly APK and copy it to website/releases/nightly.apk
+  ./devtools app deploy        Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
   ./devtools website run       Open the website in a local browser tab
   ./devtools website deploy    Deploy website with rsync
 EOF
@@ -36,7 +36,7 @@ Commands:
   install      Install debug build
   run          Install and run debug build
   uninstall    Uninstall the app
-  deploy       Build a signed nightly APK and copy it to website/releases/nightly.apk
+  deploy       Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
 EOF
 }
 
@@ -154,7 +154,7 @@ cmd_app_uninstall() {
 
 cmd_app_deploy() {
   local apk_path="./app/build/outputs/apk/nightly/app-nightly.apk"
-  local dest="./website/releases/nightly.apk"
+  local dest="./website/releases/vesti-nightly.apk"
 
   echo "Building nightly APK..."
   ./gradlew assembleNightly "$@"

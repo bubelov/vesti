@@ -9,6 +9,6 @@
 .externalNativeBuild
 .cxx
 /crowdin.properties
-/website/releases/nightly.apk
+/website/releases/vesti-nightly.apk
 /.env
 /emulator.log
