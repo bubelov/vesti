@@ -1,17 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="BaseAppTheme" parent="Theme.Material3.DynamicColors.DayNight">
+    <style name="AppTheme" parent="Theme.Material3.DynamicColors.DayNight">
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-        <item name="android:windowSplashScreenAnimatedIcon">
-            @drawable/ic_animated_splash
-        </item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_animated_splash</item>
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
-    </style>
-
-    <style name="AppTheme" parent="BaseAppTheme">
-        <item name="android:navigationBarColor">?colorSurfaceContainer</item>
     </style>
 
 </resources>

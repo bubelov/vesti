@@ -5,7 +5,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 
     compilerOptions {
         freeCompilerArgs.add("-Xannotation-default-target=param-property")
@@ -19,7 +19,9 @@ kotlin {
 // credentials that must never enter version control.
 val keystorePropertiesFile = rootProject.file("local.properties")
 val keystoreProperties = Properties().apply {
-    keystorePropertiesFile.inputStream().use { load(it) }
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 val keystorePath = keystoreProperties.getProperty("storeFile")?.let(::file)
 
@@ -74,7 +76,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
     }
 
     testOptions {
@@ -89,46 +90,24 @@ android {
 }
 
 dependencies {
+    implementation(project(":shared"))
+    implementation(project(":ui"))
+
     // Coroutines
     implementation(libs.kotlinx.coroutines)
-    testImplementation(libs.kotlinx.coroutines.test)
 
     // AndroidX
-    implementation(libs.androidx.fragment)
-    implementation(libs.androidx.sqlite)
     implementation(libs.androidx.sqlite.framework)
-    testImplementation(libs.androidx.sqlite.bundled.jvm)
-    debugImplementation(libs.androidx.fragment.testing.manifest)
-    androidTestImplementation(libs.androidx.fragment.testing)
-    implementation(libs.androidx.work)
-    androidTestImplementation(libs.androidx.work.testing)
-    implementation(libs.androidx.browser)
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.viewmodel)
-    implementation(libs.androidx.lifecycle.process)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.androidx.viewpager2)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.activity.compose)
 
-    // Networking
-    implementation(platform(libs.okhttp.bom))
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-    testImplementation(libs.okhttp.mockwebserver)
-    androidTestImplementation(libs.okhttp.mockwebserver)
-
-    // JSON
-    implementation(libs.gson)
-
-    // UI
+    // Material Components themes the host; Compose Material3 draws the UI.
     implementation(libs.material)
-    implementation(libs.coil)
-    implementation(libs.coil.network)
-
-    // Parsing
-    implementation(libs.jsoup)
-    implementation(libs.re2j)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.work)
+    implementation(libs.androidx.browser)
+    androidTestImplementation(libs.androidx.work.testing)
 
     // Unit tests
     testImplementation(libs.junit)
@@ -140,4 +119,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

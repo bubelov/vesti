@@ -1,100 +1,141 @@
 [versions]
-# Android extensions for Gradle
+## Foundation
+# Android Gradle Plugin
 # https://developer.android.com/build/releases/gradle-plugin
-agp = "9.3.2"
+agp = "9.4.1"
+# This project is Kotlin Multiplatform now
+# https://github.com/JetBrains/kotlin/releases
+kotlin = "2.4.20"
+# Compose Multiplatform
+# https://github.com/JetBrains/compose-multiplatform/releases
+compose-plugin = "1.12.1"
+# AndroidX Compose UI, pinned to the version Compose Multiplatform resolves for
+# the Android target (used by the instrumented test artifacts).
+androidx-compose = "1.12.1"
 # Enables suspending functions
 # https://github.com/Kotlin/kotlinx.coroutines/releases
 coroutines = "1.11.0"
-# Material design components
-# https://github.com/material-components/material-components-android/releases
-material = "1.14.0"
-# Some handly fragment transition extensions
-# https://developer.android.com/jetpack/androidx/releases/fragment
-fragment = "1.8.9"
+
+## Multiplatform libraries (the de-JVM'd core)
+# Multiplatform HTTP client, the OkHttp replacement
+# https://ktor.io/
+ktor = "3.6.0"
+# Multiplatform JSON, the Gson replacement
+# https://github.com/Kotlin/kotlinx.serialization/releases
+kotlinx-serialization = "1.11.0"
+# Multiplatform date/time, the java.time replacement
+# https://github.com/Kotlin/kotlinx-datetime/releases
+kotlinx-datetime = "0.8.0"
+# Multiplatform IO, the java.io replacement
+# https://square.github.io/okio/
+okio = "3.18.2"
+# Multiplatform atomics and locks, the java.util.concurrent replacement
+# https://github.com/Kotlin/kotlinx.atomicfu
+atomicfu = "0.33.0"
+# Multiplatform jsoup port: HTML and XML parsing on every target
+# https://github.com/fleeksoft/ksoup
+ksoup = "0.2.6"
+
+## Handy Android extensions
+# Abstracts away platform-dependent SQLite API, with a web (wasm) driver
+# https://developer.android.com/jetpack/androidx/releases/sqlite
+sqlite = "2.7.1"
+# Manages the shared activity and edge-to-edge setup
+# https://developer.android.com/jetpack/androidx/releases/activity
+androidx-activity = "1.13.0"
+# Enables lifecycle-aware components
+# https://developer.android.com/jetpack/androidx/releases/lifecycle
+lifecycle = "2.11.0"
 # Enables background sync
 # https://developer.android.com/jetpack/androidx/releases/work
 work = "2.11.2"
 # Enables embedded browser
 # https://developer.android.com/jetpack/androidx/releases/browser
 browser = "1.10.0"
-# Enables lifecycle callbacks
-# https://developer.android.com/jetpack/androidx/releases/lifecycle
-lifecycle = "2.11.0"
-# Flexible screen layout manager
-# https://developer.android.com/jetpack/androidx/releases/constraintlayout
-constraintlayout = "2.2.1"
-# List widget
-# https://developer.android.com/jetpack/androidx/releases/recyclerview
-recyclerview = "1.4.0"
-# Horizontal swipe-between-pages container
-# https://developer.android.com/jetpack/androidx/releases/viewpager2
-viewpager2 = "1.1.0"
-# Swipe to refresh on news screen
-# https://developer.android.com/jetpack/androidx/releases/swiperefreshlayout
-swiperefreshlayout = "1.2.0"
-# Networking
+# Modern HTTP client, used only by the MockWebServer test dependency now.
 # https://github.com/square/okhttp/blob/master/CHANGELOG.md
-okhttp = "5.4.0"
-# JSON serialization
-# https://github.com/google/gson/blob/master/CHANGELOG.md
-gson = "2.14.0"
-# Image manipulation
-# https://github.com/coil-kt/coil/blob/main/CHANGELOG.md
-# Wait for a newer AGP with built-in Kotlin 2.4 support before upgrading.
-coil = "3.4.0"
-# XML parser
-# https://github.com/jhy/jsoup/blob/master/CHANGES.md
-jsoup = "1.22.2"
-# Regular expression engige for jsoup
-re2j = "1.8"
-# Database
-# https://developer.android.com/jetpack/androidx/releases/sqlite
-sqlite = "2.7.0"
+okhttp = "5.5.0"
+
+# Image loading
+# https://github.com/coil-kt/coil/releases
+coil = "3.6.3"
+
+# Material design components (themes the Android host)
+# https://github.com/material-components/material-components-android/releases
+material = "1.14.0"
 
 # Unit tests
 # https://junit.org/junit4/
 junit = "4.13.2"
 
 # Instrumented tests
+# https://developer.android.com/jetpack/androidx/releases/test
 espresso = "3.7.0"
 testrunner = "1.7.0"
 extjunit = "1.3.0"
 
 [libraries]
+kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+
+# KMP core stack
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.5.0" }
+
+# Database
 androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqlite" }
 androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "sqlite" }
 androidx-sqlite-bundled-jvm = { module = "androidx.sqlite:sqlite-bundled-jvm", version.ref = "sqlite" }
-kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
-androidx-fragment = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
-androidx-fragment-testing = { group = "androidx.fragment", name = "fragment-testing", version.ref = "fragment" }
-androidx-fragment-testing-manifest = { group = "androidx.fragment", name = "fragment-testing-manifest", version.ref = "fragment" }
+androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sqlite" }
+
+# AndroidX
+androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activity" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-work = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "work" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
-androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
-androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycle" }
-androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
-androidx-viewpager2 = { group = "androidx.viewpager2", name = "viewpager2", version.ref = "viewpager2" }
-androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+
+# Networking (test-only now)
 okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttp" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
-okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3-junit4", version.ref = "okhttp" }
+
+# UI
 coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
-coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
-jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
-re2j = { group = "com.google.re2j", name = "re2j", version.ref = "re2j" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+
+# Unit tests
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+# Instrumented tests
 androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "testrunner" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testrunner" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testrunner" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "extjunit" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidx-compose" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "androidx-compose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+# Builds an Android target for a Kotlin Multiplatform module. Required because
+# AGP 9 no longer supports `com.android.library` alongside the KMP plugin.
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

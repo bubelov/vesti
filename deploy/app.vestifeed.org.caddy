@@ -1,0 +1,38 @@
+app.vestifeed.org {
+	encode gzip
+
+	# Cross-origin isolation enables SharedArrayBuffer / OPFS for the SQLite
+	# WASM worker, so the browser database persists.
+	header {
+		Cross-Origin-Opener-Policy same-origin
+		Cross-Origin-Embedder-Policy require-corp
+		Cross-Origin-Resource-Policy cross-origin
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Hashed Kotlin/wasm artifacts are immutable; entry points must not be.
+	@immutable path_regexp hashed ^.*\.[0-9a-f]{20}\.(wasm|js)$
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	@entrypoint path /index.html /vesti.js /sqlite-worker.js
+	header @entrypoint Cache-Control "no-cache"
+
+	# Same-origin relay for standalone feed fetches and OpenGraph images.
+	handle /proxy* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	handle {
+		root * /srv/http/app.vestifeed.org
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/app.vestifeed.org.access.log {
+			roll_size 1gb
+			roll_keep 5
+		}
+		format json
+	}
+}
