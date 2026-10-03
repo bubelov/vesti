@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -31,11 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.feedsettings.exportFeedSettings
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.icons.MaterialSymbol
+import org.vestifeed.ui.icons.MaterialSymbols
 
 @Composable
 fun FeedSettingsScreen(state: AppState, feedId: String) {
@@ -120,7 +124,11 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Save") }
+        ) {
+            MaterialSymbol(MaterialSymbols.Save, contentDescription = null, size = 18.sp)
+            Spacer(Modifier.width(8.dp))
+            Text("Save")
+        }
 
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
@@ -132,7 +140,11 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Export settings") }
+        ) {
+            MaterialSymbol(MaterialSymbols.Download, contentDescription = null, size = 18.sp)
+            Spacer(Modifier.width(8.dp))
+            Text("Export settings")
+        }
 
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
@@ -148,7 +160,11 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Delete feed") }
+        ) {
+            MaterialSymbol(MaterialSymbols.Delete, contentDescription = null, size = 18.sp)
+            Spacer(Modifier.width(8.dp))
+            Text("Delete feed")
+        }
 
         message?.let {
             Spacer(Modifier.height(12.dp))

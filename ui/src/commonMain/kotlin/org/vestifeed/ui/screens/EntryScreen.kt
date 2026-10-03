@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,11 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.icons.MaterialSymbol
+import org.vestifeed.ui.icons.MaterialSymbols
 
 @Composable
 fun EntryScreen(state: AppState, entryId: String) {
@@ -108,14 +112,22 @@ fun EntryScreen(state: AppState, entryId: String) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open in browser") }
+            ) {
+                MaterialSymbol(MaterialSymbols.OpenInNew, contentDescription = null, size = 18.sp)
+                Spacer(Modifier.width(8.dp))
+                Text("Open in browser")
+            }
             Spacer(Modifier.height(8.dp))
         }
 
         OutlinedButton(
             onClick = { state.platform.shareText(current.title + "\n" + (href ?: "")) },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Share") }
+        ) {
+            MaterialSymbol(MaterialSymbols.Share, contentDescription = null, size = 18.sp)
+            Spacer(Modifier.width(8.dp))
+            Text("Share")
+        }
         Spacer(Modifier.height(8.dp))
 
         OutlinedButton(
@@ -127,7 +139,15 @@ fun EntryScreen(state: AppState, entryId: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (current.extRead) "Mark as unread" else "Mark as read") }
+        ) {
+            MaterialSymbol(
+                glyph = if (current.extRead) MaterialSymbols.MarkEmailUnread else MaterialSymbols.MarkEmailRead,
+                contentDescription = null,
+                size = 18.sp,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (current.extRead) "Mark as unread" else "Mark as read")
+        }
         Spacer(Modifier.height(8.dp))
 
         OutlinedButton(
@@ -143,6 +163,14 @@ fun EntryScreen(state: AppState, entryId: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (current.extBookmarked) "Remove bookmark" else "Bookmark") }
+        ) {
+            MaterialSymbol(
+                glyph = if (current.extBookmarked) MaterialSymbols.BookmarkAdded else MaterialSymbols.BookmarkAdd,
+                contentDescription = null,
+                size = 18.sp,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (current.extBookmarked) "Remove bookmark" else "Bookmark")
+        }
     }
 }

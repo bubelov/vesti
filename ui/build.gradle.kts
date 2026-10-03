@@ -16,6 +16,12 @@ kotlin {
         namespace = "org.vestifeed.ui"
         compileSdk = 37
         minSdk = 34
+
+        // Required for Compose Resources (the Material Symbols icon font) to be
+        // assembled and packaged into the Android host's assets.
+        androidResources {
+            enable = true
+        }
     }
 
     jvm()
@@ -34,6 +40,9 @@ kotlin {
             api(compose.ui)
             implementation(compose.foundation)
             implementation(compose.material3)
+            // Bundles the Material Symbols icon font and resolves it on every
+            // platform (Android, JVM and wasm).
+            implementation(compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.coil.compose)
@@ -54,4 +63,10 @@ kotlin {
             implementation(compose.uiTest)
         }
     }
+}
+
+compose.resources {
+    // The generated accessors (Res.font.…) are only used inside :ui.
+    publicResClass = false
+    packageOfResClass = "org.vestifeed.ui.resources"
 }

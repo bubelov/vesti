@@ -55,6 +55,7 @@ class ConfTest {
         assertFalse(defaultConf.useBuiltInAudioPlayer)
         assertFalse(defaultConf.showTagsTab)
         assertFalse(defaultConf.showPodcastsTab)
+        assertEquals(ConfTable.EntriesView.List, defaultConf.entriesView)
     }
 
     @Test
@@ -86,6 +87,7 @@ class ConfTest {
         assertEquals(conf.useBuiltInAudioPlayer, result.useBuiltInAudioPlayer)
         assertEquals(conf.showTagsTab, result.showTagsTab)
         assertEquals(conf.showPodcastsTab, result.showPodcastsTab)
+        assertEquals(conf.entriesView, result.entriesView)
     }
 
     @Test
@@ -178,6 +180,7 @@ class ConfTest {
         useBuiltInAudioPlayer: Boolean = false,
         showTagsTab: Boolean = false,
         showPodcastsTab: Boolean = false,
+        entriesView: ConfTable.EntriesView = ConfTable.EntriesView.List,
     ) = ConfTable.Conf(
         backend = backend,
         minifluxUrl = minifluxUrl,
@@ -195,5 +198,6 @@ class ConfTest {
         useBuiltInAudioPlayer = useBuiltInAudioPlayer,
         showTagsTab = showTagsTab,
         showPodcastsTab = showPodcastsTab,
+        entriesView = entriesView,
     )
 }

@@ -28,6 +28,11 @@ from a shared Kotlin Multiplatform codebase, with a Compose Multiplatform UI.
   `Database` with `androidx.sqlite`'s `WebWorkerSQLiteDriver` (driving the
   vendored `sqlite-worker.js`), and renders `VestiApp` through
   `ComposeViewport`.
+- **`:desktopApp`** — the JVM desktop application. `main` builds the
+  `Database` with `androidx.sqlite`'s `BundledSQLiteDriver` (stored under the
+  platform's per-user data directory) and renders `VestiApp` in a Compose
+  Desktop `Window`. The `compose.desktop` DSL also packages native
+  installers (dmg/msi/deb).
 
 ## Build Commands
 
@@ -37,6 +42,9 @@ from a shared Kotlin Multiplatform codebase, with a Compose Multiplatform UI.
 ./gradlew :ui:compileKotlinJvm :ui:compileKotlinWasmJs
 ./gradlew :webApp:wasmJsBrowserDistribution  # browser bundle in webApp/build/dist
 ./gradlew :shared:compileKotlinWasmJs        # wasm compile check for the core
+./gradlew :desktopApp:run                    # launch the desktop app
+./gradlew :desktopApp:createDistributable    # app image in desktopApp/build/compose/binaries
+./gradlew :desktopApp:packageDistributionForCurrentOS  # native installer
 ```
 
 Run a single test:
@@ -89,6 +97,33 @@ On Android, `:ui` exposes `VestiComposeView` (an `AbstractComposeView`) so the
 `:app` module needs no Compose compiler: the activity sets the database and
 platform implementation on it.
 
+On the JVM, `:desktopApp` drives the same `VestiApp` from Compose Desktop's
+`application {}`/`Window`, with a `DesktopVestiPlatform` (system browser +
+clipboard). It uses `BundledSQLiteDriver` because desktop has no system SQLite
+to fall back on.
+
+### Icons
+
+All icons are Material Symbols, never emoji. `ui/src/commonMain/composeResources/font/material_symbols.ttf`
+is a ~40 KB subset of the outlined variable font containing only the glyphs the
+app uses; `VestiTheme` loads it through Compose Multiplatform resources and
+provides it as `LocalIconFont`. Draw one with the `MaterialSymbol` composable and
+a glyph constant from `org.vestifeed.ui.icons.MaterialSymbols` (the icons'
+private-use codepoints).
+
+`composeResources` needs `androidResources { enable = true }` in `:ui`'s
+`android {}` block for the font to be packed into the Android host's assets.
+
+To add an icon: pick its codepoint (glyph name = the upstream ligature name),
+add a `MaterialSymbols` constant, and extend the subset by re-running, from the
+full `material-symbols-outlined-*.ttf`:
+
+```bash
+pyftsubset material-symbols-outlined.ttf \
+  --unicodes=U+E5C4,U+E8B6,... --no-layout-closure \
+  --output-file=ui/src/commonMain/composeResources/font/material_symbols.ttf
+```
+
 ### The browser database worker
 
 `androidx.sqlite` has no wasm driver that runs on the main thread. The
@@ -134,6 +169,33 @@ identity on Android/JVM and rewrites to `https://app.vestifeed.org/proxy?url=…
 on wasm. The Embedded backend and `OgImageFetcher` route every feed/article/
 image fetch through it. Without the proxy, standalone mode and OG images cannot
 work in a browser because most origins do not send CORS headers.
+
+## Desktop Target (JVM)
+
+`./gradlew :desktopApp:run` opens the Compose Desktop window. On this machine
+the session is Wayland and Compose Desktop's Skiko renderer is X11-only, so the
+window is an **XWayland** client, and `run` blocks for the life of the window.
+
+- **Never run `:desktopApp:run` in the foreground, and never `sleep`/poll
+  waiting for it to start.** Launch it detached with its output in a named log,
+  e.g. `(./gradlew :desktopApp:run > /tmp/opencode/vesti-desktop.log 2>&1 &)`,
+  then return control.
+- The running app is identified by `pgrep -f "org.vestifeed.desktop.MainK[t]"`
+  (the brackets keep the pattern from matching the shell) when launched with
+  `:desktopApp:run`. The packaged launcher instead shows up as
+  `.../Vesti/bin/Vesti`, so match `pgrep -f "bin/Vest[i]"` for that one. Check it
+  *before* launching; if it is listed, the window is already open. Stop it with
+  the same pattern piped to `xargs -r kill`.
+- Find the client window with `xdotool search --name "Vesti"`. The app owns
+  several windows: the full-size client is the one whose geometry is the
+  window's logical size × the display scale, and whose `xdotool getwindowpid
+  <id>` is the app's PID (the small 400×400 ones and GNOME's `mutter-x11-frames`
+  decoration are not). Capture the client area with ImageMagick:
+  `import -window <id> /tmp/opencode/vesti.png` (the reliable path here; `grim`
+  fails under GNOME).
+- The display is 2×-scaled, so `xdotool getwindowgeometry` and `import` report
+  physical pixels while the app's logical size is half that (the 1100×800
+  window captures at roughly 2200×1564).
 
 ## Code Style Guidelines
 

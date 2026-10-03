@@ -28,6 +28,13 @@ class AppState(
     var conf by mutableStateOf(ConfTable.defaultConf())
         private set
 
+    /**
+     * The number of unread, unbookmarked entries — the size of the Unread list,
+     * shown in its app-bar title. Kept fresh by [refreshUnreadCount].
+     */
+    var unreadCount by mutableStateOf(0)
+        private set
+
     val sync = Sync(scope, db)
 
     private val backStack = mutableStateListOf<Screen>()
@@ -45,6 +52,11 @@ class AppState(
 
     fun refreshConf() {
         scope.launch { conf = db.conf.select() }
+    }
+
+    /** Reloads [unreadCount] from the database (see its docs). */
+    suspend fun refreshUnreadCount() {
+        unreadCount = db.entry.selectUnreadCount()
     }
 
     fun updateConf(block: (ConfTable.Conf) -> ConfTable.Conf) {

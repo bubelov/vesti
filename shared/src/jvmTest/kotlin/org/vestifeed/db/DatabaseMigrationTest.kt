@@ -28,6 +28,33 @@ class DatabaseMigrationTest {
         dbFile.delete()
     }
 
+    /**
+     * The `conf` table as it looked from v6 through v9. The tests for the
+     * link/entry migrations start from a partial schema, but the version chain
+     * now always runs into the v9→v10 `entries_view` ALTER, so `conf` must
+     * exist.
+     */
+    private val confSchemaV7 = """
+        CREATE TABLE conf (
+            backend TEXT,
+            miniflux_url TEXT,
+            miniflux_token TEXT,
+            minifluxIncrementalSyncTimestamp TEXT,
+            show_preview_images INTEGER NOT NULL,
+            crop_preview_images INTEGER NOT NULL,
+            sync_on_startup INTEGER NOT NULL,
+            sync_in_background INTEGER NOT NULL,
+            background_sync_interval_millis INTEGER NOT NULL,
+            use_built_in_browser INTEGER NOT NULL,
+            show_preview_text INTEGER NOT NULL,
+            entry_body_font_size INTEGER NOT NULL,
+            show_author_name INTEGER NOT NULL DEFAULT 0,
+            use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
+            show_tags_tab INTEGER NOT NULL DEFAULT 0,
+            show_podcasts_tab INTEGER NOT NULL DEFAULT 0
+        ) STRICT;
+    """.trimIndent()
+
     @Test
     fun migrate_v1ToV2_addsEntryBodyFontSizeColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
@@ -377,6 +404,7 @@ class DatabaseMigrationTest {
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
+            conn.execSQL(confSchemaV7)
 
             conn.prepare(
                 """
@@ -420,6 +448,7 @@ class DatabaseMigrationTest {
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
+            conn.execSQL(confSchemaV7)
 
             conn.execSQL("PRAGMA user_version=8;")
         }
@@ -442,5 +471,64 @@ class DatabaseMigrationTest {
             """[{"timestamp":"2026-08-28T10:00:00Z","message":"hello"}]""",
             updated.extOpenGraphImageLog,
         )
+    }
+
+    @Test
+    fun migrate_v9ToV10_addsEntriesViewColumn() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V8)
+            conn.execSQL(LINK_SCHEMA_V7)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+
+            val v9Schema = """
+                CREATE TABLE conf (
+                    backend TEXT,
+                    miniflux_url TEXT,
+                    miniflux_token TEXT,
+                    minifluxIncrementalSyncTimestamp TEXT,
+                    show_preview_images INTEGER NOT NULL,
+                    crop_preview_images INTEGER NOT NULL,
+                    sync_on_startup INTEGER NOT NULL,
+                    sync_in_background INTEGER NOT NULL,
+                    background_sync_interval_millis INTEGER NOT NULL,
+                    use_built_in_browser INTEGER NOT NULL,
+                    show_preview_text INTEGER NOT NULL,
+                    entry_body_font_size INTEGER NOT NULL,
+                    show_author_name INTEGER NOT NULL DEFAULT 0,
+                    use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
+                    show_tags_tab INTEGER NOT NULL DEFAULT 0,
+                    show_podcasts_tab INTEGER NOT NULL DEFAULT 0
+                ) STRICT;
+            """.trimIndent()
+            conn.execSQL(v9Schema)
+
+            conn.prepare(
+                """
+                INSERT INTO conf (
+                    show_preview_images, crop_preview_images, sync_on_startup,
+                    sync_in_background, background_sync_interval_millis,
+                    use_built_in_browser, show_preview_text, entry_body_font_size,
+                    show_author_name, use_built_in_audio_player, show_tags_tab,
+                    show_podcasts_tab
+                ) VALUES (1, 1, 1, 1, 10800000, 1, 1, 16, 0, 0, 0, 0);
+                """.trimIndent()
+            ).use { stmt ->
+                stmt.step()
+            }
+
+            conn.execSQL("PRAGMA user_version=9;")
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        // Existing installs keep the previous look until the user opts in.
+        assertEquals(ConfTable.EntriesView.List, db.conf.select().entriesView)
+
+        db.conf.update { it.copy(entriesView = ConfTable.EntriesView.Cards) }
+        assertEquals(ConfTable.EntriesView.Cards, db.conf.select().entriesView)
     }
 }

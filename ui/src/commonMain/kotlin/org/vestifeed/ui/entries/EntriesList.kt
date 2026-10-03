@@ -7,14 +7,6 @@ import org.vestifeed.db.table.ConfTable
 import org.vestifeed.entries.EntryRowMappable
 import org.vestifeed.ui.EntriesList
 
-/** The title shown in the toolbar for an entries list. */
-suspend fun EntriesList.title(db: Database): String = when (this) {
-    EntriesList.Unread -> "Unread (${db.entry.selectUnreadCount()})"
-    EntriesList.Bookmarked -> "Bookmarks (${db.entry.selectBookmarkedCount()})"
-    is EntriesList.BelongToFeed -> db.feed.selectById(feedId)?.title ?: feedId
-    is EntriesList.BelongToTag -> db.tag.selectById(tagId)?.name ?: tagId
-}
-
 /** The rows backing an entries list. */
 suspend fun EntriesList.load(db: Database): List<EntryRowMappable> = when (this) {
     EntriesList.Unread -> db.entry.selectUnread()

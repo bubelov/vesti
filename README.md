@@ -1,5 +1,5 @@
 <h2 align="center"><b>Vesti</b></h2>
-<h4 align="center">Web feed reader for Android and the web</h4>
+<h4 align="center">Web feed reader for Android, the desktop and the web</h4>
 <p align="center">
   <a href="https://vestifeed.org">vestifeed.org</a>
 </p>

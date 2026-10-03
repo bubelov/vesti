@@ -79,8 +79,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
-            conn.execSQL("PRAGMA user_version=9;")
-            version = 9
+            conn.execSQL("PRAGMA user_version=10;")
+            version = 10
         }
 
         if (version == 1) {
@@ -131,6 +131,12 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("ALTER TABLE entry ADD COLUMN ext_og_log TEXT NOT NULL DEFAULT '[]';")
             conn.execSQL("PRAGMA user_version=9;")
             version = 9
+        }
+
+        if (version == 9) {
+            conn.execSQL("ALTER TABLE conf ADD COLUMN entries_view TEXT NOT NULL DEFAULT 'list';")
+            conn.execSQL("PRAGMA user_version=10;")
+            version = 10
         }
     }
 

@@ -27,7 +27,8 @@ class ConfTable(private val conn: SQLiteConnection) {
                 show_author_name INTEGER NOT NULL DEFAULT 0,
                 use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
                 show_tags_tab INTEGER NOT NULL DEFAULT 0,
-                show_podcasts_tab INTEGER NOT NULL DEFAULT 0
+                show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
+                entries_view TEXT NOT NULL DEFAULT 'list'
             ) STRICT;
         """
 
@@ -48,12 +49,22 @@ class ConfTable(private val conn: SQLiteConnection) {
             useBuiltInAudioPlayer = false,
             showTagsTab = false,
             showPodcastsTab = false,
+            entriesView = EntriesView.List,
         )
     }
 
     enum class Backend {
         Miniflux,
         Embedded,
+    }
+
+    /** How the entries screens lay their rows out. */
+    enum class EntriesView {
+        /** One column of compact rows with the preview image on the left. */
+        List,
+
+        /** A grid of Material cards with the preview image on top. */
+        Cards,
     }
 
     data class Conf(
@@ -94,6 +105,8 @@ class ConfTable(private val conn: SQLiteConnection) {
         // by entry publish date, with the same swipe-to-read/bookmark
         // affordances as the entries screen
         val showPodcastsTab: Boolean,
+        // how the entries screens lay their rows out
+        val entriesView: EntriesView,
     )
 
     fun SQLiteStatement.toConf(): Conf = Conf(
@@ -113,13 +126,14 @@ class ConfTable(private val conn: SQLiteConnection) {
         useBuiltInAudioPlayer = getInt(13) == 1,
         showTagsTab = getInt(14) == 1,
         showPodcastsTab = getInt(15) == 1,
+        entriesView = getEntriesView(16),
     )
 
     suspend fun insert(conf: Conf) {
         conn.prepare(
             """
-            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
         ).use { stmt ->
             stmt.bindTextOrNull(1, conf.backend?.name?.lowercase())
@@ -138,6 +152,7 @@ class ConfTable(private val conn: SQLiteConnection) {
             stmt.bindInt(14, if (conf.useBuiltInAudioPlayer) 1 else 0)
             stmt.bindInt(15, if (conf.showTagsTab) 1 else 0)
             stmt.bindInt(16, if (conf.showPodcastsTab) 1 else 0)
+            stmt.bindText(17, conf.entriesView.name.lowercase())
             stmt.step()
         }
     }
@@ -145,7 +160,7 @@ class ConfTable(private val conn: SQLiteConnection) {
     suspend fun select(): Conf {
         conn.prepare(
             """
-            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab
+            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view
             FROM conf
             """
         ).use { stmt ->
@@ -171,4 +186,7 @@ class ConfTable(private val conn: SQLiteConnection) {
 
     fun SQLiteStatement.getBackendOrNull(index: Int): Backend? =
         if (isNull(index)) null else Backend.entries.single { it.name.lowercase() == getText(index) }
+
+    fun SQLiteStatement.getEntriesView(index: Int): EntriesView =
+        EntriesView.entries.firstOrNull { it.name.lowercase() == getText(index) } ?: EntriesView.List
 }
