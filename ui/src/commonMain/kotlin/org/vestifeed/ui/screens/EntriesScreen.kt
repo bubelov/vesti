@@ -51,6 +51,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.parser.AtomLinkRel
@@ -79,6 +82,12 @@ private val GridMinCellWidth = 320.dp
  * single column), where horizontal dragging is not competing with a grid.
  */
 private val SwipeMaxWidth = 600.dp
+
+/**
+ * How often to check for OG preview images downloaded by the background
+ * fetcher while this screen is open.
+ */
+private val OgImagePollInterval = 5.seconds
 
 /**
  * A list of entries (unread, bookmarks or a feed's). Compact cards: a preview
@@ -114,6 +123,23 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     LaunchedEffect(running) {
         if (wasRunning && !running) refreshKey++
         wasRunning = running
+    }
+
+    // The OG fetch runs in the background with no callback, so poll the count
+    // of entries whose preview image landed since this screen opened and
+    // reload when it grows. Without this, images downloaded after the initial
+    // load stay invisible until the next sync or a screen re-entry.
+    LaunchedEffect(screen.list) {
+        val since = Clock.System.now()
+        var seen = 0L
+        while (true) {
+            delay(OgImagePollInterval)
+            val count = state.db.entry.countByOgImageFetchedAfter(since)
+            if (count != seen && !state.sync.running.value) {
+                seen = count
+                refreshKey++
+            }
+        }
     }
 
     val entriesView = state.conf.entriesView
