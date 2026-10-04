@@ -57,7 +57,7 @@ fun SettingsScreen(state: AppState) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            SettingsSection("Reading") {
+            SettingsSection("Reading", isFirst = true) {
                 LayoutSetting(
                     selected = state.conf.entriesView,
                     onSelect = { view -> state.updateConf { conf -> conf.copy(entriesView = view) } },
@@ -158,15 +158,21 @@ fun SettingsScreen(state: AppState) {
 }
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsSection(
+    title: String,
+    isFirst: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp),
+        // The first section sits right below the content padding; later ones
+        // carry the gap to the previous group.
+        modifier = Modifier.padding(top = if (isFirst) 0.dp else 24.dp, bottom = 8.dp),
     )
     OutlinedCard(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(content = content)
