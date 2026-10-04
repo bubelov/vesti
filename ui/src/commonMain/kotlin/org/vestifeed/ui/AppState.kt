@@ -7,9 +7,15 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import org.vestifeed.backend.backend
+import org.vestifeed.curated.CuratedCatalog
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
+import org.vestifeed.db.table.FeedTable
 import org.vestifeed.sync.Sync
+import org.vestifeed.ui.curated.loadCuratedCatalog
+import org.vestifeed.util.toUrl
+import org.vestifeed.util.withHttpsScheme
 
 /**
  * The single source of truth the shared Compose UI renders from. It owns the
@@ -42,6 +48,13 @@ class AppState(
      * not see an empty tab. Kept fresh by [refreshHasPodcasts].
      */
     var hasPodcasts by mutableStateOf(false)
+        private set
+
+    /**
+     * The embedded Awesome RSS Feeds catalog, parsed on first access and kept
+     * for the rest of the session. Loaded lazily by [curatedFeeds].
+     */
+    var curatedCatalog by mutableStateOf<CuratedCatalog?>(null)
         private set
 
     /**
@@ -128,6 +141,33 @@ class AppState(
             refreshUnreadCount()
             sync.runInBackground()
         }
+    }
+
+    /**
+     * Fetches the feed at [rawUrl] through the active backend and stores it
+     * with its entries, the shared path for adding a feed by URL and for
+     * following one from a curated collection. Returns the stored feed.
+     */
+    suspend fun addFeedByUrl(rawUrl: String): Result<FeedTable.Feed> = runCatching {
+        val result = backend(db).addFeed(rawUrl.trim().withHttpsScheme().toUrl(), null)
+        db.transaction {
+            db.feed.insertOrReplace(result.feed)
+            db.link.insertForFeed(result.feed.id, result.feedLinks)
+            db.entry.insertOrReplace(result.entries.map { it.first })
+            result.entries.forEach { (entry, entryLinks) ->
+                db.link.insertForEntry(entry.id, entryLinks)
+            }
+        }
+        refreshUnreadCount()
+        result.feed
+    }
+
+    /** Loads [curatedCatalog] once, caching it for the session. */
+    suspend fun curatedFeeds(): CuratedCatalog {
+        curatedCatalog?.let { return it }
+        val loaded = loadCuratedCatalog()
+        curatedCatalog = loaded
+        return loaded
     }
 
     val sync = Sync(scope, db)

@@ -13,6 +13,12 @@ sealed interface Screen {
 
     data object Feeds : Screen
 
+    /** Browsing the embedded Awesome RSS Feeds collection (the list of collections). */
+    data object CuratedFeeds : Screen
+
+    /** The feeds inside one curated collection. */
+    data class CuratedCollection(val collectionId: String) : Screen
+
     data class FeedSettings(val feedId: String) : Screen
 
     data object Search : Screen

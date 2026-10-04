@@ -3,6 +3,7 @@
 package org.vestifeed.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +13,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -28,11 +30,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.vestifeed.db.Database
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.screens.AuthScreen
+import org.vestifeed.ui.screens.CuratedCollectionScreen
+import org.vestifeed.ui.screens.CuratedCollectionsScreen
 import org.vestifeed.ui.screens.EntriesScreen
 import org.vestifeed.ui.screens.EntryScreen
 import org.vestifeed.ui.screens.FeedSettingsScreen
@@ -98,6 +103,8 @@ private fun MainScaffold(state: AppState, screen: Screen) {
                 is Screen.Entries -> EntriesScreen(state, screen)
                 is Screen.EntryDetail -> EntryScreen(state, screen.entryId)
                 Screen.Feeds -> FeedsScreen(state)
+                Screen.CuratedFeeds -> CuratedCollectionsScreen(state)
+                is Screen.CuratedCollection -> CuratedCollectionScreen(state, screen.collectionId)
                 is Screen.FeedSettings -> FeedSettingsScreen(state, screen.feedId)
                 Screen.Search -> SearchScreen(state)
                 Screen.Tags -> TagsScreen(state)
@@ -113,6 +120,9 @@ private fun MainScaffold(state: AppState, screen: Screen) {
 private fun AppTopBar(state: AppState, screen: Screen) {
     val running by state.sync.running.collectAsState()
 
+    val curatedCollection = (screen as? Screen.CuratedCollection)
+        ?.let { state.curatedCatalog?.collection(it.collectionId) }
+
     val title = when (screen) {
         is Screen.Entries -> when (val list = screen.list) {
             EntriesList.Unread -> "Unread (${state.unreadCount})"
@@ -122,6 +132,8 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         }
         is Screen.EntryDetail -> "Entry"
         Screen.Feeds -> "Feeds"
+        Screen.CuratedFeeds -> "Curated feeds"
+        is Screen.CuratedCollection -> curatedCollection?.name ?: "Curated feeds"
         is Screen.FeedSettings -> "Feed settings"
         Screen.Search -> "Search"
         Screen.Tags -> "Tags"
@@ -130,8 +142,25 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         else -> "Vesti"
     }
 
+    val subtitle = curatedCollection?.let { collection ->
+        if (collection.feeds.size == 1) "1 feed" else "${collection.feeds.size} feeds"
+    }
+
     TopAppBar(
-        title = { Text(title) },
+        title = {
+            Column {
+                Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                subtitle?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        },
         navigationIcon = {
             if (state.canGoBack()) {
                 IconButton(onClick = { state.pop() }) {
@@ -237,6 +266,13 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
+                            text = { Text("Browse curated feeds") },
+                            onClick = {
+                                menuExpanded = false
+                                state.navigate(Screen.CuratedFeeds)
+                            },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Import OPML") },
                             onClick = {
                                 menuExpanded = false
@@ -275,7 +311,9 @@ private fun BottomBar(state: AppState, screen: Screen) {
             colors = vestiNavItemColors,
         )
         NavigationBarItem(
-            selected = screen is Screen.Feeds,
+            selected = screen is Screen.Feeds ||
+                screen is Screen.CuratedFeeds ||
+                screen is Screen.CuratedCollection,
             onClick = { state.navigateRoot(Screen.Feeds) },
             icon = { MaterialSymbol(MaterialSymbols.RssFeed, contentDescription = null) },
             label = { Text("Feeds") },

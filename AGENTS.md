@@ -104,12 +104,15 @@ to fall back on.
 
 ### Icons
 
-All icons are Material Symbols, never emoji. `ui/src/commonMain/composeResources/font/material_symbols.ttf`
-is a ~40 KB subset of the outlined variable font containing only the glyphs the
-app uses; `VestiTheme` loads it through Compose Multiplatform resources and
-provides it as `LocalIconFont`. Draw one with the `MaterialSymbol` composable and
-a glyph constant from `org.vestifeed.ui.icons.MaterialSymbols` (the icons'
-private-use codepoints).
+All icons are Material Symbols, never emoji — the one exception is the
+country-flag emoji in the curated feeds catalog, which has no Material
+equivalent (`org.vestifeed.ui.screens.CuratedCollectionBadge`).
+`ui/src/commonMain/composeResources/font/material_symbols.ttf` is a ~130 KB
+subset of the outlined variable font containing only the glyphs the app uses;
+`VestiTheme` loads it through Compose Multiplatform resources and provides it as
+`LocalIconFont`. Draw one with the `MaterialSymbol` composable and a glyph
+constant from `org.vestifeed.ui.icons.MaterialSymbols` (the icons' private-use
+codepoints).
 
 `composeResources` needs `androidResources { enable = true }` in `:ui`'s
 `android {}` block for the font to be packed into the Android host's assets.
@@ -138,6 +141,25 @@ feed servers do not send `Access-Control-Allow-Origin`, so the Embedded backend
 is effectively limited to CORS-enabled feeds in the browser; Miniflux (a single
 CORS-enabled API origin) is the practical browser backend. The Android/JVM
 hosts have no such restriction.
+
+## Curated feeds (Awesome RSS Feeds)
+
+The Feeds screen and the Unread empty state offer a built-in catalog that
+seeds subscriptions. It is based on the CC0-1.0
+[Awesome RSS Feeds](https://github.com/plenaryapp/awesome-rss-feeds) collection
+but is **not an exact copy** — feeds and whole collections are reviewed and can
+be dropped by hand. The catalog ships as
+`ui/src/commonMain/composeResources/files/curated_feeds.json` (topic and country
+collections). The data classes and parser live in `:shared`
+(`org.vestifeed.curated`); the UI loads the resource lazily through
+`AppState.curatedFeeds()` and renders it from
+`ui/.../screens/CuratedFeedsScreen.kt`. Adding a feed in either mode goes
+through `AppState.addFeedByUrl`.
+
+The JSON is checked in and maintained by hand; there is **no generator script**
+in the repository. It is based on the Awesome RSS Feeds collection but is not
+an exact copy: the feeds were reviewed and some were removed. Because upstream
+feeds go dead over time, verify any refreshed batch before shipping it.
 
 ## Web Target (wasmJs)
 

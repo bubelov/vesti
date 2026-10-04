@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,10 +34,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,9 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -225,6 +230,15 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             when {
                 loading && rows.isEmpty() -> CircularProgressIndicator()
 
+                rows.isEmpty() && screen.list is EntriesList.Unread && feedCount == 0 ->
+                    EmptyUnreadState(
+                        onAddFeed = {
+                            state.navigateRoot(Screen.Feeds)
+                            state.addFeedDialogVisible = true
+                        },
+                        onBrowseCurated = { state.navigateRoot(Screen.CuratedFeeds) },
+                    )
+
                 rows.isEmpty() -> Text(
                     text = screen.list.emptyMessage(feedCount),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -283,6 +297,47 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 }
             }
         }
+    }
+}
+
+/**
+ * The actionable empty state on the Unread tab when there are no feeds at all:
+ * sends the reader to the Feeds tab to add one by URL, or into the embedded
+ * curated collection.
+ */
+@Composable
+private fun EmptyUnreadState(
+    onAddFeed: () -> Unit,
+    onBrowseCurated: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.widthIn(max = 420.dp).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MaterialSymbol(
+            glyph = MaterialSymbols.RssFeed,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            size = 48.sp,
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "You have no feeds yet",
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Jump to the Feeds tab to add a feed by URL, or start with a " +
+                "few picks from the Awesome RSS Feeds collection.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onAddFeed) { Text("Add a feed by URL") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onBrowseCurated) { Text("Browse curated feeds") }
     }
 }
 

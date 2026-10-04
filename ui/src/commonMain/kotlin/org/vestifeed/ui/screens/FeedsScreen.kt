@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -61,7 +65,6 @@ import org.vestifeed.ui.Screen
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.util.toUrl
-import org.vestifeed.util.withHttpsScheme
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -110,26 +113,16 @@ fun FeedsScreen(state: AppState) {
             busy = true
             dialogError = null
             message = null
-            try {
-                val result = backend(state.db).addFeed(newFeedUrl.trim().withHttpsScheme().toUrl(), null)
-                state.db.transaction {
-                    state.db.feed.insertOrReplace(result.feed)
-                    state.db.link.insertForFeed(result.feed.id, result.feedLinks)
-                    state.db.entry.insertOrReplace(result.entries.map { it.first })
-                    result.entries.forEach { (entry, entryLinks) ->
-                        state.db.link.insertForEntry(entry.id, entryLinks)
-                    }
+            state.addFeedByUrl(newFeedUrl)
+                .onSuccess { feed ->
+                    newFeedUrl = ""
+                    message = "Added ${feed.title}"
+                    messageIsError = false
+                    refreshKey++
+                    state.addFeedDialogVisible = false
                 }
-                newFeedUrl = ""
-                message = "Added ${result.feed.title}"
-                messageIsError = false
-                refreshKey++
-                state.addFeedDialogVisible = false
-            } catch (t: Throwable) {
-                dialogError = t.message ?: t.toString()
-            } finally {
-                busy = false
-            }
+                .onFailure { dialogError = it.message ?: it.toString() }
+            busy = false
         }
     }
 
@@ -246,7 +239,10 @@ fun FeedsScreen(state: AppState) {
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
-                    EmptyFeeds()
+                    EmptyFeeds(
+                        onAddFeed = { state.addFeedDialogVisible = true },
+                        onBrowseCurated = { state.navigate(Screen.CuratedFeeds) },
+                    )
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -280,6 +276,10 @@ fun FeedsScreen(state: AppState) {
             error = dialogError,
             onDismiss = { state.addFeedDialogVisible = false },
             onAdd = ::addFeed,
+            onBrowseCurated = {
+                state.addFeedDialogVisible = false
+                state.navigate(Screen.CuratedFeeds)
+            },
         )
     }
 
@@ -306,6 +306,7 @@ private fun AddFeedDialog(
     error: String?,
     onDismiss: () -> Unit,
     onAdd: () -> Unit,
+    onBrowseCurated: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -317,7 +318,15 @@ private fun AddFeedDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(4.dp))
+                TextButton(
+                    enabled = !busy,
+                    onClick = onBrowseCurated,
+                    contentPadding = PaddingValues(start = 0.dp, end = 12.dp),
+                ) {
+                    Text("Browse curated feeds")
+                }
+                Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = url,
                     onValueChange = onUrlChange,
@@ -438,7 +447,10 @@ private fun FeedBadge(title: String, unread: Int) {
 }
 
 @Composable
-private fun EmptyFeeds() {
+private fun EmptyFeeds(
+    onAddFeed: () -> Unit,
+    onBrowseCurated: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -446,10 +458,16 @@ private fun EmptyFeeds() {
         Text("No feeds yet", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Add your first feed to start reading.",
+            text = "Add your first feed by URL, or pick a few from the " +
+                "Awesome RSS Feeds collection.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onAddFeed) { Text("Add feed by URL") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onBrowseCurated) { Text("Browse curated feeds") }
     }
 }
 
