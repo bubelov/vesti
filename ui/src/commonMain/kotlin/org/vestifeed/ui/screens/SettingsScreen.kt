@@ -197,21 +197,21 @@ private fun LayoutSetting(
         Spacer(Modifier.height(12.dp))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             SegmentedButton(
-                selected = selected == ConfTable.EntriesView.List,
-                onClick = { onSelect(ConfTable.EntriesView.List) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                icon = {
-                    MaterialSymbol(MaterialSymbols.ViewList, contentDescription = null, size = 18.sp)
-                },
-            ) { Text("List") }
-            SegmentedButton(
                 selected = selected == ConfTable.EntriesView.Cards,
                 onClick = { onSelect(ConfTable.EntriesView.Cards) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                 icon = {
                     MaterialSymbol(MaterialSymbols.GridView, contentDescription = null, size = 18.sp)
                 },
             ) { Text("Cards") }
+            SegmentedButton(
+                selected = selected == ConfTable.EntriesView.List,
+                onClick = { onSelect(ConfTable.EntriesView.List) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                icon = {
+                    MaterialSymbol(MaterialSymbols.ViewList, contentDescription = null, size = 18.sp)
+                },
+            ) { Text("List") }
         }
     }
 }
