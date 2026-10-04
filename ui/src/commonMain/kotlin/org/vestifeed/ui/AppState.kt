@@ -53,6 +53,74 @@ class AppState(
      */
     var opmlExportRequested by mutableStateOf(false)
 
+    /**
+     * Whether the entry shown by [Screen.EntryDetail] is bookmarked. The entry
+     * screen syncs it on load; the app bar renders the toggle from it.
+     */
+    var entryBookmarked by mutableStateOf(false)
+
+    /** Title of the entry shown by [Screen.EntryDetail], for the share action. */
+    var entryTitle by mutableStateOf("")
+
+    /** The entry's HTML alternate link, or null. Drives "Open in browser". */
+    var entryHref by mutableStateOf<String?>(null)
+
+    /** Whether the entry shown by [Screen.EntryDetail] is read. */
+    var entryRead by mutableStateOf(false)
+
+    /**
+     * Whether the entry screen's in-entry find bar is open. The app-bar Search
+     * action toggles it while on [Screen.EntryDetail]; the screen renders it.
+     */
+    var entrySearchVisible by mutableStateOf(false)
+
+    /**
+     * Toggles the bookmark on [entryId] for the entry-detail app-bar action,
+     * refreshing [entryBookmarked] and the unread count.
+     */
+    fun toggleEntryBookmark(entryId: String) {
+        scope.launch {
+            val entry = db.entry.selectById(entryId) ?: return@launch
+            val next = !entry.extBookmarked
+            db.entry.updateBookmarkedAndBookmarkedSynced(entryId, next, false)
+            entryBookmarked = next
+            refreshUnreadCount()
+            sync.runInBackground()
+        }
+    }
+
+    /**
+     * Opens [entryHref] in the platform browser and marks [entryId] read,
+     * matching the old entry-screen button. No-op when there is no link.
+     */
+    fun openEntryInBrowser(entryId: String) {
+        val href = entryHref ?: return
+        platform.openUrl(href)
+        scope.launch {
+            db.entry.updateReadAndReadSynced(entryId, true, false)
+            entryRead = true
+            refreshUnreadCount()
+            sync.runInBackground()
+        }
+    }
+
+    /** Shares the open entry's title and link via the platform. */
+    fun shareEntry() {
+        platform.shareText(entryTitle + "\n" + (entryHref ?: ""))
+    }
+
+    /** Toggles the read flag on [entryId], refreshing [entryRead] and the count. */
+    fun toggleEntryRead(entryId: String) {
+        scope.launch {
+            val entry = db.entry.selectById(entryId) ?: return@launch
+            val next = !entry.extRead
+            db.entry.updateReadAndReadSynced(entryId, next, false)
+            entryRead = next
+            refreshUnreadCount()
+            sync.runInBackground()
+        }
+    }
+
     val sync = Sync(scope, db)
 
     private val backStack = mutableStateListOf<Screen>()

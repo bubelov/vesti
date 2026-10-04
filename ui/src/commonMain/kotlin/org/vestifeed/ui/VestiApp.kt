@@ -153,8 +153,72 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                     }
                 }
             }
-            IconButton(onClick = { state.navigate(Screen.Search) }) {
-                MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search")
+            if (screen is Screen.EntryDetail) {
+                IconButton(onClick = { state.toggleEntryBookmark(screen.entryId) }) {
+                    MaterialSymbol(
+                        glyph = if (state.entryBookmarked) {
+                            MaterialSymbols.BookmarkAdded
+                        } else {
+                            MaterialSymbols.BookmarkAdd
+                        },
+                        contentDescription = if (state.entryBookmarked) {
+                            "Remove bookmark"
+                        } else {
+                            "Bookmark"
+                        },
+                    )
+                }
+            }
+            if (screen is Screen.EntryDetail) {
+                // On the reader, search finds within the entry text, not the
+                // global entry list. Once the find bar is open it carries its
+                // own close button, so hide this one to avoid duplicating it.
+                if (!state.entrySearchVisible) {
+                    IconButton(onClick = { state.entrySearchVisible = true }) {
+                        MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search entry")
+                    }
+                }
+            } else {
+                IconButton(onClick = { state.navigate(Screen.Search) }) {
+                    MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search")
+                }
+            }
+            if (screen is Screen.EntryDetail) {
+                var menuExpanded by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        MaterialSymbol(MaterialSymbols.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Open in browser") },
+                            enabled = state.entryHref != null,
+                            onClick = {
+                                menuExpanded = false
+                                state.openEntryInBrowser(screen.entryId)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            onClick = {
+                                menuExpanded = false
+                                state.shareEntry()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(if (state.entryRead) "Mark as unread" else "Mark as read")
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                state.toggleEntryRead(screen.entryId)
+                            },
+                        )
+                    }
+                }
             }
             if (screen is Screen.Feeds) {
                 var menuExpanded by remember { mutableStateOf(false) }
