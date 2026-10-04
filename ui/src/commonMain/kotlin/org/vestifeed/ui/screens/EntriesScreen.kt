@@ -79,6 +79,7 @@ import org.vestifeed.ui.EntriesList
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.EntryRow
 import org.vestifeed.ui.entries.emptyMessage
+import org.vestifeed.ui.entries.isAwaitingSync
 import org.vestifeed.ui.entries.load
 import org.vestifeed.ui.entries.toRow
 import org.vestifeed.ui.icons.MaterialSymbol
@@ -119,25 +120,36 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     var loading by remember { mutableStateOf(true) }
     var refreshKey by remember { mutableStateOf(0) }
     var wasRunning by remember { mutableStateOf(false) }
+    // Kept true from the moment a sync ends until the reload it triggers has
+    // landed, so the frame in between cannot show an empty database as "no
+    // feeds" before the pulled-in entries are read back.
+    var reloadPending by remember { mutableStateOf(false) }
 
     val running by state.sync.running.collectAsState()
     val lastError by state.sync.lastError.collectAsState()
 
     LaunchedEffect(screen.list, state.conf, refreshKey) {
         loading = true
-        val loaded = screen.list.load(state.db)
-        rows = loaded.map { it.toRow(state.conf) }
-        bookmarked = loaded.associate { row ->
-            row.id to (state.db.entry.selectById(row.id)?.extBookmarked ?: false)
+        try {
+            val loaded = screen.list.load(state.db)
+            rows = loaded.map { it.toRow(state.conf) }
+            bookmarked = loaded.associate { row ->
+                row.id to (state.db.entry.selectById(row.id)?.extBookmarked ?: false)
+            }
+            feedCount = state.db.feed.selectAll().size
+            state.refreshUnreadCount()
+        } finally {
+            loading = false
+            reloadPending = false
         }
-        feedCount = state.db.feed.selectAll().size
-        state.refreshUnreadCount()
-        loading = false
     }
 
     // Reload once a background sync finishes so newly synced entries appear.
     LaunchedEffect(running) {
-        if (wasRunning && !running) refreshKey++
+        if (wasRunning && !running) {
+            reloadPending = true
+            refreshKey++
+        }
         wasRunning = running
     }
 
@@ -159,6 +171,17 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     }
 
     val entriesView = state.conf.entriesView
+
+    // While the first sync is still filling an empty database, the Unread list
+    // is legitimately empty. Show that a sync is under way rather than the
+    // "You have no feeds yet" empty state, which would misrepresent an account
+    // whose feeds simply have not landed yet. The pending reload is included so
+    // the placeholder survives until the pulled-in entries are actually read.
+    val awaitingSync = screen.list.isAwaitingSync(
+        syncPending = running || wasRunning || reloadPending,
+        rowCount = rows.size,
+        feedCount = feedCount,
+    )
 
     fun onEntryClick(row: EntryRow) {
         scope.launch {
@@ -223,7 +246,10 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
         }
 
         PullToRefreshBox(
-            isRefreshing = running,
+            // The sync placeholder below carries its own progress indicator, so
+            // suppress the pull-to-refresh one while it is up to avoid showing
+            // two spinners at once.
+            isRefreshing = running && !awaitingSync,
             onRefresh = {
                 state.sync.clearError()
                 state.sync.runInBackground()
@@ -237,6 +263,8 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 val swipesEnabled = maxWidth < SwipeMaxWidth
 
                 when {
+                    awaitingSync -> SyncingUnreadState()
+
                     loading && rows.isEmpty() -> CircularProgressIndicator()
 
                     rows.isEmpty() && screen.list is EntriesList.Unread && feedCount == 0 ->
@@ -348,6 +376,35 @@ private fun EmptyUnreadState(
         Button(onClick = onAddFeed) { Text("Add a feed by URL") }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onBrowseCurated) { Text("Browse curated feeds") }
+    }
+}
+
+/**
+ * The placeholder on the Unread tab while the first sync is still filling an
+ * empty database. It replaces the empty state so a just-signed-in reader sees
+ * that their feeds are on the way instead of "You have no feeds yet".
+ */
+@Composable
+private fun SyncingUnreadState() {
+    Column(
+        modifier = Modifier.widthIn(max = 420.dp).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CircularProgressIndicator()
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Syncing your feeds…",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Your feeds and entries are being downloaded. This may take a " +
+                "moment.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

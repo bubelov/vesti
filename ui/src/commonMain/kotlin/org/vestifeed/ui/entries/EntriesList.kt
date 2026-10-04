@@ -27,6 +27,22 @@ fun EntriesList.emptyMessage(feedCount: Int): String = when (this) {
 }
 
 /**
+ * Whether this list should show a "syncing" placeholder instead of its empty
+ * message. The first sync runs against an empty local database, so the Unread
+ * list has neither rows nor feeds while the backend pulls them in. Showing
+ * "You have no feeds yet" during that window is wrong: the account has feeds
+ * on the server, they just have not landed yet.
+ *
+ * [syncPending] is true while a sync is running *and* until the reload that
+ * follows it has finished, so the empty state cannot flash in the gap.
+ */
+fun EntriesList.isAwaitingSync(
+    syncPending: Boolean,
+    rowCount: Int,
+    feedCount: Int,
+): Boolean = this is EntriesList.Unread && syncPending && rowCount == 0 && feedCount == 0
+
+/**
  * A fully-resolved row the Compose list renders. The mapping (three-state
  * per-feed preview resolution, relative timestamps, author inclusion) lives
  * here so the composables stay dumb.
