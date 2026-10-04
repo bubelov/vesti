@@ -9,6 +9,7 @@ import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
 import org.vestifeed.db.testDb
+import org.vestifeed.parser.AtomLinkRel
 
 class LinkTest {
 
@@ -35,6 +36,34 @@ class LinkTest {
         // The entry can now be deleted without tripping the entry_id foreign key.
         db.entry.deleteByFeedId(feed.id)
         assertNull(db.entry.selectById(entry.id))
+    }
+
+    @Test
+    fun hasAudioEnclosures_falseWithoutAudio() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+        val entry = createEntry(feed.id)
+        db.entry.insertOrReplace(listOf(entry))
+        db.link.insertForEntry(entry.id, listOf(createLink("https://example.com/article")))
+
+        assertEquals(false, db.link.hasAudioEnclosures())
+    }
+
+    @Test
+    fun hasAudioEnclosures_trueForAudioEnclosure() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+        val entry = createEntry(feed.id)
+        db.entry.insertOrReplace(listOf(entry))
+        db.link.insertForEntry(
+            entry.id,
+            listOf(
+                createLink("https://example.com/ep.mp3")
+                    .copy(rel = AtomLinkRel.Enclosure, type = "audio/mpeg"),
+            ),
+        )
+
+        assertEquals(true, db.link.hasAudioEnclosures())
     }
 
     private fun createFeed(

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
@@ -33,6 +34,14 @@ class AppState(
      * shown in its app-bar title. Kept fresh by [refreshUnreadCount].
      */
     var unreadCount by mutableStateOf(0)
+        private set
+
+    /**
+     * Whether any feed has audio enclosures. The Podcasts tab is hidden even
+     * when enabled if there are none, so a reader with no podcast feeds does
+     * not see an empty tab. Kept fresh by [refreshHasPodcasts].
+     */
+    var hasPodcasts by mutableStateOf(false)
         private set
 
     /**
@@ -134,6 +143,19 @@ class AppState(
         conf = db.conf.select()
         screen = if (conf.backend == null) Screen.Auth else defaultTab()
         connected = true
+
+        refreshUnreadCount()
+        refreshHasPodcasts()
+        // Keep both counts fresh once a background sync lands, wherever the
+        // user happens to be.
+        scope.launch {
+            sync.running.collect { running ->
+                if (!running) {
+                    refreshUnreadCount()
+                    refreshHasPodcasts()
+                }
+            }
+        }
     }
 
     fun refreshConf() {
@@ -143,6 +165,11 @@ class AppState(
     /** Reloads [unreadCount] from the database (see its docs). */
     suspend fun refreshUnreadCount() {
         unreadCount = db.entry.selectUnreadCount()
+    }
+
+    /** Reloads [hasPodcasts] from the database (see its docs). */
+    suspend fun refreshHasPodcasts() {
+        hasPodcasts = db.link.hasAudioEnclosures()
     }
 
     fun updateConf(block: (ConfTable.Conf) -> ConfTable.Conf) {
@@ -187,6 +214,8 @@ class AppState(
                 db.feed.deleteAll()
             }
             conf = ConfTable.defaultConf()
+            unreadCount = 0
+            hasPodcasts = false
             backStack.clear()
             screen = Screen.Auth
         }

@@ -35,6 +35,8 @@ object MaterialSymbols {
     const val Delete = "\uE872"
     const val Download = "\uE171"
     const val Upload = "\uE2C6"
+    const val PlayArrow = "\uE037"
+    const val Stop = "\uE047"
 
     // Settings.
     const val Visibility = "\uE8F4"

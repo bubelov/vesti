@@ -15,4 +15,30 @@ interface VestiPlatform {
 
     /** Shares [text] through the platform share sheet. */
     fun shareText(text: String)
+
+    /**
+     * Makes the audio enclosure at [url] available for playback, downloading it
+     * first if needed and reporting [onProgress] in `0f..1f` (or null when the
+     * size is unknown). Returns a URI for [playAudio], or null on failure.
+     * Hosts without a filesystem may simply return [url] for streaming.
+     */
+    suspend fun cacheAudio(url: String, onProgress: (Double?) -> Unit): String?
+
+    /**
+     * Plays [uri] (from [cacheAudio]) inside the app, or hands it to the system
+     * player on hosts that have no built-in one.
+     */
+    fun playAudio(uri: String)
+
+    /** Stops any in-app playback started by [playAudio]. */
+    fun stopAudio()
+
+    /** Current in-app playback position in ms, or null when nothing is playing. */
+    fun audioPositionMs(): Long?
+
+    /** In-app playback duration in ms, or null while it is still unknown. */
+    fun audioDurationMs(): Long?
+
+    /** Seeks the in-app player to [positionMs]. No-op where playback is external. */
+    fun seekAudio(positionMs: Long)
 }

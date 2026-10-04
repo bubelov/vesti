@@ -46,9 +46,9 @@ class ConfTable(private val conn: SQLiteConnection) {
             showPreviewText = true,
             entryBodyFontSize = 16,
             showAuthorName = false,
-            useBuiltInAudioPlayer = false,
+            useBuiltInAudioPlayer = true,
             showTagsTab = false,
-            showPodcastsTab = false,
+            showPodcastsTab = true,
             entriesView = EntriesView.Cards,
         )
     }
@@ -94,16 +94,16 @@ class ConfTable(private val conn: SQLiteConnection) {
         // off by default; when true the entries adapter shows the author on
         // the secondary line between the feed title and the post date
         val showAuthorName: Boolean,
-        // off by default; when true, downloaded audio enclosures are played
+        // on by default; when true, downloaded audio enclosures are played
         // inside the app instead of being handed off to an external player
         val useBuiltInAudioPlayer: Boolean,
-        // off by default; when true, the bottom nav shows a fourth "Tags"
+        // off by default; when true, the bottom nav shows a "Tags"
         // tab listing the user's tags and filtering entries by tag on click
         val showTagsTab: Boolean,
-        // off by default; when true, the bottom nav shows a fifth
-        // "Podcasts" tab listing all audio enclosures on the device, sorted
-        // by entry publish date, with the same swipe-to-read/bookmark
-        // affordances as the entries screen
+        // on by default, but the tab only appears when a feed actually has
+        // audio enclosures; when true, the bottom nav shows a "Podcasts" tab
+        // listing all audio enclosures on the device, sorted by entry publish
+        // date
         val showPodcastsTab: Boolean,
         // how the entries screens lay their rows out
         val entriesView: EntriesView,

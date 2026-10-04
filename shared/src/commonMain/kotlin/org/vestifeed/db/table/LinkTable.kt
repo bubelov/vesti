@@ -392,6 +392,19 @@ class LinkTable(private val conn: SQLiteConnection) {
     }
 
     /**
+     * Whether any entry has an audio enclosure — i.e. whether the Podcasts tab
+     * has anything to show. Used to hide the tab for readers without any
+     * podcast feeds.
+     */
+    suspend fun hasAudioEnclosures(): Boolean {
+        conn.prepare(
+            "SELECT EXISTS(SELECT 1 FROM link WHERE rel = 'Enclosure' AND type LIKE 'audio%');"
+        ).use { stmt ->
+            return stmt.step() && stmt.getInt(0) == 1
+        }
+    }
+
+    /**
      * One row per audio enclosure of an entry, joined with the entry's read /
      * bookmark state and the feed title. Used by the Podcasts tab to render
      * its list. `WHERE l.type LIKE 'audio%'` follows the same predicate

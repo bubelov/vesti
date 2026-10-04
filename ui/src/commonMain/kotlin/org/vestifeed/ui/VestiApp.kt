@@ -292,7 +292,9 @@ private fun BottomBar(state: AppState, screen: Screen) {
                 colors = vestiNavItemColors,
             )
         }
-        if (state.conf.showPodcastsTab) {
+        // The Podcasts tab is on by default but only shown when a feed actually
+        // has audio enclosures, so readers without podcast feeds don't get it.
+        if (state.conf.showPodcastsTab && state.hasPodcasts) {
             NavigationBarItem(
                 selected = screen is Screen.Podcasts,
                 onClick = { state.navigateRoot(Screen.Podcasts) },

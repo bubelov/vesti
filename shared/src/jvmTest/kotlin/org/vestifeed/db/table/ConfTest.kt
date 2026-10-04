@@ -52,9 +52,9 @@ class ConfTest {
         assertTrue(defaultConf.useBuiltInBrowser)
         assertTrue(defaultConf.showPreviewText)
         assertEquals(16, defaultConf.entryBodyFontSize)
-        assertFalse(defaultConf.useBuiltInAudioPlayer)
+        assertTrue(defaultConf.useBuiltInAudioPlayer)
         assertFalse(defaultConf.showTagsTab)
-        assertFalse(defaultConf.showPodcastsTab)
+        assertTrue(defaultConf.showPodcastsTab)
         assertEquals(ConfTable.EntriesView.Cards, defaultConf.entriesView)
     }
 
