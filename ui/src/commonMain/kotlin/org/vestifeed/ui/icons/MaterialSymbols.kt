@@ -12,8 +12,10 @@ package org.vestifeed.ui.icons
  */
 object MaterialSymbols {
     const val ArrowBack = "\uE5C4"
+    const val Warning = "\uE002"
     const val Search = "\uE8B6"
     const val Newspaper = "\uEB81"
+    const val ListAlt = "\uE0EE"
     const val Bookmark = "\uE866"
     const val BookmarkAdd = "\uE598"
     const val BookmarkAdded = "\uE599"
@@ -34,6 +36,8 @@ object MaterialSymbols {
     const val Upload = "\uE2C6"
 
     // Settings.
+    const val Visibility = "\uE8F4"
+    const val VisibilityOff = "\uE8F5"
     const val Image = "\uE251"
     const val Crop = "\uE3BE"
     const val Notes = "\uE26C"

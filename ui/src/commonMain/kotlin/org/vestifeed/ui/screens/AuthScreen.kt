@@ -2,14 +2,16 @@
 
 package org.vestifeed.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -39,12 +42,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.icons.MaterialSymbol
+import org.vestifeed.ui.icons.MaterialSymbols
 
 /**
  * The first-run sign-in screen. A vertically centered, width-constrained form
@@ -77,31 +84,42 @@ fun AuthScreen(state: AppState) {
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding(),
-            contentAlignment = Alignment.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // The brand header is centred in the empty space above the form.
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    MaterialSymbol(
+                        glyph = MaterialSymbols.ListAlt,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        size = 128.sp,
+                    )
+                    Text(
+                        text = "VESTI",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp,
+                        letterSpacing = 4.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.offset(y = (-18).dp),
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .widthIn(max = 420.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 32.dp),
             ) {
-                Text(
-                    text = "Vesti",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Choose how to read your feeds.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                Spacer(Modifier.height(32.dp))
                 Text(
                     text = "Backend",
                     style = MaterialTheme.typography.labelLarge,
@@ -173,14 +191,20 @@ fun AuthScreen(state: AppState) {
                             PasswordVisualTransformation()
                         },
                         trailingIcon = {
-                            Text(
-                                text = if (tokenVisible) "Hide" else "Show",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .clickable { tokenVisible = !tokenVisible }
-                                    .padding(horizontal = 8.dp),
-                            )
+                            IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                                MaterialSymbol(
+                                    glyph = if (tokenVisible) {
+                                        MaterialSymbols.VisibilityOff
+                                    } else {
+                                        MaterialSymbols.Visibility
+                                    },
+                                    contentDescription = if (tokenVisible) {
+                                        "Hide password"
+                                    } else {
+                                        "Show password"
+                                    },
+                                )
+                            }
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
@@ -188,6 +212,17 @@ fun AuthScreen(state: AppState) {
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                } else {
+                    // Reserve the credentials' height so the brand header above
+                    // doesn't shift when switching backends; the warning fills
+                    // the same slot.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 164.dp),
+                    ) {
+                        EmbeddedWarning(Modifier.padding(top = 24.dp))
+                    }
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -236,9 +271,7 @@ fun AuthScreen(state: AppState) {
                             }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (busy) {
                         CircularProgressIndicator(
@@ -272,6 +305,38 @@ fun AuthScreen(state: AppState) {
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The caution shown when the Embedded backend is selected. Embedded mode keeps
+ * its data in the app's own database, so the notice points the user at OPML
+ * export for a durable backup.
+ */
+@Composable
+private fun EmbeddedWarning(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Row(Modifier.padding(16.dp)) {
+            MaterialSymbol(MaterialSymbols.Warning, contentDescription = null, size = 20.sp)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Embedded mode is experimental",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Your data may not survive app updates. " +
+                        "Back up your feeds regularly by exporting them as OPML.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }
