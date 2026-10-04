@@ -44,6 +44,7 @@ import org.vestifeed.db.table.EntryTable
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.entries.formatCalendarDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 
@@ -185,7 +186,7 @@ fun EntryScreen(state: AppState, entryId: String) {
                     append(current.authorName)
                 }
                 if (isNotEmpty()) append(" · ")
-                append(current.published.toString().substringBefore('T'))
+                append(formatCalendarDate(current.published))
             }
             Text(
                 meta,

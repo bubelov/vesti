@@ -4,6 +4,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Discrete bucket that [formatRelativeTime] renders. The bucket itself is
@@ -51,6 +53,21 @@ fun formatRelativeTime(now: Instant, published: Instant): String {
         RelativeTime.JustNow -> "Just now"
         is RelativeTime.MinutesAgo -> "${relative.count} min ago"
         is RelativeTime.HoursAgo -> "${relative.count} h ago"
-        RelativeTime.OlderThanDay -> published.toString().substringBefore('T')
+        RelativeTime.OlderThanDay -> formatCalendarDate(published)
     }
 }
+
+/**
+ * Formats the calendar date of [instant] (in UTC) as a human-readable,
+ * English date, e.g. `Aug 12, 2026`. Used wherever the raw ISO date used to be
+ * shown.
+ */
+fun formatCalendarDate(instant: Instant): String {
+    val date = instant.toLocalDateTime(TimeZone.UTC).date
+    return "${MONTH_NAMES[date.month.ordinal]} ${date.day}, ${date.year}"
+}
+
+private val MONTH_NAMES = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
