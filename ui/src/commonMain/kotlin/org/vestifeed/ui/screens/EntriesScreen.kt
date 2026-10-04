@@ -451,7 +451,7 @@ private fun EntryListCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (row.summary.isNotBlank()) {
+                if (row.showPreviewText && row.summary.isNotBlank()) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = stripHtml(row.summary),
@@ -556,7 +556,7 @@ private fun EntryGridCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (row.summary.isNotBlank()) {
+                    if (row.showPreviewText && row.summary.isNotBlank()) {
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = stripHtml(row.summary),

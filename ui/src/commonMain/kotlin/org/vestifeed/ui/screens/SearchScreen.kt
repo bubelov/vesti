@@ -93,7 +93,7 @@ fun SearchScreen(state: AppState) {
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            if (row.summary.isNotBlank()) {
+                            if (row.showPreviewText && row.summary.isNotBlank()) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     stripHtml(row.summary),
