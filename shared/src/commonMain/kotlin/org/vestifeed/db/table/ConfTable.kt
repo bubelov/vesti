@@ -28,7 +28,7 @@ class ConfTable(private val conn: SQLiteConnection) {
                 use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
                 show_tags_tab INTEGER NOT NULL DEFAULT 0,
                 show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
-                entries_view TEXT NOT NULL DEFAULT 'list'
+                entries_view TEXT NOT NULL DEFAULT 'cards'
             ) STRICT;
         """
 
@@ -49,7 +49,7 @@ class ConfTable(private val conn: SQLiteConnection) {
             useBuiltInAudioPlayer = false,
             showTagsTab = false,
             showPodcastsTab = false,
-            entriesView = EntriesView.List,
+            entriesView = EntriesView.Cards,
         )
     }
 
@@ -188,5 +188,5 @@ class ConfTable(private val conn: SQLiteConnection) {
         if (isNull(index)) null else Backend.entries.single { it.name.lowercase() == getText(index) }
 
     fun SQLiteStatement.getEntriesView(index: Int): EntriesView =
-        EntriesView.entries.firstOrNull { it.name.lowercase() == getText(index) } ?: EntriesView.List
+        EntriesView.entries.firstOrNull { it.name.lowercase() == getText(index) } ?: EntriesView.Cards
 }

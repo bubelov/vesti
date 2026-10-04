@@ -1,6 +1,5 @@
 package org.vestifeed.ui.theme
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItemColors
@@ -12,7 +11,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.Font
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.material_symbols
@@ -109,28 +107,6 @@ val LocalIconFont = staticCompositionLocalOf<FontFamily?> { null }
 
 /** Whether the app is in dark mode; provided by [VestiTheme]. */
 val LocalDarkTheme = staticCompositionLocalOf { false }
-
-private val DarkCardBackground = Color(0xFF121318)
-private val DarkCardBorder = Color.White.copy(alpha = 0.3f)
-
-/**
- * The container colour for app cards. In dark mode a card shares the page
- * colour and is separated from it by [vestiCardBorder] instead.
- */
-val vestiCardContainer: Color
-    @Composable get() = if (LocalDarkTheme.current) {
-        DarkCardBackground
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
-
-/** The hairline border around app cards, white in dark mode. */
-val vestiCardBorder: BorderStroke?
-    @Composable get() = if (LocalDarkTheme.current) {
-        BorderStroke(1.dp, DarkCardBorder)
-    } else {
-        null
-    }
 
 private val DarkNavIndicator = Color(0xFF353A4D)
 private val DarkNavSelected = Color(0xFFAAAAB4)

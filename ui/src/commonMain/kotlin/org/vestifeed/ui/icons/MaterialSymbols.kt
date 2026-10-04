@@ -12,6 +12,7 @@ package org.vestifeed.ui.icons
  */
 object MaterialSymbols {
     const val ArrowBack = "\uE5C4"
+    const val MoreVert = "\uE5D4"
     const val Warning = "\uE002"
     const val Search = "\uE8B6"
     const val Newspaper = "\uEB81"

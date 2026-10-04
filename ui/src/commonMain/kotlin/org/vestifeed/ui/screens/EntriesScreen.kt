@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,12 +26,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -64,8 +64,6 @@ import org.vestifeed.ui.entries.load
 import org.vestifeed.ui.entries.toRow
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
-import org.vestifeed.ui.theme.vestiCardBorder
-import org.vestifeed.ui.theme.vestiCardContainer
 
 /** The reading width of the list, centered on wide (desktop) windows. */
 private val ContentWidth = 760.dp
@@ -84,8 +82,8 @@ private val SwipeMaxWidth = 600.dp
 
 /**
  * A list of entries (unread, bookmarks or a feed's). Compact cards: a preview
- * image on the left, the title and metadata in the middle, and the bookmark
- * toggle on the right. Read entries are dimmed.
+ * image on the left, the title and metadata in the middle. Read entries are
+ * dimmed; bookmarking is done with a swipe on compact layouts.
  */
 @Composable
 fun EntriesScreen(state: AppState, screen: Screen.Entries) {
@@ -226,9 +224,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                         ) {
                             EntryListCard(
                                 row = row,
-                                isBookmarked = bookmarked[row.id] == true,
                                 onClick = { onEntryClick(row) },
-                                onToggleBookmark = { onEntryBookmark(row) },
                             )
                         }
                     }
@@ -316,13 +312,11 @@ private fun SwipeableEntry(
 @Composable
 private fun EntryListCard(
     row: EntryRow,
-    isBookmarked: Boolean,
     onClick: () -> Unit,
-    onToggleBookmark: () -> Unit,
 ) {
     val hasImage = row.showImage && row.imageUrl.isNotBlank()
 
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
@@ -330,8 +324,6 @@ private fun EntryListCard(
                 indication = null,
                 onClick = onClick,
             ),
-        colors = CardDefaults.cardColors(containerColor = vestiCardContainer),
-        border = vestiCardBorder,
     ) {
         Box(Modifier.fillMaxWidth()) {
             Column(
@@ -339,10 +331,10 @@ private fun EntryListCard(
                     .align(Alignment.CenterStart)
                     .fillMaxWidth()
                     .padding(
-                        start = if (hasImage) 108.dp else 12.dp,
-                        top = 12.dp,
-                        end = 52.dp,
-                        bottom = 12.dp,
+                        start = if (hasImage) 108.dp else 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp,
                     ),
             ) {
                 Text(
@@ -359,7 +351,7 @@ private fun EntryListCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = row.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -375,19 +367,6 @@ private fun EntryListCard(
                     )
                 }
             }
-
-            CardActionButton(
-                glyph = if (isBookmarked) MaterialSymbols.BookmarkAdded else MaterialSymbols.BookmarkAdd,
-                contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
-                tint = if (isBookmarked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                onScrim = false,
-                onClick = onToggleBookmark,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
-            )
 
             if (hasImage) {
                 // Overlaid rather than placed in a Row: the text decides the
@@ -421,7 +400,7 @@ private fun EntryGridCard(
 ) {
     val hasImage = row.showImage && row.imageUrl.isNotBlank()
 
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
@@ -429,8 +408,6 @@ private fun EntryGridCard(
                 indication = null,
                 onClick = onClick,
             ),
-        colors = CardDefaults.cardColors(containerColor = vestiCardContainer),
-        border = vestiCardBorder,
     ) {
         Box {
             Column {
@@ -442,16 +419,16 @@ private fun EntryGridCard(
                         contentScale = if (row.cropImage) ContentScale.Crop else ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp)
+                            .aspectRatio(16f / 9f)
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     )
                 }
                 Column(
                     modifier = Modifier.padding(
-                        start = 12.dp,
-                        top = 12.dp,
-                        end = if (showActions && !hasImage) 116.dp else 12.dp,
-                        bottom = 12.dp,
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = if (showActions && !hasImage) 116.dp else 16.dp,
+                        bottom = 16.dp,
                     ),
                 ) {
                     Text(
@@ -468,7 +445,7 @@ private fun EntryGridCard(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = row.subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

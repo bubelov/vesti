@@ -525,10 +525,10 @@ class DatabaseMigrationTest {
         val db = Database(driver, dbFile.absolutePath)
         db.connect()
 
-        // Existing installs keep the previous look until the user opts in.
-        assertEquals(ConfTable.EntriesView.List, db.conf.select().entriesView)
-
-        db.conf.update { it.copy(entriesView = ConfTable.EntriesView.Cards) }
+        // The added column lands on the product default (cards).
         assertEquals(ConfTable.EntriesView.Cards, db.conf.select().entriesView)
+
+        db.conf.update { it.copy(entriesView = ConfTable.EntriesView.List) }
+        assertEquals(ConfTable.EntriesView.List, db.conf.select().entriesView)
     }
 }

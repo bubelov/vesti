@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -77,6 +82,14 @@ private fun MainScaffold(state: AppState, screen: Screen) {
     Scaffold(
         topBar = { AppTopBar(state, screen) },
         bottomBar = { BottomBar(state, screen) },
+        floatingActionButton = {
+            // Following a new feed is the Feeds screen's primary action.
+            if (screen is Screen.Feeds) {
+                FloatingActionButton(onClick = { state.addFeedDialogVisible = true }) {
+                    MaterialSymbol(MaterialSymbols.Add, contentDescription = "Add feed")
+                }
+            }
+        },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (screen) {
@@ -142,6 +155,33 @@ private fun AppTopBar(state: AppState, screen: Screen) {
             }
             IconButton(onClick = { state.navigate(Screen.Search) }) {
                 MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search")
+            }
+            if (screen is Screen.Feeds) {
+                var menuExpanded by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        MaterialSymbol(MaterialSymbols.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Import OPML") },
+                            onClick = {
+                                menuExpanded = false
+                                state.opmlImportDialogVisible = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Export OPML") },
+                            onClick = {
+                                menuExpanded = false
+                                state.opmlExportRequested = true
+                            },
+                        )
+                    }
+                }
             }
         },
     )

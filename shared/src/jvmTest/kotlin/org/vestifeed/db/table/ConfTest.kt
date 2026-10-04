@@ -55,7 +55,7 @@ class ConfTest {
         assertFalse(defaultConf.useBuiltInAudioPlayer)
         assertFalse(defaultConf.showTagsTab)
         assertFalse(defaultConf.showPodcastsTab)
-        assertEquals(ConfTable.EntriesView.List, defaultConf.entriesView)
+        assertEquals(ConfTable.EntriesView.Cards, defaultConf.entriesView)
     }
 
     @Test

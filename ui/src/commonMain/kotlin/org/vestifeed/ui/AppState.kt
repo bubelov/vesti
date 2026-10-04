@@ -35,6 +35,24 @@ class AppState(
     var unreadCount by mutableStateOf(0)
         private set
 
+    /**
+     * Whether the add-feed dialog is open. The Feeds app-bar action sets it;
+     * [org.vestifeed.ui.screens.FeedsScreen] observes it and renders the dialog.
+     */
+    var addFeedDialogVisible by mutableStateOf(false)
+
+    /**
+     * Whether the OPML import dialog is open (Feeds app-bar overflow).
+     * [org.vestifeed.ui.screens.FeedsScreen] observes it.
+     */
+    var opmlImportDialogVisible by mutableStateOf(false)
+
+    /**
+     * One-shot request from the Feeds app-bar overflow to export the feeds as
+     * OPML. [org.vestifeed.ui.screens.FeedsScreen] consumes and clears it.
+     */
+    var opmlExportRequested by mutableStateOf(false)
+
     val sync = Sync(scope, db)
 
     private val backStack = mutableStateListOf<Screen>()

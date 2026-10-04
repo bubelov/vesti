@@ -22,10 +22,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,8 +38,6 @@ import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
-import org.vestifeed.ui.theme.vestiCardBorder
-import org.vestifeed.ui.theme.vestiCardContainer
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -165,12 +163,10 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
         text = title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 6.dp),
+        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp),
     )
-    Surface(
+    OutlinedCard(
         shape = MaterialTheme.shapes.large,
-        color = vestiCardContainer,
-        border = vestiCardBorder,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(content = content)

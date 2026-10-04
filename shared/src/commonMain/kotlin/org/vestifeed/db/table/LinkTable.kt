@@ -326,6 +326,25 @@ class LinkTable(private val conn: SQLiteConnection) {
             }
     }
 
+    /**
+     * Deletes every link owned by [feedId]: the feed's own links and those of
+     * its entries. Entry links must be removed before the entries themselves,
+     * otherwise the `entry_id` foreign key blocks the entry delete.
+     */
+    suspend fun deleteForFeed(feedId: String) {
+        conn.prepare(
+            """
+            DELETE FROM link
+            WHERE feed_id = ?
+               OR entry_id IN (SELECT id FROM entry WHERE feed_id = ?);
+            """
+        ).use { stmt ->
+            stmt.bindText(1, feedId)
+            stmt.bindText(2, feedId)
+            stmt.step()
+        }
+    }
+
     suspend fun deleteByEntryId(entryId: String) {
         conn.prepare("DELETE FROM link WHERE entry_id = ?;")
             .use { stmt ->

@@ -134,7 +134,7 @@ class Database(driver: SQLiteDriver, val path: String) {
         }
 
         if (version == 9) {
-            conn.execSQL("ALTER TABLE conf ADD COLUMN entries_view TEXT NOT NULL DEFAULT 'list';")
+            conn.execSQL("ALTER TABLE conf ADD COLUMN entries_view TEXT NOT NULL DEFAULT 'cards';")
             conn.execSQL("PRAGMA user_version=10;")
             version = 10
         }

@@ -152,7 +152,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                 scope.launch {
                     runCatching { backend(state.db).deleteFeed(feedId) }
                     state.db.transaction {
-                        state.db.link.deleteByFeedId(feedId)
+                        state.db.link.deleteForFeed(feedId)
                         state.db.entry.deleteByFeedId(feedId)
                         state.db.feed.deleteById(feedId)
                     }
