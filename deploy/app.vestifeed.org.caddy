@@ -11,13 +11,6 @@ app.vestifeed.org {
 		-Server
 	}
 
-	# Hashed Kotlin/wasm artifacts are immutable; entry points must not be.
-	@immutable path_regexp hashed ^.*\.[0-9a-f]{20}\.(wasm|js)$
-	header @immutable Cache-Control "public, max-age=31536000, immutable"
-
-	@entrypoint path /index.html /vesti.js /sqlite-worker.js
-	header @entrypoint Cache-Control "no-cache"
-
 	# Same-origin relay for standalone feed fetches and OpenGraph images.
 	handle /proxy* {
 		reverse_proxy 127.0.0.1:8787
@@ -25,6 +18,23 @@ app.vestifeed.org {
 
 	handle {
 		root * /srv/http/app.vestifeed.org
+
+		# route keeps these two in the written order: the default no-cache
+		# first, then the immutable override for content-hashed files.
+		route {
+			# Everything must be revalidated by default -- index.html
+			# (served at / too), vesti.js, the sqlite worker and the
+			# unhashed webpack chunks -- so a new deploy can never be mixed
+			# with stale files.
+			header Cache-Control "no-cache, must-revalidate"
+
+			# Only content-hashed artifacts are immutable. Their names
+			# (20 hex chars) change with every build, e.g.
+			# /4a51dc0b4a8e3c4ac422.wasm.
+			@immutable path_regexp hashed ^/[0-9a-f]{20}\.(wasm|js)$
+			header @immutable Cache-Control "public, max-age=31536000, immutable"
+		}
+
 		file_server
 	}
 
