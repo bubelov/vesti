@@ -43,6 +43,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -221,77 +222,86 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             )
         }
 
-        BoxWithConstraints(
+        PullToRefreshBox(
+            isRefreshing = running,
+            onRefresh = {
+                state.sync.clearError()
+                state.sync.runInBackground()
+            },
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentAlignment = Alignment.Center,
         ) {
-            val swipesEnabled = maxWidth < SwipeMaxWidth
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                val swipesEnabled = maxWidth < SwipeMaxWidth
 
-            when {
-                loading && rows.isEmpty() -> CircularProgressIndicator()
+                when {
+                    loading && rows.isEmpty() -> CircularProgressIndicator()
 
-                rows.isEmpty() && screen.list is EntriesList.Unread && feedCount == 0 ->
-                    EmptyUnreadState(
-                        onAddFeed = {
-                            state.navigateRoot(Screen.Feeds)
-                            state.addFeedDialogVisible = true
-                        },
-                        onBrowseCurated = { state.navigateRoot(Screen.CuratedFeeds) },
+                    rows.isEmpty() && screen.list is EntriesList.Unread && feedCount == 0 ->
+                        EmptyUnreadState(
+                            onAddFeed = {
+                                state.navigateRoot(Screen.Feeds)
+                                state.addFeedDialogVisible = true
+                            },
+                            onBrowseCurated = { state.navigateRoot(Screen.CuratedFeeds) },
+                        )
+
+                    rows.isEmpty() -> Text(
+                        text = screen.list.emptyMessage(feedCount),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                rows.isEmpty() -> Text(
-                    text = screen.list.emptyMessage(feedCount),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                entriesView == ConfTable.EntriesView.Cards -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = GridMinCellWidth),
-                    modifier = Modifier.widthIn(max = GridMaxWidth).fillMaxHeight(),
-                    contentPadding = PaddingValues(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    gridItems(rows, key = { it.id }) { row ->
-                        SwipeableEntry(
-                            enabled = swipesEnabled,
-                            markReadRemoves = screen.list is EntriesList.Unread,
-                            bookmarkRemoves = screen.list is EntriesList.Unread ||
-                                screen.list is EntriesList.Bookmarked,
-                            onMarkRead = { onEntryMarkRead(row) },
-                            onToggleBookmark = { onEntryBookmark(row) },
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            EntryGridCard(
-                                row = row,
-                                isBookmarked = bookmarked[row.id] == true,
-                                onClick = { onEntryClick(row) },
-                                onToggleBookmark = { onEntryBookmark(row) },
+                    entriesView == ConfTable.EntriesView.Cards -> LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = GridMinCellWidth),
+                        modifier = Modifier.widthIn(max = GridMaxWidth).fillMaxHeight(),
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        gridItems(rows, key = { it.id }) { row ->
+                            SwipeableEntry(
+                                enabled = swipesEnabled,
+                                markReadRemoves = screen.list is EntriesList.Unread,
+                                bookmarkRemoves = screen.list is EntriesList.Unread ||
+                                    screen.list is EntriesList.Bookmarked,
                                 onMarkRead = { onEntryMarkRead(row) },
-                                showActions = !swipesEnabled,
-                            )
+                                onToggleBookmark = { onEntryBookmark(row) },
+                                modifier = Modifier.animateItem(),
+                            ) {
+                                EntryGridCard(
+                                    row = row,
+                                    isBookmarked = bookmarked[row.id] == true,
+                                    onClick = { onEntryClick(row) },
+                                    onToggleBookmark = { onEntryBookmark(row) },
+                                    onMarkRead = { onEntryMarkRead(row) },
+                                    showActions = !swipesEnabled,
+                                )
+                            }
                         }
                     }
-                }
 
-                else -> LazyColumn(
-                    modifier = Modifier.widthIn(max = ContentWidth).fillMaxHeight(),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(rows, key = { it.id }) { row ->
-                        SwipeableEntry(
-                            enabled = swipesEnabled,
-                            markReadRemoves = screen.list is EntriesList.Unread,
-                            bookmarkRemoves = screen.list is EntriesList.Unread ||
-                                screen.list is EntriesList.Bookmarked,
-                            onMarkRead = { onEntryMarkRead(row) },
-                            onToggleBookmark = { onEntryBookmark(row) },
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            EntryListCard(
-                                row = row,
-                                onClick = { onEntryClick(row) },
-                            )
+                    else -> LazyColumn(
+                        modifier = Modifier.widthIn(max = ContentWidth).fillMaxHeight(),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(rows, key = { it.id }) { row ->
+                            SwipeableEntry(
+                                enabled = swipesEnabled,
+                                markReadRemoves = screen.list is EntriesList.Unread,
+                                bookmarkRemoves = screen.list is EntriesList.Unread ||
+                                    screen.list is EntriesList.Bookmarked,
+                                onMarkRead = { onEntryMarkRead(row) },
+                                onToggleBookmark = { onEntryBookmark(row) },
+                                modifier = Modifier.animateItem(),
+                            ) {
+                                EntryListCard(
+                                    row = row,
+                                    onClick = { onEntryClick(row) },
+                                )
+                            }
                         }
                     }
                 }
