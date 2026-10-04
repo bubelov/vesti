@@ -37,8 +37,10 @@ import org.vestifeed.ui.screens.EntriesScreen
 import org.vestifeed.ui.screens.EntryScreen
 import org.vestifeed.ui.screens.FeedSettingsScreen
 import org.vestifeed.ui.screens.FeedsScreen
+import org.vestifeed.ui.screens.PodcastsScreen
 import org.vestifeed.ui.screens.SearchScreen
 import org.vestifeed.ui.screens.SettingsScreen
+import org.vestifeed.ui.screens.TagsScreen
 import org.vestifeed.ui.theme.VestiTheme
 import org.vestifeed.ui.theme.vestiNavItemColors
 
@@ -98,6 +100,8 @@ private fun MainScaffold(state: AppState, screen: Screen) {
                 Screen.Feeds -> FeedsScreen(state)
                 is Screen.FeedSettings -> FeedSettingsScreen(state, screen.feedId)
                 Screen.Search -> SearchScreen(state)
+                Screen.Tags -> TagsScreen(state)
+                Screen.Podcasts -> PodcastsScreen(state)
                 Screen.Settings -> SettingsScreen(state)
                 else -> Unit
             }
@@ -120,6 +124,8 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         Screen.Feeds -> "Feeds"
         is Screen.FeedSettings -> "Feed settings"
         Screen.Search -> "Search"
+        Screen.Tags -> "Tags"
+        Screen.Podcasts -> "Podcasts"
         Screen.Settings -> "Settings"
         else -> "Vesti"
     }
@@ -253,40 +259,50 @@ private fun AppTopBar(state: AppState, screen: Screen) {
 
 @Composable
 private fun BottomBar(state: AppState, screen: Screen) {
-    val selected = when (screen) {
-        is Screen.Entries -> when (screen.list) {
-            EntriesList.Bookmarked -> 1
-            else -> 0
-        }
-        Screen.Feeds -> 2
-        Screen.Settings -> 3
-        else -> -1
-    }
-
     NavigationBar {
         NavigationBarItem(
-            selected = selected == 0,
+            selected = screen is Screen.Entries && screen.list !is EntriesList.Bookmarked,
             onClick = { state.navigateRoot(Screen.Entries(EntriesList.Unread)) },
             icon = { MaterialSymbol(MaterialSymbols.Newspaper, contentDescription = null) },
             label = { Text("Unread") },
             colors = vestiNavItemColors,
         )
         NavigationBarItem(
-            selected = selected == 1,
+            selected = screen is Screen.Entries && screen.list is EntriesList.Bookmarked,
             onClick = { state.navigateRoot(Screen.Entries(EntriesList.Bookmarked)) },
             icon = { MaterialSymbol(MaterialSymbols.Bookmark, contentDescription = null) },
             label = { Text("Saved") },
             colors = vestiNavItemColors,
         )
         NavigationBarItem(
-            selected = selected == 2,
+            selected = screen is Screen.Feeds,
             onClick = { state.navigateRoot(Screen.Feeds) },
             icon = { MaterialSymbol(MaterialSymbols.RssFeed, contentDescription = null) },
             label = { Text("Feeds") },
             colors = vestiNavItemColors,
         )
+        // The Tags and Podcasts tabs are opt-in, so they appear as soon as their
+        // setting flips (the bar reads conf, which is Compose state).
+        if (state.conf.showTagsTab) {
+            NavigationBarItem(
+                selected = screen is Screen.Tags,
+                onClick = { state.navigateRoot(Screen.Tags) },
+                icon = { MaterialSymbol(MaterialSymbols.Label, contentDescription = null) },
+                label = { Text("Tags") },
+                colors = vestiNavItemColors,
+            )
+        }
+        if (state.conf.showPodcastsTab) {
+            NavigationBarItem(
+                selected = screen is Screen.Podcasts,
+                onClick = { state.navigateRoot(Screen.Podcasts) },
+                icon = { MaterialSymbol(MaterialSymbols.Podcasts, contentDescription = null) },
+                label = { Text("Podcasts") },
+                colors = vestiNavItemColors,
+            )
+        }
         NavigationBarItem(
-            selected = selected == 3,
+            selected = screen is Screen.Settings,
             onClick = { state.navigateRoot(Screen.Settings) },
             icon = { MaterialSymbol(MaterialSymbols.Settings, contentDescription = null) },
             label = { Text("Settings") },

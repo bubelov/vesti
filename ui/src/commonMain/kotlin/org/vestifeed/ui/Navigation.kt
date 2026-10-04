@@ -17,6 +17,12 @@ sealed interface Screen {
 
     data object Search : Screen
 
+    /** The Tags tab (shown when `conf.showTagsTab`). */
+    data object Tags : Screen
+
+    /** The Podcasts tab (shown when `conf.showPodcastsTab`). */
+    data object Podcasts : Screen
+
     data object Settings : Screen
 }
 
