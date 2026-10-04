@@ -134,11 +134,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
         try {
             val loaded = state.withDb { screen.list.load(state.db) }
             rows = loaded.map { it.toRow(state.conf) }
-            bookmarked = state.withDb {
-                loaded.associate { row ->
-                    row.id to (state.db.entry.selectById(row.id)?.extBookmarked ?: false)
-                }
-            }
+            bookmarked = loaded.associate { it.id to it.extBookmarked }
             feedCount = state.withDb { state.db.feed.selectAll().size }
             state.refreshUnreadCount()
         } finally {

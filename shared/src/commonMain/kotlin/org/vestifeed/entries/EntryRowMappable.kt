@@ -10,6 +10,7 @@ import kotlin.time.Instant
  */
 interface EntryRowMappable {
     val id: String
+    val extBookmarked: Boolean
     val extShowPreviewImages: Boolean?
     val extOpenGraphImageUrl: String
     val extOpenGraphImageWidth: Int

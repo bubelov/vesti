@@ -208,7 +208,7 @@ class EntryTable(private val conn: SQLiteConnection) {
     data class EntriesAdapterRow(
         override val id: String,
         val feedId: String,
-        val extBookmarked: Boolean,
+        override val extBookmarked: Boolean,
         override val extShowPreviewImages: Boolean?,
         override val extOpenGraphImageUrl: String,
         override val extOpenGraphImageWidth: Int,
@@ -642,6 +642,13 @@ class EntryTable(private val conn: SQLiteConnection) {
      * `ext_og_image_checked = 0` here, so flipping the per-feed toggle on
      * later will surface them on the next iteration.
      *
+     * Only entries that already have an `Alternate` link are returned. Sync
+     * inserts an entry and its links in separate statements, so an entry can
+     * briefly exist before its HTML URL does; selecting it then would find no
+     * link, terminally mark it checked, and lose the image forever. Waiting
+     * for the link avoids that race (an entry with no alternate link can't
+     * have an OG image fetched anyway).
+     *
      * Inner-joined on `feed`, so an entry whose feed has been deleted
      * (orphan) is silently dropped — which is the right behaviour, since
      * the OG fetcher can't resolve a `link` row for it either.
@@ -654,6 +661,10 @@ class EntryTable(private val conn: SQLiteConnection) {
             JOIN feed f ON f.id = e.feed_id
             WHERE e.ext_og_image_checked = 0
               AND (f.ext_show_preview_images IS NULL OR f.ext_show_preview_images != 0)
+              AND EXISTS (
+                  SELECT 1 FROM link l
+                  WHERE l.entry_id = e.id AND l.rel = 'Alternate'
+              )
             ORDER BY e.published DESC
             LIMIT ?
             """
@@ -716,6 +727,7 @@ class EntryTable(private val conn: SQLiteConnection) {
     private fun statementToSelectByQuery(stmt: SQLiteStatement): SelectByQuery {
         return SelectByQuery(
             id = stmt.getTextOrNull(0) ?: "",
+            extBookmarked = stmt.getInt(12) == 1,
             extShowPreviewImages = stmt.getBoolOrNull(1),
             extOpenGraphImageUrl = stmt.getTextOrNull(2) ?: "",
             extOpenGraphImageWidth = stmt.getInt(3),
@@ -760,6 +772,7 @@ class EntryTable(private val conn: SQLiteConnection) {
 
     data class SelectByQuery(
         override val id: String,
+        override val extBookmarked: Boolean,
         override val extShowPreviewImages: Boolean?,
         override val extOpenGraphImageUrl: String,
         override val extOpenGraphImageWidth: Int,
@@ -778,7 +791,8 @@ class EntryTable(private val conn: SQLiteConnection) {
         val sql = """
             SELECT e.id, f.ext_show_preview_images, e.ext_og_image_url, e.ext_og_image_width,
                    e.ext_og_image_height, e.title, f.title as feed_title, e.published,
-                   e.summary, e.ext_read, f.ext_open_entries_in_browser, e.author_name
+                   e.summary, e.ext_read, f.ext_open_entries_in_browser, e.author_name,
+                   e.ext_bookmarked
             FROM entry e
             JOIN feed f ON f.id = e.feed_id
             WHERE e.title LIKE ? OR e.summary LIKE ? OR e.content_text LIKE ?

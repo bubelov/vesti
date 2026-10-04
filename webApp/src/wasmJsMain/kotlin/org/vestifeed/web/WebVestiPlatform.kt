@@ -4,6 +4,9 @@ import org.vestifeed.ui.VestiPlatform
 
 class WebVestiPlatform : VestiPlatform {
 
+    // A browser has no touch pull gesture; refreshing happens from the app bar.
+    override val supportsPullToRefresh: Boolean = false
+
     // The browser host has no separate in-app browser; always open a new tab.
     override fun openUrl(url: String, useBuiltInBrowser: Boolean) {
         openUrlJs(url)
@@ -47,10 +50,10 @@ private fun shareTextJs(text: String): Unit =
     js("navigator.share ? navigator.share({ text: text }) : navigator.clipboard && navigator.clipboard.writeText(text)")
 
 private fun playAudioJs(url: String): Unit =
-    js("(window.__vestiAudio = window.__vestiAudio || new Audio()).src = url; window.__vestiAudio.play()")
+    js("{ (window.__vestiAudio = window.__vestiAudio || new Audio()).src = url; window.__vestiAudio.play() }")
 
 private fun stopAudioJs(): Unit =
-    js("if (window.__vestiAudio) { window.__vestiAudio.pause(); window.__vestiAudio.currentTime = 0 }")
+    js("{ if (window.__vestiAudio) { window.__vestiAudio.pause(); window.__vestiAudio.currentTime = 0 } }")
 
 private fun audioCurrentTimeJs(): Double =
     js("(window.__vestiAudio ? window.__vestiAudio.currentTime : NaN)")
@@ -59,4 +62,4 @@ private fun audioDurationJs(): Double =
     js("(window.__vestiAudio ? window.__vestiAudio.duration : NaN)")
 
 private fun seekAudioJs(seconds: Double): Unit =
-    js("if (window.__vestiAudio) window.__vestiAudio.currentTime = seconds")
+    js("{ if (window.__vestiAudio) window.__vestiAudio.currentTime = seconds }")

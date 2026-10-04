@@ -138,6 +138,27 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("PRAGMA user_version=10;")
             version = 10
         }
+
+        if (version == 10) {
+            // Repair entries the OG fetcher saw before sync had inserted their
+            // links: it found no alternate link, marked them checked, and never
+            // retried, so the stored image URL stayed empty. Reset just those
+            // rows (identified by their log, and not already resolved another
+            // way) so the fetcher picks them up with the new link-aware query.
+            conn.execSQL(
+                """
+                UPDATE entry SET ext_og_image_checked = 0
+                WHERE ext_og_image_checked = 1
+                  AND (ext_og_image_url IS NULL OR ext_og_image_url = '')
+                  AND ext_og_log LIKE '%No HTML alternate link found%'
+                  AND ext_og_log NOT LIKE '%No og:image meta tag found%'
+                  AND ext_og_log NOT LIKE '%Could not read OG image dimensions%'
+                  AND ext_og_log NOT LIKE '%OG image stored%';
+                """.trimIndent()
+            )
+            conn.execSQL("PRAGMA user_version=11;")
+            version = 11
+        }
     }
 
     /**

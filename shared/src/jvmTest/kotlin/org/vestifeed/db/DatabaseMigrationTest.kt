@@ -9,8 +9,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.table.ConfTable
+import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTagTable
 import org.vestifeed.db.table.FeedTable
+import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.table.TagTable
 import java.io.File
 
@@ -479,6 +481,8 @@ class DatabaseMigrationTest {
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V8)
+            // A real v9 database has the ext_og_log column added by v8→v9.
+            conn.execSQL("ALTER TABLE entry ADD COLUMN ext_og_log TEXT NOT NULL DEFAULT '[]';")
             conn.execSQL(LINK_SCHEMA_V7)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
@@ -531,4 +535,81 @@ class DatabaseMigrationTest {
         db.conf.update { it.copy(entriesView = ConfTable.EntriesView.List) }
         assertEquals(ConfTable.EntriesView.List, db.conf.select().entriesView)
     }
+
+    @Test
+    fun migrate_v10ToV11_resetsOgCheckedForLinkRace() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL("PRAGMA user_version=10;")
+
+            FeedTable(conn).insertOrReplace(
+                FeedTable.Feed(
+                    id = "feed-1",
+                    title = "Feed",
+                    extOpenEntriesInBrowser = null,
+                    extBlockedWords = "",
+                    extShowPreviewImages = true,
+                )
+            )
+
+            EntryTable(conn).insertOrReplace(
+                listOf(
+                    // Poisoned by the sync race: no link yet when checked, so
+                    // the fetcher gave up and the URL stayed empty.
+                    ogEntry(
+                        id = "poisoned",
+                        log = "[{\"message\":\"No HTML alternate link found, marking as checked\"}]",
+                    ),
+                    // Legitimately checked: the article has no og:image. Must
+                    // stay checked so it is not fetched forever.
+                    ogEntry(
+                        id = "no-image",
+                        log = "[{\"message\":\"No og:image meta tag found, marking as checked\"}]",
+                    ),
+                )
+            )
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        assertTrue(
+            "link-race entries are re-queued so the fetcher can retry",
+            db.entry.selectById("poisoned")?.extOpenGraphImageChecked == false,
+        )
+        assertTrue(
+            "entries with no og:image stay terminally checked",
+            db.entry.selectById("no-image")?.extOpenGraphImageChecked == true,
+        )
+    }
+
+    private fun ogEntry(id: String, log: String): EntryTable.Entry = EntryTable.Entry(
+            contentType = "html",
+            contentSrc = "",
+            contentText = "",
+            summary = "",
+            id = id,
+            feedId = "feed-1",
+            title = "Entry",
+            published = kotlin.time.Clock.System.now(),
+            updated = kotlin.time.Clock.System.now(),
+            authorName = "",
+            extRead = false,
+            extReadSynced = true,
+            extBookmarked = false,
+            extBookmarkedSynced = true,
+            extCommentsUrl = "",
+            extOpenGraphImageChecked = true,
+            extOpenGraphImageUrl = "",
+            extOpenGraphImageWidth = 0,
+            extOpenGraphImageHeight = 0,
+            extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = log,
+        )
 }

@@ -13,7 +13,9 @@ import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTable
+import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.testDb
+import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.util.toInstant
 
 class OgImagePlanningTest {
@@ -172,6 +174,28 @@ class OgImagePlanningTest {
     }
 
     @Test
+    fun selectPendingOgImageEntries_waitsForAlternateLink() = runBlocking {
+        // Sync inserts an entry and its links separately; a candidate that
+        // appears before its alternate link must not be selected yet, or the
+        // fetcher would terminally mark it checked and lose the image.
+        val feed = insertFeed(extShowPreviewImages = true)
+        val linked = insertEntry(feedId = feed.id, checked = false)
+        val linkless = insertEntry(feedId = feed.id, checked = false, withAlternateLink = false)
+
+        assertEquals(
+            listOf(linked.id),
+            db.entry.selectPendingOgImageEntries(limit = 50).map { it.id },
+        )
+
+        db.link.insertForEntry(entryId = linkless.id, links = listOf(alternateLink(linkless.id)))
+
+        assertEquals(
+            setOf(linked.id, linkless.id),
+            db.entry.selectPendingOgImageEntries(limit = 50).map { it.id }.toSet(),
+        )
+    }
+
+    @Test
     fun selectPendingOgImageEntries_includesRowOnceUserReEnablesFeed() = runBlocking {
         // The user toggled the feed "hide previews" off after entries were
         // added under it; the per-feed-hidden filter must release them so the
@@ -252,27 +276,50 @@ class OgImagePlanningTest {
         feedId: String,
         checked: Boolean,
         published: Instant = Clock.System.now(),
-    ): EntryTable.Entry = EntryTable.Entry(
-        contentType = "html",
-        contentSrc = "",
-        contentText = "",
-        summary = "",
-        id = UUID.randomUUID().toString(),
-        feedId = feedId,
-        title = "Entry",
-        published = published,
-        updated = published,
-        authorName = "",
-        extRead = false,
-        extReadSynced = true,
-        extBookmarked = false,
-        extBookmarkedSynced = true,
-        extCommentsUrl = "",
-        extOpenGraphImageChecked = checked,
-        extOpenGraphImageUrl = "",
-        extOpenGraphImageWidth = 0,
-        extOpenGraphImageHeight = 0,
-        extOpenGraphImageFetchedAt = null,
-        extOpenGraphImageLog = "[]",
-    ).also { db.entry.insertOrReplace(listOf(it)) }
+        withAlternateLink: Boolean = true,
+    ): EntryTable.Entry {
+        val entry = EntryTable.Entry(
+            contentType = "html",
+            contentSrc = "",
+            contentText = "",
+            summary = "",
+            id = UUID.randomUUID().toString(),
+            feedId = feedId,
+            title = "Entry",
+            published = published,
+            updated = published,
+            authorName = "",
+            extRead = false,
+            extReadSynced = true,
+            extBookmarked = false,
+            extBookmarkedSynced = true,
+            extCommentsUrl = "",
+            extOpenGraphImageChecked = checked,
+            extOpenGraphImageUrl = "",
+            extOpenGraphImageWidth = 0,
+            extOpenGraphImageHeight = 0,
+            extOpenGraphImageFetchedAt = null,
+            extOpenGraphImageLog = "[]",
+        )
+        db.entry.insertOrReplace(listOf(entry))
+        if (withAlternateLink) {
+            db.link.insertForEntry(entryId = entry.id, links = listOf(alternateLink(entry.id)))
+        }
+        return entry
+    }
+
+    private fun alternateLink(entryId: String): LinkTable.Link =
+        LinkTable.Link(
+            id = null,
+            feedId = null,
+            entryId = entryId,
+            href = "https://example.com/$entryId",
+            rel = AtomLinkRel.Alternate,
+            type = "text/html",
+            hreflang = null,
+            title = null,
+            length = null,
+            extEnclosureDownloadProgress = null,
+            extCacheUri = null,
+        )
 }
