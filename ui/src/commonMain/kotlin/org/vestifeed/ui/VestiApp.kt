@@ -134,7 +134,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
             }
         },
         actions = {
-            // Refreshing only makes sense on the entry lists.
+            // Syncing only makes sense on the entry lists.
             if (screen is Screen.Entries) {
                 IconButton(
                     onClick = {
@@ -149,7 +149,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        MaterialSymbol(MaterialSymbols.Refresh, contentDescription = "Refresh")
+                        MaterialSymbol(MaterialSymbols.Sync, contentDescription = "Sync")
                     }
                 }
             }
