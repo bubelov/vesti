@@ -18,6 +18,9 @@ import org.vestifeed.ui.VestiPlatform
  */
 class DesktopVestiPlatform : VestiPlatform {
 
+    // Desktop has no touch pull gesture.
+    override val supportsPullToRefresh: Boolean = false
+
     // Desktop has no in-app browser, so the flag is ignored and links always go
     // to the system browser.
     override fun openUrl(url: String, useBuiltInBrowser: Boolean) {

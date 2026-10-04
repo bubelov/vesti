@@ -69,7 +69,7 @@ fun PodcastsScreen(state: AppState) {
     var durationMs by remember { mutableStateOf(0L) }
 
     LaunchedEffect(Unit) {
-        rows = state.db.link.selectAudioEnclosureRows()
+        rows = state.withDb { state.db.link.selectAudioEnclosureRows() }
         loading = false
     }
 
@@ -129,7 +129,7 @@ fun PodcastsScreen(state: AppState) {
             preparingLinkId = null
             progress = null
             if (uri != null) {
-                state.db.link.updateEnclosureProgress(row.linkId, null, uri)
+                state.withDb { state.db.link.updateEnclosureProgress(row.linkId, null, uri) }
                 rows = rows.map { if (it.linkId == row.linkId) it.copy(extCacheUri = uri) else it }
                 state.platform.playAudio(uri)
                 playingLinkId = row.linkId

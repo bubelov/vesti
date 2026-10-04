@@ -69,18 +69,20 @@ fun EntryScreen(state: AppState, entryId: String) {
     val textTops = remember { mutableMapOf<Int, Float>() }
 
     suspend fun reload() {
-        val loaded = state.db.entry.selectById(entryId)
+        val loaded = state.withDb { state.db.entry.selectById(entryId) }
         entry = loaded
         // Publish what the app bar needs to render and perform this entry's
         // actions.
         state.entryTitle = loaded?.title.orEmpty()
         state.entryBookmarked = loaded?.extBookmarked ?: false
         state.entryRead = loaded?.extRead ?: false
-        val links = state.db.link.selectByEntryId(entryId)
+        val links = state.withDb { state.db.link.selectByEntryId(entryId) }
         state.entryHref = links.firstOrNull {
             it.rel == AtomLinkRel.Alternate && it.type?.startsWith("text/html") == true
         }?.href ?: links.firstOrNull { it.rel == AtomLinkRel.Alternate }?.href
-        feedTitle = loaded?.let { state.db.feed.selectById(it.feedId)?.title } ?: ""
+        feedTitle = state.withDb {
+            loaded?.let { state.db.feed.selectById(it.feedId)?.title }
+        } ?: ""
     }
 
     LaunchedEffect(entryId) { reload() }

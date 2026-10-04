@@ -53,7 +53,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
     var loaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(feedId) {
-        val loadedFeed = state.db.feed.selectById(feedId)
+        val loadedFeed = state.withDb { state.db.feed.selectById(feedId) }
         feed = loadedFeed
         title = loadedFeed?.title ?: ""
         blockedWords = loadedFeed?.extBlockedWords ?: ""
@@ -117,8 +117,10 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                         extShowPreviewImages = showImages,
                         extOpenEntriesInBrowser = openInBrowser,
                     )
-                    state.db.feed.insertOrReplace(updated)
-                    runCatching { backend(state.db).updateFeedTitle(feedId, title) }
+                    state.withDb {
+                        state.db.feed.insertOrReplace(updated)
+                        runCatching { backend(state.db).updateFeedTitle(feedId, title) }
+                    }
                     feed = updated
                     message = "Saved"
                 }
@@ -150,11 +152,13 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         OutlinedButton(
             onClick = {
                 scope.launch {
-                    runCatching { backend(state.db).deleteFeed(feedId) }
-                    state.db.transaction {
-                        state.db.link.deleteForFeed(feedId)
-                        state.db.entry.deleteByFeedId(feedId)
-                        state.db.feed.deleteById(feedId)
+                    state.withDb {
+                        runCatching { backend(state.db).deleteFeed(feedId) }
+                        state.db.transaction {
+                            state.db.link.deleteForFeed(feedId)
+                            state.db.entry.deleteByFeedId(feedId)
+                            state.db.feed.deleteById(feedId)
+                        }
                     }
                     state.pop()
                 }

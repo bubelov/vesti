@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -131,12 +132,14 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     LaunchedEffect(screen.list, state.conf, refreshKey) {
         loading = true
         try {
-            val loaded = screen.list.load(state.db)
+            val loaded = state.withDb { screen.list.load(state.db) }
             rows = loaded.map { it.toRow(state.conf) }
-            bookmarked = loaded.associate { row ->
-                row.id to (state.db.entry.selectById(row.id)?.extBookmarked ?: false)
+            bookmarked = state.withDb {
+                loaded.associate { row ->
+                    row.id to (state.db.entry.selectById(row.id)?.extBookmarked ?: false)
+                }
             }
-            feedCount = state.db.feed.selectAll().size
+            feedCount = state.withDb { state.db.feed.selectAll().size }
             state.refreshUnreadCount()
         } finally {
             loading = false
@@ -162,7 +165,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
         var seen = 0L
         while (true) {
             delay(OgImagePollInterval)
-            val count = state.db.entry.countByOgImageFetchedAfter(since)
+            val count = state.withDb { state.db.entry.countByOgImageFetchedAfter(since) }
             if (count != seen && !state.sync.running.value) {
                 seen = count
                 refreshKey++
@@ -185,9 +188,9 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
 
     fun onEntryClick(row: EntryRow) {
         scope.launch {
-            state.db.entry.updateReadAndReadSynced(row.id, true, false)
-            state.sync.runInBackground()
-            val href = if (row.openInBrowser) alternateHref(state, row.id) else null
+            state.withDb { state.db.entry.updateReadAndReadSynced(row.id, true, false) }
+            state.sync.pushInBackground()
+            val href = if (row.openInBrowser) state.withDb { alternateHref(state, row.id) } else null
             if (href != null) {
                 state.platform.openUrl(href, row.useBuiltInBrowser)
             } else {
@@ -199,7 +202,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     fun onEntryBookmark(row: EntryRow) {
         scope.launch {
             val next = bookmarked[row.id] != true
-            state.db.entry.updateBookmarkedAndBookmarkedSynced(row.id, next, false)
+            state.withDb { state.db.entry.updateBookmarkedAndBookmarkedSynced(row.id, next, false) }
             bookmarked = bookmarked + (row.id to next)
             // The Unread list drops newly bookmarked entries; Saved drops
             // un-bookmarked ones. Other lists keep the entry.
@@ -210,13 +213,13 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             }
             if (leavesList) rows = rows.filterNot { it.id == row.id }
             state.refreshUnreadCount()
-            state.sync.runInBackground()
+            state.sync.pushInBackground()
         }
     }
 
     fun onEntryMarkRead(row: EntryRow) {
         scope.launch {
-            state.db.entry.updateReadAndReadSynced(row.id, true, false)
+            state.withDb { state.db.entry.updateReadAndReadSynced(row.id, true, false) }
             // Update the list right away: the unread list drops the entry,
             // the others just dim it. A fast sync can finish between frames, so
             // we cannot rely on the running-state reload to do this.
@@ -227,7 +230,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             }
             refreshKey++
             state.refreshUnreadCount()
-            state.sync.runInBackground()
+            state.sync.pushInBackground()
         }
     }
 
@@ -245,7 +248,8 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             )
         }
 
-        PullToRefreshBox(
+        RefreshableEntriesList(
+            enabled = state.platform.supportsPullToRefresh,
             // The sync placeholder below carries its own progress indicator, so
             // suppress the pull-to-refresh one while it is up to avoid showing
             // two spinners at once.
@@ -327,7 +331,11 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                             ) {
                                 EntryListCard(
                                     row = row,
+                                    isBookmarked = bookmarked[row.id] == true,
                                     onClick = { onEntryClick(row) },
+                                    onToggleBookmark = { onEntryBookmark(row) },
+                                    onMarkRead = { onEntryMarkRead(row) },
+                                    showActions = !swipesEnabled,
                                 )
                             }
                         }
@@ -335,6 +343,31 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 }
             }
         }
+    }
+}
+
+/**
+ * The entry-list container. On hosts with a touch pull gesture it wraps the
+ * content in a [PullToRefreshBox]; on desktop, which has none, it is a plain
+ * [Box] and refreshing happens from the app bar.
+ */
+@Composable
+private fun RefreshableEntriesList(
+    enabled: Boolean,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    if (enabled) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier,
+            content = content,
+        )
+    } else {
+        Box(modifier = modifier, content = content)
     }
 }
 
@@ -529,7 +562,11 @@ private fun SwipeBackground(markingRead: Boolean, modifier: Modifier = Modifier)
 @Composable
 private fun EntryListCard(
     row: EntryRow,
+    isBookmarked: Boolean,
     onClick: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onMarkRead: () -> Unit,
+    showActions: Boolean,
 ) {
     val hasImage = row.showImage && row.imageUrl.isNotBlank()
 
@@ -550,7 +587,7 @@ private fun EntryListCard(
                     .padding(
                         start = if (hasImage) 108.dp else 16.dp,
                         top = 16.dp,
-                        end = 16.dp,
+                        end = if (showActions) 124.dp else 16.dp,
                         bottom = 16.dp,
                     ),
             ) {
@@ -602,6 +639,18 @@ private fun EntryListCard(
                     )
                 }
             }
+
+            // Wide layouts have no swipe gesture, so the list card offers the
+            // same eye/bookmark buttons as the grid.
+            if (showActions) {
+                CardActionButtons(
+                    isBookmarked = isBookmarked,
+                    onMarkRead = onMarkRead,
+                    onToggleBookmark = onToggleBookmark,
+                    onScrim = false,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(8.dp),
+                )
+            }
         }
     }
 }
@@ -626,7 +675,7 @@ private fun EntryGridCard(
                 onClick = onClick,
             ),
     ) {
-        Box {
+        Box(Modifier.fillMaxWidth()) {
             Column {
                 if (hasImage) {
                     // Media on top, flush with the card's edges. Cropping forces
@@ -655,7 +704,7 @@ private fun EntryGridCard(
                     modifier = Modifier.padding(
                         start = 16.dp,
                         top = 16.dp,
-                        end = if (showActions && !hasImage) 116.dp else 16.dp,
+                        end = if (showActions && !hasImage) 124.dp else 16.dp,
                         bottom = 16.dp,
                     ),
                 ) {
@@ -692,38 +741,64 @@ private fun EntryGridCard(
             }
 
             // In the single-column layout the dismiss/bookmark swipes cover
-            // these, so hide them to keep the card clean.
+            // these, so hide them to keep the card clean. Without a preview
+            // image the card is just text, so the buttons sit against the right
+            // edge, vertically centred; over an image they stay top-right.
             if (showActions) {
-                Row(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CardActionButton(
-                        glyph = MaterialSymbols.Visibility,
-                        contentDescription = "Mark as read",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        onScrim = hasImage,
-                        onClick = onMarkRead,
-                    )
-                    CardActionButton(
-                        glyph = if (isBookmarked) {
-                            MaterialSymbols.BookmarkAdded
-                        } else {
-                            MaterialSymbols.BookmarkAdd
-                        },
-                        contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
-                        tint = if (isBookmarked) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        onScrim = hasImage,
-                        onClick = onToggleBookmark,
-                    )
-                }
+                CardActionButtons(
+                    isBookmarked = isBookmarked,
+                    onMarkRead = onMarkRead,
+                    onToggleBookmark = onToggleBookmark,
+                    onScrim = hasImage,
+                    modifier = Modifier
+                        .align(if (hasImage) Alignment.TopEnd else Alignment.CenterEnd)
+                        .padding(8.dp),
+                )
             }
         }
+    }
+}
+
+/**
+ * The eye/bookmark action pair for an entry. Shared by the grid and list
+ * layouts so both offer the same actions wherever the swipe gesture is not
+ * available.
+ */
+@Composable
+private fun CardActionButtons(
+    isBookmarked: Boolean,
+    onMarkRead: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onScrim: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CardActionButton(
+            glyph = MaterialSymbols.Visibility,
+            contentDescription = "Mark as read",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            onScrim = onScrim,
+            onClick = onMarkRead,
+        )
+        CardActionButton(
+            glyph = if (isBookmarked) {
+                MaterialSymbols.BookmarkAdded
+            } else {
+                MaterialSymbols.BookmarkAdd
+            },
+            contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
+            tint = if (isBookmarked) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            onScrim = onScrim,
+            onClick = onToggleBookmark,
+        )
     }
 }
 

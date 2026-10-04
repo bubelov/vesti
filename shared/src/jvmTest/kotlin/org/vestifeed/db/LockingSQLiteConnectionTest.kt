@@ -78,6 +78,52 @@ class LockingSQLiteConnectionTest {
     }
 
     @Test
+    fun nestedTransactionJoinsTheOuterOne() = runBlocking<Unit> {
+        val conn = LockingSQLiteConnection(driver.open(":memory:"))
+        conn.execSQL("CREATE TABLE t (id INTEGER PRIMARY KEY);")
+
+        conn.transaction {
+            conn.prepare("INSERT INTO t (id) VALUES (1);").use { it.step() }
+            conn.transaction {
+                conn.prepare("INSERT INTO t (id) VALUES (2);").use { it.step() }
+            }
+            conn.prepare("INSERT INTO t (id) VALUES (3);").use { it.step() }
+        }
+
+        conn.prepare("SELECT COUNT(*) FROM t;").use { stmt ->
+            Assert.assertTrue(stmt.step())
+            Assert.assertEquals(3L, stmt.getLong(0))
+        }
+        conn.close()
+    }
+
+    @Test
+    fun nestedTransactionFailureRollsBackTheWholeTransaction() = runBlocking<Unit> {
+        val conn = LockingSQLiteConnection(driver.open(":memory:"))
+        conn.execSQL("CREATE TABLE t (id INTEGER PRIMARY KEY);")
+
+        var threw = false
+        try {
+            conn.transaction {
+                conn.prepare("INSERT INTO t (id) VALUES (1);").use { it.step() }
+                conn.transaction {
+                    conn.prepare("INSERT INTO t (id) VALUES (2);").use { it.step() }
+                    error("boom")
+                }
+            }
+        } catch (_: IllegalStateException) {
+            threw = true
+        }
+
+        Assert.assertTrue("nested failure should have propagated", threw)
+        conn.prepare("SELECT COUNT(*) FROM t;").use { stmt ->
+            Assert.assertTrue(stmt.step())
+            Assert.assertEquals(0L, stmt.getLong(0))
+        }
+        conn.close()
+    }
+
+    @Test
     fun concurrentStatementsAreSerializedWithoutDeadlock() {
         val conn = LockingSQLiteConnection(driver.open(":memory:"))
         conn.execSQL("CREATE TABLE t (id INTEGER PRIMARY KEY, value INTEGER NOT NULL);")

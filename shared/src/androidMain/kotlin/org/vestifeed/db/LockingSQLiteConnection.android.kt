@@ -53,14 +53,34 @@ internal class LockingSQLiteConnection(
     }
 
     /**
+     * How many [transaction] calls are currently on the stack. The outermost
+     * call owns the SQL transaction; a nested call joins it instead of issuing
+     * a second `BEGIN`, which SQLite rejects with "cannot start a transaction
+     * within a transaction". Only mutated while [lock] is held, so concurrent
+     * transactions on different threads still serialize.
+     */
+    private var transactionDepth = 0
+
+    /**
      * Runs [block] as a single atomic unit that no other statement can
      * interleave with. Nested [prepare] calls re-enter [lock] and therefore
-     * join the same transaction instead of deadlocking.
+     * join the same transaction instead of deadlocking. Nested [transaction]
+     * calls also join the outer transaction rather than starting their own.
      */
     suspend fun <T> transaction(block: suspend () -> T): T {
         lock.lock()
         try {
+            if (transactionDepth > 0) {
+                transactionDepth++
+                try {
+                    return block()
+                } finally {
+                    transactionDepth--
+                }
+            }
+
             delegate.execSQL("BEGIN TRANSACTION;")
+            transactionDepth = 1
             try {
                 val result = block()
                 delegate.execSQL("COMMIT;")
@@ -72,6 +92,8 @@ internal class LockingSQLiteConnection(
                     // Ignored: the original exception is already on its way out.
                 }
                 throw e
+            } finally {
+                transactionDepth = 0
             }
         } finally {
             lock.unlock()

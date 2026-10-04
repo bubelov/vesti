@@ -7,11 +7,13 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.vestifeed.backend.backend
 import org.vestifeed.curated.CuratedCatalog
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.FeedTable
+import org.vestifeed.platform.ioDispatcher
 import org.vestifeed.sync.Sync
 import org.vestifeed.ui.curated.loadCuratedCatalog
 import org.vestifeed.util.toUrl
@@ -29,6 +31,16 @@ class AppState(
     val scope: CoroutineScope,
     val userAgent: String,
 ) {
+    /**
+     * Runs blocking database work on [ioDispatcher] and returns to the caller's
+     * dispatcher. The bundled SQLite driver executes synchronously, so touching
+     * the database from the Compose/main thread freezes the UI for the length
+     * of the query (the Unread list, for one, reads thousands of rows). The
+     * shared connection is serialized with a lock, so a single background
+     * dispatcher is enough to keep it correct.
+     */
+    suspend fun <T> withDb(block: suspend () -> T): T = withContext(ioDispatcher) { block() }
+
     var connected by mutableStateOf(false)
         private set
 
@@ -102,12 +114,12 @@ class AppState(
      */
     fun toggleEntryBookmark(entryId: String) {
         scope.launch {
-            val entry = db.entry.selectById(entryId) ?: return@launch
+            val entry = withDb { db.entry.selectById(entryId) } ?: return@launch
             val next = !entry.extBookmarked
-            db.entry.updateBookmarkedAndBookmarkedSynced(entryId, next, false)
+            withDb { db.entry.updateBookmarkedAndBookmarkedSynced(entryId, next, false) }
             entryBookmarked = next
             refreshUnreadCount()
-            sync.runInBackground()
+            sync.pushInBackground()
         }
     }
 
@@ -119,10 +131,10 @@ class AppState(
         val href = entryHref ?: return
         platform.openUrl(href, conf.useBuiltInBrowser)
         scope.launch {
-            db.entry.updateReadAndReadSynced(entryId, true, false)
+            withDb { db.entry.updateReadAndReadSynced(entryId, true, false) }
             entryRead = true
             refreshUnreadCount()
-            sync.runInBackground()
+            sync.pushInBackground()
         }
     }
 
@@ -134,12 +146,12 @@ class AppState(
     /** Toggles the read flag on [entryId], refreshing [entryRead] and the count. */
     fun toggleEntryRead(entryId: String) {
         scope.launch {
-            val entry = db.entry.selectById(entryId) ?: return@launch
+            val entry = withDb { db.entry.selectById(entryId) } ?: return@launch
             val next = !entry.extRead
-            db.entry.updateReadAndReadSynced(entryId, next, false)
+            withDb { db.entry.updateReadAndReadSynced(entryId, next, false) }
             entryRead = next
             refreshUnreadCount()
-            sync.runInBackground()
+            sync.pushInBackground()
         }
     }
 
@@ -148,24 +160,27 @@ class AppState(
      * with its entries, the shared path for adding a feed by URL and for
      * following one from a curated collection. Returns the stored feed.
      */
-    suspend fun addFeedByUrl(rawUrl: String): Result<FeedTable.Feed> = runCatching {
-        val result = backend(db).addFeed(rawUrl.trim().withHttpsScheme().toUrl(), null)
-        db.transaction {
-            db.feed.insertOrReplace(result.feed)
-            db.link.insertForFeed(result.feed.id, result.feedLinks)
-            db.entry.insertOrReplace(result.entries.map { it.first })
-            result.entries.forEach { (entry, entryLinks) ->
-                db.link.insertForEntry(entry.id, entryLinks)
+    suspend fun addFeedByUrl(rawUrl: String): Result<FeedTable.Feed> = withDb {
+        runCatching {
+            val result = backend(db).addFeed(rawUrl.trim().withHttpsScheme().toUrl(), null)
+            db.transaction {
+                db.feed.insertOrReplace(result.feed)
+                db.link.insertForFeed(result.feed.id, result.feedLinks)
+                db.entry.insertOrReplace(result.entries.map { it.first })
+                result.entries.forEach { (entry, entryLinks) ->
+                    db.link.insertForEntry(entry.id, entryLinks)
+                }
             }
+            refreshUnreadCount()
+            result.feed
         }
-        refreshUnreadCount()
-        result.feed
     }
 
     /** Loads [curatedCatalog] once, caching it for the session. */
     suspend fun curatedFeeds(): CuratedCatalog {
         curatedCatalog?.let { return it }
-        val loaded = loadCuratedCatalog()
+        // Reading and parsing the catalog is IO, not UI work.
+        val loaded = withDb { loadCuratedCatalog() }
         curatedCatalog = loaded
         return loaded
     }
@@ -179,13 +194,17 @@ class AppState(
 
     suspend fun connect() {
         if (connected) return
-        db.connect()
-        conf = db.conf.select()
+        conf = withDb {
+            db.connect()
+            db.conf.select()
+        }
         screen = if (conf.backend == null) Screen.Auth else defaultTab()
         connected = true
 
-        refreshUnreadCount()
-        refreshHasPodcasts()
+        withDb {
+            refreshUnreadCount()
+            refreshHasPodcasts()
+        }
         // Keep both counts fresh once a background sync lands, wherever the
         // user happens to be.
         scope.launch {
@@ -199,30 +218,34 @@ class AppState(
     }
 
     fun refreshConf() {
-        scope.launch { conf = db.conf.select() }
+        scope.launch { conf = withDb { db.conf.select() } }
     }
 
     /** Reloads [unreadCount] from the database (see its docs). */
     suspend fun refreshUnreadCount() {
-        unreadCount = db.entry.selectUnreadCount()
+        unreadCount = withDb { db.entry.selectUnreadCount() }
     }
 
     /** Reloads [hasPodcasts] from the database (see its docs). */
     suspend fun refreshHasPodcasts() {
-        hasPodcasts = db.link.hasAudioEnclosures()
+        hasPodcasts = withDb { db.link.hasAudioEnclosures() }
     }
 
     fun updateConf(block: (ConfTable.Conf) -> ConfTable.Conf) {
         scope.launch {
-            db.conf.update(block)
-            conf = db.conf.select()
+            conf = withDb {
+                db.conf.update(block)
+                db.conf.select()
+            }
         }
     }
 
     /** Awaitable variant of [updateConf] for flows that must finish first. */
     suspend fun setConf(block: (ConfTable.Conf) -> ConfTable.Conf) {
-        db.conf.update(block)
-        conf = db.conf.select()
+        conf = withDb {
+            db.conf.update(block)
+            db.conf.select()
+        }
     }
 
     fun navigate(target: Screen) {
@@ -247,11 +270,13 @@ class AppState(
 
     fun logout() {
         scope.launch {
-            db.conf.delete()
-            db.transaction {
-                db.link.deleteAll()
-                db.entry.deleteAll()
-                db.feed.deleteAll()
+            withDb {
+                db.conf.delete()
+                db.transaction {
+                    db.link.deleteAll()
+                    db.entry.deleteAll()
+                    db.feed.deleteAll()
+                }
             }
             conf = ConfTable.defaultConf()
             unreadCount = 0

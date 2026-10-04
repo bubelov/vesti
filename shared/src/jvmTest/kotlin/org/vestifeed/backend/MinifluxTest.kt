@@ -286,6 +286,130 @@ class MinifluxTest {
         assertEquals(42L, db.tag.selectAll().single().extMinifluxId)
     }
 
+    /**
+     * Incremental sync advances the cursor after storing changed entries, and
+     * it does so by calling `conf.update` from inside the entries transaction.
+     * That nested transaction is what used to fail with "cannot start a
+     * transaction within a transaction" right after a user marked an entry
+     * read (which triggers a background sync).
+     */
+    @Test
+    fun syncIncrementalStoresChangedEntriesAndAdvancesCursor() = runBlocking {
+        db.conf.insert(
+            org.vestifeed.db.table.ConfTable.defaultConf().copy(
+                backend = org.vestifeed.db.table.ConfTable.Backend.Miniflux,
+                minifluxUrl = "http://localhost",
+                minifluxToken = "token",
+                minifluxIncrementalSyncTimestamp = "2024-01-01T00:00:00Z",
+            )
+        )
+
+        val changedEntry = org.vestifeed.db.entry().copy(
+            id = "42",
+            feedId = "1",
+            title = "changed",
+            published = Instant.parse("2024-01-02T00:00:00Z"),
+            updated = Instant.parse("2024-01-02T00:00:00Z"),
+        )
+
+        val api = object : Miniflux(
+            client = HttpClient(CIO),
+            baseUrl = "http://localhost".toUrl(),
+            db = db,
+        ) {
+            override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
+                throw NotImplementedError()
+
+            override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
+                Result.success(Unit)
+
+            override suspend fun deleteFeed(feedId: String): Result<Unit> =
+                Result.success(Unit)
+
+            override suspend fun getFeedsWithLinks(): List<Miniflux.FreshFeed> = emptyList()
+
+            override suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
+                emptyList()
+
+            override suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
+                emptyList()
+
+            override suspend fun getEntriesChangedAfter(
+                changedAfter: Instant,
+                limit: Long,
+            ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
+                listOf(changedEntry to emptyList())
+
+            override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) = Unit
+
+            override suspend fun markEntriesAsBookmarked(
+                entries: List<EntryTable.EntryWithoutContent>,
+                bookmarked: Boolean,
+            ) = Unit
+
+            override suspend fun getCategories(): List<Miniflux.MinifluxCategory> = emptyList()
+
+            override suspend fun createCategory(title: String): Miniflux.MinifluxCategory =
+                throw NotImplementedError()
+
+            override suspend fun updateCategory(id: Long, title: String): Miniflux.MinifluxCategory =
+                throw NotImplementedError()
+
+            override suspend fun deleteCategory(id: Long): Result<Unit> = Result.success(Unit)
+
+            override suspend fun moveFeedToCategory(feedId: String, categoryId: Long) = Unit
+        }
+
+        api.sync(initial = false)
+
+        assertEquals("42", db.entry.selectById("42")?.id)
+        assertEquals(
+            "2024-01-02T00:00:00Z",
+            db.conf.select().minifluxIncrementalSyncTimestamp,
+        )
+    }
+
+    /**
+     * Marking an entry read should push just that change — one request to the
+     * entries endpoint — not a full sync that re-fetches feeds and categories.
+     */
+    @Test
+    fun pushPendingChangesSendsOnlyThePendingEntryUpdates() = runBlocking {
+        db.entry.insertOrReplace(
+            listOf(
+                org.vestifeed.db.entry().copy(
+                    id = "42",
+                    extRead = true,
+                    extReadSynced = false,
+                )
+            )
+        )
+
+        val server = MockWebServer().apply { start() }
+        try {
+            server.enqueue(MockResponse.Builder().code(204).build())
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            api.pushPendingChanges()
+
+            assertEquals(1, server.requestCount)
+            val request = server.takeRequest()
+            assertEquals("PUT", request.method)
+            assertEquals("/v1/entries", request.target)
+            val body = request.body?.utf8().orEmpty()
+            assertTrue("expected the read status, got: $body", body.contains("\"status\":\"read\""))
+            assertTrue("expected entry 42, got: $body", body.contains("42"))
+            assertTrue(db.entry.selectByReadSynced(false).isEmpty())
+        } finally {
+            server.close()
+        }
+    }
+
     @Test
     fun addFeedSendsCategoryIdWhenProvided() {
         val server = MockWebServer().apply { start() }

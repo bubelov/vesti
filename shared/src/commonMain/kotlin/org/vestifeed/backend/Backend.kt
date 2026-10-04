@@ -27,6 +27,14 @@ sealed class Backend(protected val db: Database) {
     abstract suspend fun deleteFeed(feedId: String): Result<Unit>
 
     abstract suspend fun sync(initial: Boolean)
+
+    /**
+     * Pushes the local read/bookmark changes that have not reached the server
+     * yet, without pulling anything back. This is the cheap path a single entry
+     * action uses; backends that keep their state locally (Embedded) make it a
+     * no-op.
+     */
+    open suspend fun pushPendingChanges() {}
 }
 
 suspend fun backend(db: Database): Backend {

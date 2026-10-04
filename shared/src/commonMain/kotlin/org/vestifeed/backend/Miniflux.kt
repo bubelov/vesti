@@ -188,6 +188,10 @@ open class Miniflux(
         sync.syncEntries(initial = initial)
     }
 
+    override suspend fun pushPendingChanges() {
+        MinifluxSync(this, db).pushPendingChanges()
+    }
+
     open suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
         return fetchEntriesByFilter { offset, limit ->
             URLBuilder(baseUrl).apply {

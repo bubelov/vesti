@@ -130,6 +130,24 @@ class ConfTest {
         assertEquals(defaultConf.backend, db.conf.select().backend)
     }
 
+    /**
+     * `ConfTable.update` opens a transaction of its own, so calling it from
+     * inside `Database.transaction` used to issue a second `BEGIN` and make
+     * SQLite fail with "cannot start a transaction within a transaction".
+     * Miniflux's incremental sync does exactly this while advancing its cursor
+     * after marking an entry read.
+     */
+    @Test
+    fun confQueries_updateNestedInOuterTransaction() = runBlocking<Unit> {
+        db.conf.insert(createConf(backend = ConfTable.Backend.Embedded))
+
+        db.transaction {
+            db.conf.update { it.copy(backend = ConfTable.Backend.Miniflux) }
+        }
+
+        assertEquals(ConfTable.Backend.Miniflux, db.conf.select().backend)
+    }
+
     @Test
     fun confQueries_updatePartialFields() = runBlocking<Unit> {
         db.conf.insert(createConf(showPreviewImages = false))

@@ -250,7 +250,7 @@ fun AuthScreen(state: AppState) {
                                         // throws on a rejected token (401) and, in the
                                         // browser, on a cross-origin API that does not
                                         // send CORS headers.
-                                        backend(state.db).getFeeds()
+                                        state.withDb { backend(state.db).getFeeds() }
                                     } else {
                                         state.setConf {
                                             it.copy(

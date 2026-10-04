@@ -145,7 +145,7 @@ fun CuratedCollectionScreen(state: AppState, collectionId: String) {
     var pending by remember { mutableStateOf<Set<String>>(emptySet()) }
     var failures by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    LaunchedEffect(collectionId) { subscribed = subscribedUrls(state) }
+    LaunchedEffect(collectionId) { subscribed = state.withDb { subscribedUrls(state) } }
 
     when (val result = rememberCatalog(state)) {
         CatalogState.Loading -> CenteredProgress()

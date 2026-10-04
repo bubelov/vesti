@@ -126,6 +126,76 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
         }
     }
 
+    /**
+     * Sends the local read/bookmark state that has not reached the server yet.
+     * A single entry action only needs this — one request for the read entries
+     * (plus one per bookmarked entry) — instead of re-fetching every feed,
+     * category and changed entry like [syncEntries] does.
+     */
+    suspend fun pushPendingChanges() {
+        val unsyncedEntries = db.entry.selectByReadSynced(false)
+        val unsyncedReadEntries = unsyncedEntries.filter { it.extRead }
+        val unsyncedUnreadEntries = unsyncedEntries.filter { !it.extRead }
+
+        if (unsyncedReadEntries.isNotEmpty()) {
+            api.markEntriesAsRead(
+                entriesIds = unsyncedReadEntries.map { it.id },
+                read = true,
+            )
+
+            db.transaction {
+                unsyncedReadEntries.forEach {
+                    db.entry.updateReadSynced(true, it.id)
+                }
+            }
+        }
+
+        if (unsyncedUnreadEntries.isNotEmpty()) {
+            api.markEntriesAsRead(
+                entriesIds = unsyncedUnreadEntries.map { it.id },
+                read = false,
+            )
+
+            db.transaction {
+                unsyncedUnreadEntries.forEach {
+                    db.entry.updateReadSynced(true, it.id)
+                }
+            }
+        }
+
+        val notSyncedEntries = db.entry.selectByBookmarkedSynced(false)
+        val notSyncedBookmarkedEntries =
+            notSyncedEntries.filter { it.extBookmarked }
+        val notSyncedNotBookmarkedEntries =
+            notSyncedEntries.filterNot { it.extBookmarked }
+
+        if (notSyncedBookmarkedEntries.isNotEmpty()) {
+            api.markEntriesAsBookmarked(
+                entries = notSyncedBookmarkedEntries,
+                bookmarked = true,
+            )
+
+            db.transaction {
+                notSyncedBookmarkedEntries.forEach {
+                    db.entry.updateBookmarkedSynced(true, it.id)
+                }
+            }
+        }
+
+        if (notSyncedNotBookmarkedEntries.isNotEmpty()) {
+            api.markEntriesAsBookmarked(
+                entries = notSyncedNotBookmarkedEntries,
+                bookmarked = false,
+            )
+
+            db.transaction {
+                notSyncedNotBookmarkedEntries.forEach {
+                    db.entry.updateBookmarkedSynced(true, it.id)
+                }
+            }
+        }
+    }
+
     suspend fun syncEntries(initial: Boolean) {
         if (initial) {
             val startedAt = Clock.System.now().toString()
@@ -133,67 +203,8 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
             syncUnreadEntries()
             db.conf.update { it.copy(minifluxIncrementalSyncTimestamp = startedAt) }
         } else {
-            val unsyncedEntries = db.entry.selectByReadSynced(false)
-            val unsyncedReadEntries = unsyncedEntries.filter { it.extRead }
-            val unsyncedUnreadEntries = unsyncedEntries.filter { !it.extRead }
+            pushPendingChanges()
 
-            if (unsyncedReadEntries.isNotEmpty()) {
-                api.markEntriesAsRead(
-                    entriesIds = unsyncedReadEntries.map { it.id },
-                    read = true,
-                )
-
-                db.transaction {
-                    unsyncedReadEntries.forEach {
-                        db.entry.updateReadSynced(true, it.id)
-                    }
-                }
-            }
-
-            if (unsyncedUnreadEntries.isNotEmpty()) {
-                api.markEntriesAsRead(
-                    entriesIds = unsyncedUnreadEntries.map { it.id },
-                    read = false,
-                )
-
-                db.transaction {
-                    unsyncedUnreadEntries.forEach {
-                        db.entry.updateReadSynced(true, it.id)
-                    }
-                }
-            }
-
-            val notSyncedEntries = db.entry.selectByBookmarkedSynced(false)
-            val notSyncedBookmarkedEntries =
-                notSyncedEntries.filter { it.extBookmarked }
-            val notSyncedNotBookmarkedEntries =
-                notSyncedEntries.filterNot { it.extBookmarked }
-
-            if (notSyncedBookmarkedEntries.isNotEmpty()) {
-                api.markEntriesAsBookmarked(
-                    entries = notSyncedBookmarkedEntries,
-                    bookmarked = true,
-                )
-
-                db.transaction {
-                    notSyncedBookmarkedEntries.forEach {
-                        db.entry.updateBookmarkedSynced(true, it.id)
-                    }
-                }
-            }
-
-            if (notSyncedNotBookmarkedEntries.isNotEmpty()) {
-                api.markEntriesAsBookmarked(
-                    entries = notSyncedNotBookmarkedEntries,
-                    bookmarked = false,
-                )
-
-                db.transaction {
-                    notSyncedNotBookmarkedEntries.forEach {
-                        db.entry.updateBookmarkedSynced(true, it.id)
-                    }
-                }
-            }
             var changedAfter = db.conf.select().minifluxIncrementalSyncTimestamp?.toInstant()
                 ?: Clock.System.now()
             val baseBatchSize = 100L

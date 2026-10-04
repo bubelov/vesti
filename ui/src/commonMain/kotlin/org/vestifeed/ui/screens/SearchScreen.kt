@@ -46,7 +46,9 @@ fun SearchScreen(state: AppState) {
             loading = false
         } else {
             loading = true
-            rows = state.db.entry.selectByQuery(trimmed).map { it.toRow(state.conf) }
+            rows = state.withDb {
+                state.db.entry.selectByQuery(trimmed).map { it.toRow(state.conf) }
+            }
             loading = false
         }
     }

@@ -89,10 +89,12 @@ fun FeedsScreen(state: AppState) {
     var refreshKey by remember { mutableStateOf(0) }
 
     suspend fun reload() {
-        val loaded = state.db.feed.selectAll()
+        val loaded = state.withDb { state.db.feed.selectAll() }
         feeds = loaded
-        unread = loaded.associate { feed ->
-            feed.id to state.db.entry.selectByFeedId(feed.id).count { !it.extRead }
+        unread = state.withDb {
+            loaded.associate { feed ->
+                feed.id to state.db.entry.selectByFeedId(feed.id).count { !it.extRead }
+            }
         }
     }
 
@@ -132,11 +134,13 @@ fun FeedsScreen(state: AppState) {
             message = null
             try {
                 // Best-effort server-side delete; the local rows go either way.
-                runCatching { backend(state.db).deleteFeed(feedId) }
-                state.db.transaction {
-                    state.db.link.deleteForFeed(feedId)
-                    state.db.entry.deleteByFeedId(feedId)
-                    state.db.feed.deleteById(feedId)
+                state.withDb {
+                    runCatching { backend(state.db).deleteFeed(feedId) }
+                    state.db.transaction {
+                        state.db.link.deleteForFeed(feedId)
+                        state.db.entry.deleteByFeedId(feedId)
+                        state.db.feed.deleteById(feedId)
+                    }
                 }
                 state.refreshUnreadCount()
                 message = "Removed $title"
@@ -164,13 +168,15 @@ fun FeedsScreen(state: AppState) {
                     val xmlUrl = outline.xmlUrl ?: continue
                     if (xmlUrl.isBlank()) continue
                     try {
-                        val result = feedBackend.addFeed(xmlUrl.toUrl(), null)
-                        state.db.transaction {
-                            state.db.feed.insertOrReplace(result.feed)
-                            state.db.link.insertForFeed(result.feed.id, result.feedLinks)
-                            state.db.entry.insertOrReplace(result.entries.map { it.first })
-                            result.entries.forEach { (entry, entryLinks) ->
-                                state.db.link.insertForEntry(entry.id, entryLinks)
+                        val result = state.withDb { feedBackend.addFeed(xmlUrl.toUrl(), null) }
+                        state.withDb {
+                            state.db.transaction {
+                                state.db.feed.insertOrReplace(result.feed)
+                                state.db.link.insertForFeed(result.feed.id, result.feedLinks)
+                                state.db.entry.insertOrReplace(result.entries.map { it.first })
+                                result.entries.forEach { (entry, entryLinks) ->
+                                    state.db.link.insertForEntry(entry.id, entryLinks)
+                                }
                             }
                         }
                         count++
@@ -193,8 +199,10 @@ fun FeedsScreen(state: AppState) {
 
     fun exportOpml() {
         scope.launch {
-            val loaded = state.db.feed.selectAll()
-            val linksByFeed = state.db.link.selectAllByFeedId(loaded.map { it.id })
+            val (loaded, linksByFeed) = state.withDb {
+                val loaded = state.db.feed.selectAll()
+                loaded to state.db.link.selectAllByFeedId(loaded.map { it.id })
+            }
             val document = OpmlDocument(
                 version = OpmlVersion.V_2_0,
                 outlines = loaded.map { feed ->

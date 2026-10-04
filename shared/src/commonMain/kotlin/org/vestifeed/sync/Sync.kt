@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.vestifeed.backend.backend
 import org.vestifeed.db.Database
+import org.vestifeed.platform.ioDispatcher
 
 class Sync(
     private val scope: CoroutineScope,
@@ -42,6 +44,24 @@ class Sync(
         run()
     }
 
+    /**
+     * Flushes pending local read/bookmark changes without a full sync. Entry
+     * actions use this: pushing one entry's state is a single request per
+     * kind, where [runInBackground] re-fetches every feed, category and changed
+     * entry first. It deliberately does not touch [running], so it stays
+     * invisible and never triggers the full-list reload a sync does.
+     */
+    fun pushInBackground() {
+        scope.launch {
+            try {
+                withContext(ioDispatcher) { backend(db).pushPendingChanges() }
+                _lastError.value = null
+            } catch (t: Throwable) {
+                _lastError.value = t.message ?: t.toString()
+            }
+        }
+    }
+
     /** Clears the last error, e.g. once a retry is started. */
     fun clearError() {
         _lastError.value = null
@@ -56,8 +76,13 @@ class Sync(
         _lastError.value = null
 
         try {
-            val conf = db.conf.select()
-            backend(db).sync(initial = conf.minifluxIncrementalSyncTimestamp == null)
+            // The whole sync (network plus blocking SQLite writes) runs off the
+            // caller's dispatcher: launched from the UI it used to freeze the
+            // window for as long as the transactions took.
+            withContext(ioDispatcher) {
+                val conf = db.conf.select()
+                backend(db).sync(initial = conf.minifluxIncrementalSyncTimestamp == null)
+            }
         } catch (t: Throwable) {
             _lastError.value = t.message ?: t.toString()
         } finally {

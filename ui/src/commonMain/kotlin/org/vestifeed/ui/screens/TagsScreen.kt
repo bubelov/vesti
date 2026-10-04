@@ -42,7 +42,7 @@ fun TagsScreen(state: AppState) {
     var loading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        tags = state.db.tag.selectAll()
+        tags = state.withDb { state.db.tag.selectAll() }
         loading = false
     }
 

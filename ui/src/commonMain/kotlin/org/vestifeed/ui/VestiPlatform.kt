@@ -7,6 +7,14 @@ package org.vestifeed.ui
  */
 interface VestiPlatform {
     /**
+     * Whether the host supports the touch pull-to-refresh gesture on the entry
+     * lists. True on Android and touch browsers; the desktop window has no touch
+     * pull, so it turns the gesture off and refreshes from the app bar or the
+     * entry swipe actions instead.
+     */
+    val supportsPullToRefresh: Boolean get() = true
+
+    /**
      * Opens [url] in a browser. When [useBuiltInBrowser] is true the host uses
      * its in-app browser (an Android Custom Tab); otherwise it hands the link to
      * the system browser. Hosts without an in-app browser ignore the flag.

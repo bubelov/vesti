@@ -219,6 +219,40 @@ window is an **XWayland** client, and `run` blocks for the life of the window.
   physical pixels while the app's logical size is half that (the 1100×800
   window captures at roughly 2200×1564).
 
+### Input injection (Wayland)
+
+- **Never use `xdotool` to inject input** (`mousemove`, `click`, `key`, `type`,
+  `keydown`/`keyup`). XTEST goes through Xwayland's libei/liboeffis helper,
+  which opens an `org.freedesktop.portal.RemoteDesktop` session and makes GNOME
+  show an "Allow remote interaction" dialog — **every session**.
+- There is **no app-id whitelist to add**: portal permissions are stored per app
+  id under `~/.local/share/flatpak/db/` (and `~/.local/share/xdg-desktop-portal/`),
+  but GNOME deliberately does not persist RemoteDesktop/ScreenCast grants, so it
+  re-prompts regardless.
+- **Use `ydotool` instead.** It injects through `/dev/uinput`, so the compositor
+  receives real input and the portal is never involved. Prerequisites: the
+  `uinput` module loaded and `ydotool.service` active (socket
+  `$XDG_RUNTIME_DIR/.ydotool_socket`; `/dev/uinput` carries a `uaccess` ACL for
+  the user).
+  - Commands: mouse `ydotool mousemove -- <dx> <dy>` (always the positional
+    `--` form), wheel `ydotool mousemove -w -- 0 1`, click `ydotool click 0xC0`
+    (left), keys `ydotool key 125:1 103:1 103:0 125:0`, typing
+    `ydotool type -d 60 -- "text"`.
+  - `ydotool` moves in **logical** pixels while `xdotool getwindowgeometry` and
+    `import` are **physical** (2× here), so position by relative moves from a
+    known origin (flatten mouse acceleration, saturate into the bottom-right
+    corner, then move once). The app must be focused first (`xdotool
+    getactivewindow` matches its client id). `xdotool getmouselocation` does not
+    track a `ydotool`-driven pointer.
+  - Confirm an event actually landed with the Mutter idle monitor:
+    `gdbus call --session --dest org.gnome.Mutter.IdleMonitor --object-path
+    /org/gnome/Mutter/IdleMonitor/Core --method
+    org.gnome.Mutter.IdleMonitor.GetIdletime` (resets on input).
+- Read-only `xdotool` subcommands (`search`, `getwindowgeometry`,
+  `getwindowpid`, `getactivewindow`), `wmctrl -l`, `jcmd`/`jstack` and
+  `import -window` screenshots never inject input and are safe — prefer them for
+  inspection and verification.
+
 ## Code Style Guidelines
 
 - One class per file (filename matches class name); packages mirror directories.
