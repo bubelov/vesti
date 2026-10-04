@@ -2,8 +2,14 @@
 
 package org.vestifeed.ui.screens
 
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -32,14 +39,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,11 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.vestifeed.db.table.ConfTable
@@ -162,6 +172,14 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             val next = bookmarked[row.id] != true
             state.db.entry.updateBookmarkedAndBookmarkedSynced(row.id, next, false)
             bookmarked = bookmarked + (row.id to next)
+            // The Unread list drops newly bookmarked entries; Saved drops
+            // un-bookmarked ones. Other lists keep the entry.
+            val leavesList = when (screen.list) {
+                EntriesList.Unread -> next
+                EntriesList.Bookmarked -> !next
+                else -> false
+            }
+            if (leavesList) rows = rows.filterNot { it.id == row.id }
             state.refreshUnreadCount()
             state.sync.runInBackground()
         }
@@ -222,8 +240,12 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                     gridItems(rows, key = { it.id }) { row ->
                         SwipeableEntry(
                             enabled = swipesEnabled,
+                            markReadRemoves = screen.list is EntriesList.Unread,
+                            bookmarkRemoves = screen.list is EntriesList.Unread ||
+                                screen.list is EntriesList.Bookmarked,
                             onMarkRead = { onEntryMarkRead(row) },
                             onToggleBookmark = { onEntryBookmark(row) },
+                            modifier = Modifier.animateItem(),
                         ) {
                             EntryGridCard(
                                 row = row,
@@ -245,8 +267,12 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                     items(rows, key = { it.id }) { row ->
                         SwipeableEntry(
                             enabled = swipesEnabled,
+                            markReadRemoves = screen.list is EntriesList.Unread,
+                            bookmarkRemoves = screen.list is EntriesList.Unread ||
+                                screen.list is EntriesList.Bookmarked,
                             onMarkRead = { onEntryMarkRead(row) },
                             onToggleBookmark = { onEntryBookmark(row) },
+                            modifier = Modifier.animateItem(),
                         ) {
                             EntryListCard(
                                 row = row,
@@ -269,69 +295,112 @@ private suspend fun alternateHref(state: AppState, entryId: String): String? {
 
 /**
  * Wraps an entry card with the compact-layout swipe gestures: drag right to
- * bookmark, drag left to mark as read. The card always snaps back — the list
- * reacts to the underlying change — so [confirmValueChange] performs the action
- * and returns false.
+ * bookmark, drag left to mark as read.
+ *
+ * The card follows the finger and nothing is decided until the gesture ends:
+ * released past half a card width, the card animates the rest of the way out
+ * and the action runs (the row is then removed, or the card springs back when
+ * the action keeps the entry); released short of that, it just springs back.
  */
 @Composable
 private fun SwipeableEntry(
     enabled: Boolean,
+    markReadRemoves: Boolean,
+    bookmarkRemoves: Boolean,
     onMarkRead: () -> Unit,
     onToggleBookmark: () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     if (!enabled) {
-        content()
+        Box(modifier) { content() }
         return
     }
 
-    val state = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> onToggleBookmark()
-                SwipeToDismissBoxValue.EndToStart -> onMarkRead()
-                else -> Unit
-            }
-            false
-        },
-        positionalThreshold = { distance -> distance * 0.35f },
-    )
+    val scope = rememberCoroutineScope()
+    var widthPx by remember { mutableStateOf(0f) }
 
-    SwipeToDismissBox(
-        state = state,
-        backgroundContent = {
-            val markingRead = state.dismissDirection == SwipeToDismissBoxValue.EndToStart
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = if (markingRead) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.secondaryContainer
+    // The offset is written synchronously by the drag so a quick lift can never
+    // leave a pending coroutine to race the release animation (the Animatable
+    // mutex would let one cancel the other and freeze the card mid-drag).
+    var offset by remember { mutableFloatStateOf(0f) }
+    var settleJob by remember { mutableStateOf<Job?>(null) }
+
+    Box(
+        modifier = modifier
+            .onGloballyPositioned { widthPx = it.size.width.toFloat() }
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = rememberDraggableState { delta ->
+                    val limit = widthPx
+                    offset = (offset + delta).coerceIn(-limit, limit)
                 },
-                contentColor = if (markingRead) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                onDragStarted = {
+                    settleJob?.cancel()
+                    settleJob = null
                 },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-                    contentAlignment = if (markingRead) {
-                        Alignment.CenterEnd
-                    } else {
-                        Alignment.CenterStart
-                    },
-                ) {
-                    MaterialSymbol(
-                        glyph = if (markingRead) MaterialSymbols.Close else MaterialSymbols.BookmarkAdd,
-                        contentDescription = null,
-                    )
-                }
-            }
-        },
+                onDragStopped = {
+                    val limit = widthPx
+                    val current = offset
+                    settleJob?.cancel()
+                    settleJob = scope.launch {
+                        if (limit > 0f && abs(current) > limit / 2f) {
+                            // Past halfway: finish the swipe, then act.
+                            val swipingBookmark = current > 0f
+                            animate(
+                                initialValue = current,
+                                targetValue = if (swipingBookmark) limit else -limit,
+                                animationSpec = tween(durationMillis = 180),
+                            ) { value, _ -> offset = value }
+                            if (swipingBookmark) onToggleBookmark() else onMarkRead()
+                            val keeps = if (swipingBookmark) !bookmarkRemoves else !markReadRemoves
+                            if (keeps) {
+                                animate(offset, 0f, animationSpec = spring()) { value, _ -> offset = value }
+                            }
+                        } else {
+                            animate(current, 0f, animationSpec = spring()) { value, _ -> offset = value }
+                        }
+                    }
+                },
+            ),
     ) {
-        content()
+        if (offset != 0f) {
+            SwipeBackground(
+                markingRead = offset < 0f,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+        Box(Modifier.offset { IntOffset(offset.roundToInt(), 0) }) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SwipeBackground(markingRead: Boolean, modifier: Modifier = Modifier) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = if (markingRead) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        },
+        contentColor = if (markingRead) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        },
+        modifier = modifier,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            contentAlignment = if (markingRead) Alignment.CenterEnd else Alignment.CenterStart,
+        ) {
+            MaterialSymbol(
+                glyph = if (markingRead) MaterialSymbols.Visibility else MaterialSymbols.BookmarkAdd,
+                contentDescription = null,
+            )
+        }
     }
 }
 
@@ -498,7 +567,7 @@ private fun EntryGridCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CardActionButton(
-                        glyph = MaterialSymbols.Close,
+                        glyph = MaterialSymbols.Visibility,
                         contentDescription = "Mark as read",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         onScrim = hasImage,
