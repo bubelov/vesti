@@ -13,7 +13,9 @@ import org.vestifeed.ui.VestiPlatform
  */
 class DesktopVestiPlatform : VestiPlatform {
 
-    override fun openUrl(url: String) {
+    // Desktop has no in-app browser, so the flag is ignored and links always go
+    // to the system browser.
+    override fun openUrl(url: String, useBuiltInBrowser: Boolean) {
         runCatching {
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(URI(url))

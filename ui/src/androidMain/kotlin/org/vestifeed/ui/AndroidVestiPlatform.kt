@@ -11,11 +11,19 @@ class AndroidVestiPlatform(
     private val context: Context,
 ) : VestiPlatform {
 
-    override fun openUrl(url: String) {
+    override fun openUrl(url: String, useBuiltInBrowser: Boolean) {
         val uri = Uri.parse(url)
+        if (useBuiltInBrowser) {
+            runCatching {
+                CustomTabsIntent.Builder().build().launchUrl(context, uri)
+            }.onFailure { openExternally(uri) }
+        } else {
+            openExternally(uri)
+        }
+    }
+
+    private fun openExternally(uri: Uri) {
         runCatching {
-            CustomTabsIntent.Builder().build().launchUrl(context, uri)
-        }.onFailure {
             context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }

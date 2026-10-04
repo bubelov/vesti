@@ -160,7 +160,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             state.sync.runInBackground()
             val href = if (row.openInBrowser) alternateHref(state, row.id) else null
             if (href != null) {
-                state.platform.openUrl(href)
+                state.platform.openUrl(href, row.useBuiltInBrowser)
             } else {
                 state.navigate(Screen.EntryDetail(row.id))
             }

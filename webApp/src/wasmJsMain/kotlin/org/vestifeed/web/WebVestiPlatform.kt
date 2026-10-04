@@ -4,7 +4,8 @@ import org.vestifeed.ui.VestiPlatform
 
 class WebVestiPlatform : VestiPlatform {
 
-    override fun openUrl(url: String) {
+    // The browser host has no separate in-app browser; always open a new tab.
+    override fun openUrl(url: String, useBuiltInBrowser: Boolean) {
         openUrlJs(url)
     }
 

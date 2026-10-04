@@ -95,7 +95,7 @@ class AppState(
      */
     fun openEntryInBrowser(entryId: String) {
         val href = entryHref ?: return
-        platform.openUrl(href)
+        platform.openUrl(href, conf.useBuiltInBrowser)
         scope.launch {
             db.entry.updateReadAndReadSynced(entryId, true, false)
             entryRead = true

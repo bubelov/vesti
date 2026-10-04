@@ -6,8 +6,12 @@ package org.vestifeed.ui
  * a new tab / uses the Web Share API.
  */
 interface VestiPlatform {
-    /** Opens [url] in the platform's browser (or an in-app Custom Tab on Android). */
-    fun openUrl(url: String)
+    /**
+     * Opens [url] in a browser. When [useBuiltInBrowser] is true the host uses
+     * its in-app browser (an Android Custom Tab); otherwise it hands the link to
+     * the system browser. Hosts without an in-app browser ignore the flag.
+     */
+    fun openUrl(url: String, useBuiltInBrowser: Boolean)
 
     /** Shares [text] through the platform share sheet. */
     fun shareText(text: String)
