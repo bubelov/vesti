@@ -5,6 +5,8 @@ package org.vestifeed.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -58,6 +61,7 @@ import org.vestifeed.ui.Screen
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.util.toUrl
+import org.vestifeed.util.withHttpsScheme
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -107,7 +111,7 @@ fun FeedsScreen(state: AppState) {
             dialogError = null
             message = null
             try {
-                val result = backend(state.db).addFeed(newFeedUrl.trim().toUrl(), null)
+                val result = backend(state.db).addFeed(newFeedUrl.trim().withHttpsScheme().toUrl(), null)
                 state.db.transaction {
                     state.db.feed.insertOrReplace(result.feed)
                     state.db.link.insertForFeed(result.feed.id, result.feedLinks)
@@ -321,6 +325,10 @@ private fun AddFeedDialog(
                     placeholder = { Text("https://example.com/feed.xml") },
                     singleLine = true,
                     isError = error != null,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (!busy && url.isNotBlank()) onAdd() },
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 error?.let {

@@ -6,6 +6,14 @@ import io.ktor.http.Url
 fun String.toUrl(): Url = toUrlOrNull() ?: throw IllegalArgumentException("Not an HTTP(S) URL: $this")
 
 /**
+ * Prepends `https://` when [this] has no scheme, so a bare host such as
+ * `bubelov.com` becomes `https://bubelov.com`. Already-schemed strings (the
+ * common case of a pasted feed URL) are returned unchanged.
+ */
+fun String.withHttpsScheme(): String =
+    if (contains("://")) this else "https://$this"
+
+/**
  * Parses [this] into an absolute HTTP(S) [Url], or null when it is not one.
  *
  * Ktor's [Url] parser accepts a relative string and fills in a default host, so
