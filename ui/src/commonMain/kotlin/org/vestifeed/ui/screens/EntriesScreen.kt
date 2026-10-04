@@ -507,14 +507,25 @@ private fun EntryGridCard(
         Box {
             Column {
                 if (hasImage) {
-                    // Media on top, flush with the card's edges.
+                    // Media on top, flush with the card's edges. Cropping forces
+                    // the fixed 16:9 band; otherwise the band takes the image's
+                    // own aspect ratio, so a full width shows the whole picture.
+                    var aspectRatio by remember(row.imageUrl) { mutableStateOf<Float?>(null) }
                     AsyncImage(
                         model = proxiedUrl(row.imageUrl),
                         contentDescription = null,
                         contentScale = if (row.cropImage) ContentScale.Crop else ContentScale.Fit,
+                        onSuccess = { success ->
+                            val image = success.result.image
+                            if (image.width > 0 && image.height > 0) {
+                                aspectRatio = image.width.toFloat() / image.height.toFloat()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
+                            .aspectRatio(
+                                if (row.cropImage) 16f / 9f else aspectRatio ?: (16f / 9f),
+                            )
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     )
                 }
