@@ -7,9 +7,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,10 +52,17 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextAlign
@@ -100,6 +106,25 @@ private val GridMinCellWidth = 320.dp
  * single column), where horizontal dragging is not competing with a grid.
  */
 private val SwipeMaxWidth = 600.dp
+
+/**
+ * How far the card must travel horizontally, in touch slops, before a swipe
+ * engages. Compose's own `draggable(Horizontal)` starts as soon as horizontal
+ * touch slop is crossed with the gesture within ~30° of horizontal, so a
+ * scroll that opens with a sideways flick (the finger drifting across before
+ * turning vertical) still gets captured as a swipe — once captured, it never
+ * gives the gesture back. Requiring extra horizontal travel while the gesture
+ * stays vertically insignificant leaves those scrolls to the list.
+ */
+private const val SwipeEngageSlopMultiplier = 2f
+
+/**
+ * A flick released at least this fast commits the swipe in the direction of
+ * the flick, even when the card never travelled past half its width. Short,
+ * sharp gestures carry their intent in the velocity, not the distance; below
+ * this threshold the release position decides, as before.
+ */
+private val SwipeFlingVelocity = 1000.dp
 
 /**
  * How often to check for OG preview images downloaded by the background
@@ -452,6 +477,13 @@ private suspend fun alternateHref(state: AppState, entryId: String): String? {
  * released past half a card width, the card animates the rest of the way out
  * and the action runs (the row is then removed, or the card springs back when
  * the action keeps the entry); released short of that, it just springs back.
+ *
+ * The gesture waits for the drag to be clearly horizontal (see
+ * [SwipeEngageSlopMultiplier]) before engaging, then consumes it; anything
+ * more vertical is left to the list so a scroll is never mistaken for a swipe.
+ * A release either past half the card width or faster than
+ * [SwipeFlingVelocity] commits the action, so a short sharp flick works even
+ * when the card barely moved.
  */
 @Composable
 private fun SwipeableEntry(
@@ -471,6 +503,14 @@ private fun SwipeableEntry(
     val scope = rememberCoroutineScope()
     var widthPx by remember { mutableStateOf(0f) }
 
+    // The pointerInput block is keyed on Unit, so it keeps its first-composition
+    // closure; read the actions through updated state so a recomposition's
+    // fresher callbacks/values are the ones the settled swipe invokes.
+    val currentOnMarkRead by rememberUpdatedState(onMarkRead)
+    val currentOnToggleBookmark by rememberUpdatedState(onToggleBookmark)
+    val currentMarkReadRemoves by rememberUpdatedState(markReadRemoves)
+    val currentBookmarkRemoves by rememberUpdatedState(bookmarkRemoves)
+
     // The offset is written synchronously by the drag so a quick lift can never
     // leave a pending coroutine to race the release animation (the Animatable
     // mutex would let one cancel the other and freeze the card mid-drag).
@@ -480,40 +520,90 @@ private fun SwipeableEntry(
     Box(
         modifier = modifier
             .onGloballyPositioned { widthPx = it.size.width.toFloat() }
-            .draggable(
-                orientation = Orientation.Horizontal,
-                state = rememberDraggableState { delta ->
-                    val limit = widthPx
-                    offset = (offset + delta).coerceIn(-limit, limit)
-                },
-                onDragStarted = {
-                    settleJob?.cancel()
-                    settleJob = null
-                },
-                onDragStopped = {
-                    val limit = widthPx
-                    val current = offset
-                    settleJob?.cancel()
-                    settleJob = scope.launch {
-                        if (limit > 0f && abs(current) > limit / 2f) {
-                            // Past halfway: finish the swipe, then act.
-                            val swipingBookmark = current > 0f
-                            animate(
-                                initialValue = current,
-                                targetValue = if (swipingBookmark) limit else -limit,
-                                animationSpec = tween(durationMillis = 180),
-                            ) { value, _ -> offset = value }
-                            if (swipingBookmark) onToggleBookmark() else onMarkRead()
-                            val keeps = if (swipingBookmark) !bookmarkRemoves else !markReadRemoves
-                            if (keeps) {
-                                animate(offset, 0f, animationSpec = spring()) { value, _ -> offset = value }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val touchSlop = viewConfiguration.touchSlop
+                    val flingVelocity = SwipeFlingVelocity.toPx()
+                    val velocityTracker = VelocityTracker()
+                    velocityTracker.addPointerInputChange(down)
+                    var total = Offset.Zero
+                    var dragging = false
+
+                    // Accumulate until the direction is unambiguous. Once the
+                    // horizontal movement clearly dominates, take the gesture
+                    // and never give it back; if the vertical one wins, stop
+                    // tracking events so the list scrolls normally.
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (change.isConsumed) break
+                        velocityTracker.addPointerInputChange(change)
+                        if (change.changedToUpIgnoreConsumed()) {
+                            if (dragging) change.consume()
+                            break
+                        }
+
+                        if (!dragging) {
+                            total += change.positionChange()
+                            val horizontal = abs(total.x)
+                            val vertical = abs(total.y)
+                            if (vertical > touchSlop) {
+                                // A real vertical scroll is under way: stop
+                                // watching and leave the rest of the gesture to
+                                // the list.
+                                break
                             }
-                        } else {
-                            animate(current, 0f, animationSpec = spring()) { value, _ -> offset = value }
+                            if (horizontal > touchSlop * SwipeEngageSlopMultiplier) {
+                                dragging = true
+                                settleJob?.cancel()
+                                settleJob = null
+                            }
+                        }
+
+                        if (dragging) {
+                            val delta = change.positionChange().x
+                            change.consume()
+                            val limit = widthPx
+                            offset = (offset + delta).coerceIn(-limit, limit)
                         }
                     }
-                },
-            ),
+
+                    if (dragging) {
+                        val limit = widthPx
+                        val current = offset
+                        val velocity = velocityTracker.calculateVelocity().x
+                        // A sharp flick commits regardless of how far the card
+                        // actually travelled; otherwise the release position
+                        // decides as before.
+                        val flinging = abs(velocity) > flingVelocity
+                        val swipingBookmark = if (flinging) velocity > 0f else current > 0f
+                        val commit = flinging || (limit > 0f && abs(current) > limit / 2f)
+                        settleJob?.cancel()
+                        settleJob = scope.launch {
+                            if (commit) {
+                                // Finish the swipe, then act.
+                                animate(
+                                    initialValue = current,
+                                    targetValue = if (swipingBookmark) limit else -limit,
+                                    animationSpec = tween(durationMillis = 180),
+                                ) { value, _ -> offset = value }
+                                if (swipingBookmark) currentOnToggleBookmark() else currentOnMarkRead()
+                                val keeps = if (swipingBookmark) {
+                                    !currentBookmarkRemoves
+                                } else {
+                                    !currentMarkReadRemoves
+                                }
+                                if (keeps) {
+                                    animate(offset, 0f, animationSpec = spring()) { value, _ -> offset = value }
+                                }
+                            } else {
+                                animate(current, 0f, animationSpec = spring()) { value, _ -> offset = value }
+                            }
+                        }
+                    }
+                }
+            },
     ) {
         if (offset != 0f) {
             SwipeBackground(
