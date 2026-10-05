@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +56,10 @@ import org.vestifeed.ui.icons.MaterialSymbols
  * inline pictures; the entry's actions (bookmark, open, share, mark read) live
  * in the app bar, which reads the state published here by [reload]. The app-bar
  * Search action opens an in-entry find bar that highlights matches in the prose.
+ *
+ * The prose is capped at [ReadingWidth] and centred, so a desktop window does
+ * not stretch it into uncomfortably long lines. Text is selectable, which the
+ * reading use case wants on hosts with a pointer.
  */
 @Composable
 fun EntryScreen(state: AppState, entryId: String) {
@@ -153,84 +160,99 @@ fun EntryScreen(state: AppState, entryId: String) {
 
     Column(Modifier.fillMaxSize()) {
         if (state.entrySearchVisible) {
-            EntrySearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                matchCount = totalMatches,
-                currentMatch = if (totalMatches == 0) 0 else currentMatch + 1,
-                onPrev = {
-                    if (totalMatches > 0) {
-                        currentMatch = (currentMatch - 1 + totalMatches) % totalMatches
-                    }
-                },
-                onNext = {
-                    if (totalMatches > 0) currentMatch = (currentMatch + 1) % totalMatches
-                },
-                onClose = { state.entrySearchVisible = false },
-            )
+            // Centred to the same measure as the prose it searches.
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                EntrySearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    matchCount = totalMatches,
+                    currentMatch = if (totalMatches == 0) 0 else currentMatch + 1,
+                    onPrev = {
+                        if (totalMatches > 0) {
+                            currentMatch = (currentMatch - 1 + totalMatches) % totalMatches
+                        }
+                    },
+                    onNext = {
+                        if (totalMatches > 0) currentMatch = (currentMatch + 1) % totalMatches
+                    },
+                    onClose = { state.entrySearchVisible = false },
+                    modifier = Modifier.widthIn(max = ReadingWidth),
+                )
+            }
         }
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .onGloballyPositioned { containerTop = it.positionInRoot().y }
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Text(current.title, style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(6.dp))
+            SelectionContainer {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = ReadingWidth)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .onGloballyPositioned { containerTop = it.positionInRoot().y }
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                ) {
+                    Text(current.title, style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(6.dp))
 
-            val meta = buildString {
-                if (feedTitle.isNotBlank()) append(feedTitle)
-                if (current.authorName.isNotBlank()) {
-                    if (isNotEmpty()) append(" · ")
-                    append(current.authorName)
-                }
-                if (isNotEmpty()) append(" · ")
-                append(formatCalendarDate(current.published))
-            }
-            Text(
-                meta,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(16.dp))
-            if (blocks.isEmpty()) {
-                Text("(No content)", style = MaterialTheme.typography.bodyMedium)
-            } else {
-                blocks.forEachIndexed { blockIndex, block ->
-                    if (blockIndex > 0) Spacer(Modifier.height(BlockSpacing))
-                    when (block) {
-                        is EntryBlock.Paragraph -> {
-                            val localMatches = matchesByBlock[blockIndex]
-                            val currentLocal = globalMatches.getOrNull(currentMatch)
-                                ?.takeIf { it.first == blockIndex }
-                                ?.second
-                                ?: -1
-                            val annotated = if (localMatches.isEmpty()) {
-                                AnnotatedString(block.text)
-                            } else {
-                                highlightMatches(
-                                    block.text,
-                                    localMatches,
-                                    currentLocal,
-                                    matchStyle,
-                                    currentStyle,
-                                )
-                            }
-                            Text(
-                                text = annotated,
-                                style = MaterialTheme.typography.bodyLarge,
-                                onTextLayout = { textLayouts[blockIndex] = it },
-                                modifier = Modifier.onGloballyPositioned {
-                                    textTops[blockIndex] = it.positionInRoot().y
-                                },
-                            )
+                    val meta = buildString {
+                        if (feedTitle.isNotBlank()) append(feedTitle)
+                        if (current.authorName.isNotBlank()) {
+                            if (isNotEmpty()) append(" · ")
+                            append(current.authorName)
                         }
+                        if (isNotEmpty()) append(" · ")
+                        append(formatCalendarDate(current.published))
+                    }
+                    Text(
+                        meta,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                        is EntryBlock.Image -> EntryImage(block)
+                    Spacer(Modifier.height(16.dp))
+                    if (blocks.isEmpty()) {
+                        Text("(No content)", style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        blocks.forEachIndexed { blockIndex, block ->
+                            if (blockIndex > 0) Spacer(Modifier.height(BlockSpacing))
+                            when (block) {
+                                is EntryBlock.Paragraph -> {
+                                    val localMatches = matchesByBlock[blockIndex]
+                                    val currentLocal = globalMatches.getOrNull(currentMatch)
+                                        ?.takeIf { it.first == blockIndex }
+                                        ?.second
+                                        ?: -1
+                                    val annotated = if (localMatches.isEmpty()) {
+                                        AnnotatedString(block.text)
+                                    } else {
+                                        highlightMatches(
+                                            block.text,
+                                            localMatches,
+                                            currentLocal,
+                                            matchStyle,
+                                            currentStyle,
+                                        )
+                                    }
+                                    Text(
+                                        text = annotated,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        onTextLayout = { textLayouts[blockIndex] = it },
+                                        modifier = Modifier.onGloballyPositioned {
+                                            textTops[blockIndex] = it.positionInRoot().y
+                                        },
+                                    )
+                                }
+
+                                is EntryBlock.Image -> EntryImage(block)
+                            }
+                        }
                     }
                 }
             }
@@ -242,6 +264,9 @@ fun EntryScreen(state: AppState, entryId: String) {
 private const val WithMargin = 24f
 
 private val BlockSpacing = 16.dp
+
+/** The prose measure; matches the app's other screens so long lines stay readable. */
+private val ReadingWidth = 720.dp
 
 @Composable
 private fun EntryImage(block: EntryBlock.Image) {
@@ -288,9 +313,10 @@ private fun EntrySearchBar(
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onClose: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
