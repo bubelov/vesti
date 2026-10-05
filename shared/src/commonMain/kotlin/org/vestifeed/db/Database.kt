@@ -47,14 +47,10 @@ class Database(driver: SQLiteDriver, val path: String) {
      * target.
      */
     suspend fun connect() {
-        if (connection != null) return
-
         connectMutex.withLock {
             if (connection != null) return
 
             val conn = openDatabaseConnection(driver, path)
-            connection = conn
-
             conn.execSQL("PRAGMA foreign_keys = ON;")
             migrate(conn)
 
@@ -64,6 +60,11 @@ class Database(driver: SQLiteDriver, val path: String) {
             link = LinkTable(conn)
             tag = TagTable(conn)
             feedTag = FeedTagTable(conn)
+            // Published last: no caller may observe a non-null connection
+            // before the table fields are ready. Every caller goes through the
+            // mutex, whose release/acquire publishes them safely; a lock-free
+            // `connection != null` check could not.
+            connection = conn
         }
     }
 
