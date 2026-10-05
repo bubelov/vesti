@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,6 +112,12 @@ fun SettingsScreen(state: AppState) {
                     glyph = MaterialSymbols.Schedule,
                     label = "Sync in background",
                     checked = state.conf.syncInBackground,
+                    enabled = state.platform.supportsBackgroundSync,
+                    supportingText = if (!state.platform.supportsBackgroundSync) {
+                        "Not available on this platform"
+                    } else {
+                        null
+                    },
                 ) { state.updateConf { conf -> conf.copy(syncInBackground = it) } }
             }
 
@@ -227,23 +234,58 @@ private fun SettingSwitch(
     glyph: String,
     label: String,
     checked: Boolean,
+    enabled: Boolean = true,
+    supportingText: String? = null,
     onChange: (Boolean) -> Unit,
 ) {
+    val disabledAlpha = 0.38f
+    val tint = if (enabled) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = disabledAlpha)
+    }
     ListItem(
-        modifier = Modifier.toggleable(
-            value = checked,
-            role = Role.Switch,
-            onValueChange = onChange,
-        ),
+        modifier = if (enabled) {
+            Modifier.toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onChange,
+            )
+        } else {
+            Modifier
+        },
         leadingContent = {
             MaterialSymbol(
                 glyph = glyph,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = tint,
             )
         },
-        headlineContent = { Text(label) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
+        headlineContent = {
+            Text(
+                text = label,
+                color = if (enabled) {
+                    Color.Unspecified
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                },
+            )
+        },
+        supportingContent = supportingText?.let {
+            {
+                Text(
+                    text = it,
+                    color = if (enabled) {
+                        Color.Unspecified
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = disabledAlpha)
+                    },
+                )
+            }
+        },
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        },
     )
 }
 

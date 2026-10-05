@@ -15,6 +15,21 @@ interface VestiPlatform {
     val supportsPullToRefresh: Boolean get() = true
 
     /**
+     * Whether the host can sync periodically on its own while the app is not in
+     * the foreground. False on desktop, which has no background scheduler, so
+     * the "Sync in background" setting is shown disabled there. Hosts that
+     * never sync in the background simply leave the setting at its default.
+     */
+    val supportsBackgroundSync: Boolean get() = true
+
+    /**
+     * Whether the host favours a physical keyboard, e.g. a desktop window. When
+     * true the sign-in form focuses its first field so typing can begin without
+     * a click; touch hosts leave it unfocused so no soft keyboard pops up.
+     */
+    val supportsHardwareKeyboard: Boolean get() = false
+
+    /**
      * Opens [url] in a browser. When [useBuiltInBrowser] is true the host uses
      * its in-app browser (an Android Custom Tab); otherwise it hands the link to
      * the system browser. Hosts without an in-app browser ignore the flag.
