@@ -48,10 +48,33 @@ interface VestiPlatform {
     suspend fun cacheAudio(url: String, onProgress: (Double?) -> Unit): String?
 
     /**
-     * Plays [uri] (from [cacheAudio]) inside the app, or hands it to the system
-     * player on hosts that have no built-in one.
+     * Plays [uri] (from [cacheAudio]) with the host's built-in player.
      */
     fun playAudio(uri: String)
+
+    /**
+     * Whether the host can hand an audio enclosure to the platform's default
+     * media player, rather than only a browser. True on desktop; false on
+     * Android and the browser, where disabling the built-in player falls back to
+     * opening the stream in the browser.
+     */
+    val supportsExternalAudioPlayer: Boolean get() = false
+
+    /**
+     * Opens the audio enclosure at [url] outside the app, used when the built-in
+     * player is disabled. Hosts with a default media player download the file and
+     * hand it over, reporting [onProgress] in `0f..1f` (or null when the size is
+     * unknown); the default implementation opens [url] in the browser (the in-app
+     * one when [useBuiltInBrowser] is set), streaming it. Called from a coroutine
+     * only when [supportsExternalAudioPlayer] is true.
+     */
+    suspend fun openAudioExternally(
+        url: String,
+        useBuiltInBrowser: Boolean,
+        onProgress: (Double?) -> Unit,
+    ) {
+        openUrl(url, useBuiltInBrowser)
+    }
 
     /** Stops any in-app playback started by [playAudio]. */
     fun stopAudio()

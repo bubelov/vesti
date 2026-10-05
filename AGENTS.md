@@ -100,7 +100,13 @@ platform implementation on it.
 On the JVM, `:desktopApp` drives the same `VestiApp` from Compose Desktop's
 `application {}`/`Window`, with a `DesktopVestiPlatform` (system browser +
 clipboard). It uses `BundledSQLiteDriver` because desktop has no system SQLite
-to fall back on.
+to fall back on. Podcasts play in-process through the JVM module of
+[Compose Media Player](https://github.com/kdroidFilter/ComposeMediaPlayer)
+(`composemediaplayer-audio`, backed by the Rust `rodio` crate via JNI), so the
+shared position/duration/scrubber UI works; the app passes
+`--enable-native-access=ALL-UNNAMED` so the JNI natives load on JDK 24+. Turning
+"Use built-in audio player" off downloads the enclosure and opens it in the
+system's default media player instead.
 
 ### Icons
 

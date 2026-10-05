@@ -60,6 +60,12 @@ okhttp = "5.5.0"
 # https://github.com/coil-kt/coil/releases
 coil = "3.6.3"
 
+# Desktop audio playback. The audio-only module is backed on the JVM by the
+# Rust `rodio` crate (JNI), giving MP3/AAC/OGG/FLAC/WAV with position and seek
+# without relying on a system media framework.
+# https://github.com/kdroidFilter/ComposeMediaPlayer
+composemediaplayer = "0.11.4"
+
 # Material design components (themes the Android host)
 # https://github.com/material-components/material-components-android/releases
 material = "1.14.0"
@@ -117,6 +123,9 @@ coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+
+# Desktop audio player
+composemediaplayer-audio = { module = "io.github.kdroidfilter:composemediaplayer-audio", version.ref = "composemediaplayer" }
 
 # Unit tests
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -52,10 +52,10 @@ private const val StartTimeoutAttempts = 10
 
 /**
  * The Podcasts tab: every audio enclosure across the feeds, newest first. The
- * play button downloads the episode (when needed) and plays it in-app — or
- * hands it to the system player when the built-in one is disabled. The bar at
- * the bottom scrubs the episode that is currently playing. Tapping a row itself
- * opens the entry.
+ * play button downloads the episode (when needed) and plays it in-app — or,
+ * when the built-in player is disabled, hands it to the system's default media
+ * player (or the browser where the host has none). The bar at the bottom scrubs
+ * the episode that is currently playing. Tapping a row itself opens the entry.
  */
 @Composable
 fun PodcastsScreen(state: AppState) {
@@ -117,8 +117,24 @@ fun PodcastsScreen(state: AppState) {
         if (preparingLinkId != null) return
 
         if (!state.conf.useBuiltInAudioPlayer) {
-            // Hand the enclosure to the system browser/player instead.
-            state.platform.openUrl(proxiedUrl(row.href), state.conf.useBuiltInBrowser)
+            // Hand the enclosure to the host's external player. On desktop that
+            // is the system's default media player, so download it first; on
+            // Android and the browser it is the browser, opened synchronously so
+            // the browser still counts it as a user gesture.
+            if (state.platform.supportsExternalAudioPlayer) {
+                scope.launch {
+                    preparingLinkId = row.linkId
+                    progress = row.extEnclosureDownloadProgress
+                    state.platform.openAudioExternally(
+                        url = proxiedUrl(row.href),
+                        useBuiltInBrowser = state.conf.useBuiltInBrowser,
+                    ) { progress = it }
+                    preparingLinkId = null
+                    progress = null
+                }
+            } else {
+                state.platform.openUrl(proxiedUrl(row.href), state.conf.useBuiltInBrowser)
+            }
             return
         }
 
@@ -177,17 +193,25 @@ fun PodcastsScreen(state: AppState) {
                                     when {
                                         preparingLinkId == row.linkId -> {
                                             val value = progress
-                                            if (value != null) {
-                                                CircularProgressIndicator(
-                                                    progress = { value.toFloat() },
-                                                    modifier = Modifier.size(24.dp),
-                                                    strokeWidth = 2.dp,
-                                                )
-                                            } else {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(24.dp),
-                                                    strokeWidth = 2.dp,
-                                                )
+                                            // Keep the spinner in the same 48.dp
+                                            // footprint as the IconButton it
+                                            // replaces so the row doesn't shift.
+                                            Box(
+                                                modifier = Modifier.size(48.dp),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                if (value != null) {
+                                                    CircularProgressIndicator(
+                                                        progress = { value.toFloat() },
+                                                        modifier = Modifier.size(24.dp),
+                                                        strokeWidth = 2.dp,
+                                                    )
+                                                } else {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(24.dp),
+                                                        strokeWidth = 2.dp,
+                                                    )
+                                                }
                                             }
                                         }
 
