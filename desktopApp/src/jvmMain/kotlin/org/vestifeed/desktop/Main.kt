@@ -26,7 +26,7 @@ fun main() = application {
     val scope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 
     LaunchedEffect(Unit) {
-        scope.launch { runCatching { OgImageFetcher(database).fetchAndWatch() } }
+        scope.launch { runCatching { OgImageFetcher(database, USER_AGENT).fetchAndWatch() } }
     }
     DisposableEffect(Unit) {
         onDispose {

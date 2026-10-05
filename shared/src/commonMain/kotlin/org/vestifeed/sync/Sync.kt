@@ -15,6 +15,7 @@ import org.vestifeed.platform.ioDispatcher
 class Sync(
     private val scope: CoroutineScope,
     private val db: Database,
+    private val userAgent: String = "",
 ) {
 
     private val _running = MutableStateFlow(false)
@@ -54,7 +55,7 @@ class Sync(
     fun pushInBackground() {
         scope.launch {
             try {
-                withContext(ioDispatcher) { backend(db).pushPendingChanges() }
+                withContext(ioDispatcher) { backend(db, userAgent).pushPendingChanges() }
                 _lastError.value = null
             } catch (t: Throwable) {
                 _lastError.value = t.message ?: t.toString()
@@ -81,7 +82,7 @@ class Sync(
             // window for as long as the transactions took.
             withContext(ioDispatcher) {
                 val conf = db.conf.select()
-                backend(db).sync(initial = conf.minifluxIncrementalSyncTimestamp == null)
+                backend(db, userAgent).sync(initial = conf.minifluxIncrementalSyncTimestamp == null)
             }
         } catch (t: Throwable) {
             _lastError.value = t.message ?: t.toString()

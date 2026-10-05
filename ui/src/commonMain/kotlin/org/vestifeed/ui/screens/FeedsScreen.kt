@@ -135,7 +135,7 @@ fun FeedsScreen(state: AppState) {
             try {
                 // Best-effort server-side delete; the local rows go either way.
                 state.withDb {
-                    runCatching { backend(state.db).deleteFeed(feedId) }
+                    runCatching { backend(state.db, state.userAgent).deleteFeed(feedId) }
                     state.db.transaction {
                         state.db.link.deleteForFeed(feedId)
                         state.db.entry.deleteByFeedId(feedId)
@@ -162,7 +162,7 @@ fun FeedsScreen(state: AppState) {
             message = null
             try {
                 val outlines = opmlText.toOpml().leafOutlines()
-                val feedBackend = backend(state.db)
+                val feedBackend = backend(state.db, state.userAgent)
                 var count = 0
                 for (outline in outlines) {
                     val xmlUrl = outline.xmlUrl ?: continue

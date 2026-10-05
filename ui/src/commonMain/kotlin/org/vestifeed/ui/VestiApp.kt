@@ -63,7 +63,7 @@ fun VestiApp(
     val scope = rememberCoroutineScope()
     val state = remember { AppState(platform, database, scope, userAgent) }
 
-    VestiImageLoader()
+    VestiImageLoader(userAgent)
     LaunchedEffect(Unit) { state.connect() }
 
     VestiTheme {

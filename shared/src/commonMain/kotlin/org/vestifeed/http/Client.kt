@@ -1,8 +1,10 @@
 package org.vestifeed.http
 
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.UserAgent
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.isSuccess
@@ -32,8 +34,12 @@ import org.vestifeed.json.stringOrNull
 fun vestiHttpClient(
     token: String? = null,
     debug: Boolean = false,
+    userAgent: String? = null,
 ): HttpClient = HttpClient {
     expectSuccess = false
+    // Bound a stalled connect/read: Ktor's default timeout is infinite.
+    vestiTimeouts()
+    userAgent?.let { vestiUserAgent(it) }
 
     if (token != null) {
         install(DefaultRequest) {
@@ -63,4 +69,28 @@ fun vestiHttpClient(
             throw IOException(message)
         }
     }
+}
+
+/**
+ * Attaches the Vesti [userAgent] to every request. Without it Ktor's engines
+ * fall back to their own string (`ktor-client` on CIO), so a server cannot tell
+ * the Android, desktop and browser hosts apart. Blank values are ignored.
+ */
+internal fun HttpClientConfig<*>.vestiUserAgent(userAgent: String) {
+    if (userAgent.isNotBlank()) {
+        install(UserAgent) { agent = userAgent }
+    }
+}
+
+/**
+ * A plain Vesti client for third-party origins: feeds, article pages and
+ * images. Installs the request timeouts and the Vesti [userAgent]; unlike
+ * [vestiHttpClient] it carries no auth token and no Miniflux error handling.
+ */
+fun vestiFetchHttpClient(
+    userAgent: String,
+    requestTimeoutMillis: Long? = null,
+): HttpClient = HttpClient {
+    vestiTimeouts(requestTimeoutMillis)
+    vestiUserAgent(userAgent)
 }

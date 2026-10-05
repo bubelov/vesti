@@ -286,7 +286,7 @@ private fun AuthForm(
                         // Validate the credentials by listing feeds. This
                         // throws on a rejected token (401) and, in the browser,
                         // on a cross-origin API that does not send CORS headers.
-                        state.withDb { backend(state.db).getFeeds() }
+                        state.withDb { backend(state.db, state.userAgent).getFeeds() }
                     } else {
                         state.setConf {
                             it.copy(

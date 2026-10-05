@@ -12,6 +12,8 @@ import org.vestifeed.og.OgImageFetcher
 import org.vestifeed.ui.VestiApp
 import org.w3c.dom.Worker
 
+private const val USER_AGENT = "Vesti/0.4.3 (Web)"
+
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     val database = Database(
@@ -21,14 +23,14 @@ fun main() {
 
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     scope.launch {
-        runCatching { OgImageFetcher(database).fetchAndWatch() }
+        runCatching { OgImageFetcher(database, USER_AGENT).fetchAndWatch() }
     }
 
     ComposeViewport {
         VestiApp(
             platform = WebVestiPlatform(),
             database = database,
-            userAgent = "Vesti/0.4.3 (Web)",
+            userAgent = USER_AGENT,
         )
     }
 }

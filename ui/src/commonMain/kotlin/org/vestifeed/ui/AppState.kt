@@ -162,7 +162,7 @@ class AppState(
      */
     suspend fun addFeedByUrl(rawUrl: String): Result<FeedTable.Feed> = withDb {
         runCatching {
-            val result = backend(db).addFeed(rawUrl.trim().withHttpsScheme().toUrl(), null)
+            val result = backend(db, userAgent).addFeed(rawUrl.trim().withHttpsScheme().toUrl(), null)
             db.transaction {
                 db.feed.insertOrReplace(result.feed)
                 db.link.insertForFeed(result.feed.id, result.feedLinks)
@@ -185,7 +185,7 @@ class AppState(
         return loaded
     }
 
-    val sync = Sync(scope, db)
+    val sync = Sync(scope, db, userAgent)
 
     private val backStack = mutableStateListOf<Screen>()
 

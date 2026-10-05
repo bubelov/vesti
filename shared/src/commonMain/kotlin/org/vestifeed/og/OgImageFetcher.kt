@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.put
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.EntryTable
+import org.vestifeed.http.vestiFetchHttpClient
 import org.vestifeed.json.parseJson
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
@@ -33,7 +34,13 @@ import org.vestifeed.platform.proxiedUrl
  */
 class OgImageFetcher(
     private val db: Database,
-    private val httpClient: HttpClient = HttpClient(),
+    userAgent: String,
+    private val httpClient: HttpClient = vestiFetchHttpClient(
+        userAgent = userAgent,
+        // The old Android fetcher capped the whole call at 10s; one silent
+        // server must not stall the sequential loop for every later entry.
+        requestTimeoutMillis = 15_000,
+    ),
     private val isOnline: () -> Boolean = { true },
     private val isForeground: () -> Boolean = { true },
 ) {

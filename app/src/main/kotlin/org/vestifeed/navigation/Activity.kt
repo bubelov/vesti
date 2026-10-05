@@ -3,7 +3,6 @@ package org.vestifeed.navigation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
-import org.vestifeed.BuildConfig
 import org.vestifeed.app.App
 import org.vestifeed.ui.AndroidVestiPlatform
 import org.vestifeed.ui.VestiComposeView
@@ -20,7 +19,7 @@ class Activity : ComponentActivity() {
             VestiComposeView(this).apply {
                 database = app.db
                 platform = AndroidVestiPlatform(this@Activity)
-                userAgent = "Vesti/${BuildConfig.VERSION_NAME} (Android)"
+                userAgent = app.userAgent
             }
         )
     }

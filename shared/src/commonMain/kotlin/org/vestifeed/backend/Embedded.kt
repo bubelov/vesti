@@ -10,6 +10,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.FeedTable
+import org.vestifeed.http.vestiFetchHttpClient
 import org.vestifeed.parser.FeedResult
 import org.vestifeed.parser.feed
 import org.vestifeed.platform.proxiedUrl
@@ -17,7 +18,8 @@ import org.vestifeed.util.toUrl
 
 open class Embedded(
     db: Database,
-    httpClient: HttpClient = HttpClient(),
+    userAgent: String = "",
+    httpClient: HttpClient = vestiFetchHttpClient(userAgent),
 ) : Backend(db) {
 
     private val httpClient = httpClient

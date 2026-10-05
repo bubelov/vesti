@@ -119,7 +119,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                     )
                     state.withDb {
                         state.db.feed.insertOrReplace(updated)
-                        runCatching { backend(state.db).updateFeedTitle(feedId, title) }
+                        runCatching { backend(state.db, state.userAgent).updateFeedTitle(feedId, title) }
                     }
                     feed = updated
                     message = "Saved"
@@ -153,7 +153,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
             onClick = {
                 scope.launch {
                     state.withDb {
-                        runCatching { backend(state.db).deleteFeed(feedId) }
+                        runCatching { backend(state.db, state.userAgent).deleteFeed(feedId) }
                         state.db.transaction {
                             state.db.link.deleteForFeed(feedId)
                             state.db.entry.deleteByFeedId(feedId)

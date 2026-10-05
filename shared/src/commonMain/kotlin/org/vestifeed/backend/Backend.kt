@@ -37,22 +37,22 @@ sealed class Backend(protected val db: Database) {
     open suspend fun pushPendingChanges() {}
 }
 
-suspend fun backend(db: Database): Backend {
+suspend fun backend(db: Database, userAgent: String = ""): Backend {
     val conf = db.conf.select()
     return when (conf.backend) {
         ConfTable.Backend.Miniflux -> {
             if (conf.minifluxUrl == null || conf.minifluxToken == null) {
-                Embedded(db)
+                Embedded(db, userAgent)
             } else {
                 Miniflux(
-                    client = minifluxHttpClient(token = conf.minifluxToken),
+                    client = minifluxHttpClient(token = conf.minifluxToken, userAgent = userAgent),
                     baseUrl = "${conf.minifluxUrl}/v1/".toUrl(),
                     db = db,
                 )
             }
         }
 
-        ConfTable.Backend.Embedded -> Embedded(db)
-        null -> Embedded(db)
+        ConfTable.Backend.Embedded -> Embedded(db, userAgent)
+        null -> Embedded(db, userAgent)
     }
 }
