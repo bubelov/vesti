@@ -215,6 +215,12 @@ class AppState(
                 }
             }
         }
+        // Honor "Sync on startup": pull from the backend as soon as the app is
+        // up so the lists do not open on a stale database. Nothing to sync
+        // against until a backend is configured (the auth screen is showing).
+        if (conf.backend != null && conf.syncOnStartup) {
+            sync.runInBackground()
+        }
     }
 
     fun refreshConf() {
