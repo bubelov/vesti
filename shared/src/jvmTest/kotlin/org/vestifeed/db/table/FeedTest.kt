@@ -224,8 +224,6 @@ class FeedTest {
         extCommentsUrl = "",
         extOpenGraphImageChecked = true,
         extOpenGraphImageUrl = "",
-        extOpenGraphImageWidth = 0,
-        extOpenGraphImageHeight = 0,
         extOpenGraphImageFetchedAt = null,
         extOpenGraphImageLog = "[]",
     )

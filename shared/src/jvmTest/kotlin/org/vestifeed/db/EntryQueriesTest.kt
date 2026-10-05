@@ -297,8 +297,6 @@ class EntryQueriesTest {
 
         db.entry.updateOgImage(
             extOgImageUrl = "https://example.com/og.png",
-            extOgImageWidth = 800L,
-            extOgImageHeight = 600L,
             extOgImageFetchedAt = now,
             id = inserted.id,
         )
@@ -451,8 +449,6 @@ fun entry() = EntryTable.Entry(
     extCommentsUrl = "",
     extOpenGraphImageChecked = true,
     extOpenGraphImageUrl = "",
-    extOpenGraphImageWidth = 0,
-    extOpenGraphImageHeight = 0,
     extOpenGraphImageFetchedAt = null,
     extOpenGraphImageLog = "[]",
 )
@@ -472,8 +468,6 @@ fun entryWithoutContent() = EntryTable.EntryWithoutContent(
     extCommentsUrl = "",
     extOpenGraphImageChecked = true,
     extOpenGraphImageUrl = "",
-    extOpenGraphImageWidth = 0,
-    extOpenGraphImageHeight = 0,
     extOpenGraphImageFetchedAt = null,
     extOpenGraphImageLog = "[]",
 )
@@ -493,8 +487,6 @@ fun EntryTable.Entry.withoutContent() = EntryTable.EntryWithoutContent(
     extCommentsUrl = extCommentsUrl,
     extOpenGraphImageChecked = extOpenGraphImageChecked,
     extOpenGraphImageUrl = extOpenGraphImageUrl,
-    extOpenGraphImageWidth = extOpenGraphImageWidth,
-    extOpenGraphImageHeight = extOpenGraphImageHeight,
     extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
     extOpenGraphImageLog = extOpenGraphImageLog,
 )
@@ -518,8 +510,6 @@ fun EntryTable.EntryWithoutContent.toEntry(): EntryTable.Entry {
         extCommentsUrl = extCommentsUrl,
         extOpenGraphImageChecked = extOpenGraphImageChecked,
         extOpenGraphImageUrl = extOpenGraphImageUrl,
-        extOpenGraphImageWidth = extOpenGraphImageWidth,
-        extOpenGraphImageHeight = extOpenGraphImageHeight,
         extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
         extOpenGraphImageLog = extOpenGraphImageLog,
     )

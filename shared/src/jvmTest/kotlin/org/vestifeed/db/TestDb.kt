@@ -67,3 +67,36 @@ const val ENTRY_SCHEMA_V8 = """
         ext_og_image_fetched_at TEXT NOT NULL DEFAULT ''
     ) STRICT;
 """
+
+/**
+ * Schema of the `entry` table as it looked at v9 through v11 — the v8 shape
+ * plus `ext_og_log` and the OG image dimension columns. Used by migration
+ * tests that boot at v10/v11 and then need the v11→v12 `DROP COLUMN` to have
+ * something to remove; [org.vestifeed.db.table.EntryTable.SCHEMA] no longer
+ * carries the dimension columns.
+ */
+const val ENTRY_SCHEMA_V11 = """
+    CREATE TABLE entry (
+        content_type TEXT,
+        content_src TEXT,
+        content_text TEXT,
+        summary TEXT,
+        id TEXT PRIMARY KEY NOT NULL,
+        feed_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        published TEXT NOT NULL,
+        updated TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        ext_read INTEGER NOT NULL,
+        ext_read_synced INTEGER NOT NULL,
+        ext_bookmarked INTEGER NOT NULL,
+        ext_bookmarked_synced INTEGER NOT NULL,
+        ext_comments_url TEXT NOT NULL,
+        ext_og_image_checked INTEGER NOT NULL,
+        ext_og_image_url TEXT NOT NULL,
+        ext_og_image_width INTEGER NOT NULL,
+        ext_og_image_height INTEGER NOT NULL,
+        ext_og_image_fetched_at TEXT NOT NULL DEFAULT '',
+        ext_og_log TEXT NOT NULL DEFAULT '[]'
+    ) STRICT;
+"""

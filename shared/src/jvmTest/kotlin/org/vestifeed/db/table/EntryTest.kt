@@ -89,8 +89,6 @@ class EntryTest {
             extBookmarkedSynced = false,
             extOpenGraphImageChecked = true,
             extOpenGraphImageUrl = "https://example.com/og.png",
-            extOpenGraphImageWidth = 1200,
-            extOpenGraphImageHeight = 630,
             extOpenGraphImageFetchedAt = Instant.parse("2026-07-15T10:00:00Z"),
         )
         db.entry.insertOrReplace(listOf(original))
@@ -102,8 +100,6 @@ class EntryTest {
             extBookmarkedSynced = true,
             extOpenGraphImageChecked = false,
             extOpenGraphImageUrl = "",
-            extOpenGraphImageWidth = 0,
-            extOpenGraphImageHeight = 0,
             extOpenGraphImageFetchedAt = null,
         )
         db.entry.insertOrReplace(listOf(resynced))
@@ -115,8 +111,6 @@ class EntryTest {
         assertEquals(false, result.extBookmarkedSynced)
         assertTrue(result.extOpenGraphImageChecked)
         assertEquals("https://example.com/og.png", result.extOpenGraphImageUrl)
-        assertEquals(1200, result.extOpenGraphImageWidth)
-        assertEquals(630, result.extOpenGraphImageHeight)
         assertEquals(Instant.parse("2026-07-15T10:00:00Z"), result.extOpenGraphImageFetchedAt)
     }
 
@@ -232,8 +226,6 @@ class EntryTest {
         extBookmarkedSynced: Boolean = true,
         extOpenGraphImageChecked: Boolean = false,
         extOpenGraphImageUrl: String = "",
-        extOpenGraphImageWidth: Int = 0,
-        extOpenGraphImageHeight: Int = 0,
         extOpenGraphImageFetchedAt: Instant? = null,
         extOpenGraphImageLog: String = "[]",
     ) = EntryTable.Entry(
@@ -254,8 +246,6 @@ class EntryTest {
         extCommentsUrl = "",
         extOpenGraphImageChecked = extOpenGraphImageChecked,
         extOpenGraphImageUrl = extOpenGraphImageUrl,
-        extOpenGraphImageWidth = extOpenGraphImageWidth,
-        extOpenGraphImageHeight = extOpenGraphImageHeight,
         extOpenGraphImageFetchedAt = extOpenGraphImageFetchedAt,
         extOpenGraphImageLog = extOpenGraphImageLog,
     )

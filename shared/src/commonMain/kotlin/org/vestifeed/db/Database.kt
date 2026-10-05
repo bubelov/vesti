@@ -79,8 +79,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
-            conn.execSQL("PRAGMA user_version=10;")
-            version = 10
+            conn.execSQL("PRAGMA user_version=12;")
+            version = 12
         }
 
         if (version == 1) {
@@ -158,6 +158,15 @@ class Database(driver: SQLiteDriver, val path: String) {
             )
             conn.execSQL("PRAGMA user_version=11;")
             version = 11
+        }
+
+        if (version == 11) {
+            // The OG fetcher no longer measures images; the display layer
+            // (Coil) downloads and caches them. Drop the now-unused columns.
+            conn.execSQL("ALTER TABLE entry DROP COLUMN ext_og_image_width;")
+            conn.execSQL("ALTER TABLE entry DROP COLUMN ext_og_image_height;")
+            conn.execSQL("PRAGMA user_version=12;")
+            version = 12
         }
     }
 

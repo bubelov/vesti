@@ -425,8 +425,6 @@ open class Miniflux(
                 extCommentsUrl = comments_url,
                 extOpenGraphImageChecked = false,
                 extOpenGraphImageUrl = "",
-                extOpenGraphImageWidth = 0,
-                extOpenGraphImageHeight = 0,
                 extOpenGraphImageFetchedAt = null,
                 extOpenGraphImageLog = "[]",
             ), links

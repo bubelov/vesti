@@ -1,5 +1,6 @@
 package org.vestifeed.db
 
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import kotlinx.coroutines.runBlocking
@@ -541,7 +542,7 @@ class DatabaseMigrationTest {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
             conn.execSQL(FeedTable.SCHEMA)
-            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
@@ -558,21 +559,21 @@ class DatabaseMigrationTest {
                 )
             )
 
-            EntryTable(conn).insertOrReplace(
-                listOf(
-                    // Poisoned by the sync race: no link yet when checked, so
-                    // the fetcher gave up and the URL stayed empty.
-                    ogEntry(
-                        id = "poisoned",
-                        log = "[{\"message\":\"No HTML alternate link found, marking as checked\"}]",
-                    ),
-                    // Legitimately checked: the article has no og:image. Must
-                    // stay checked so it is not fetched forever.
-                    ogEntry(
-                        id = "no-image",
-                        log = "[{\"message\":\"No og:image meta tag found, marking as checked\"}]",
-                    ),
-                )
+            // Poisoned by the sync race: no link yet when checked, so the
+            // fetcher gave up and the URL stayed empty.
+            insertEntryV11(
+                conn,
+                id = "poisoned",
+                url = "",
+                log = "[{\"message\":\"No HTML alternate link found, marking as checked\"}]",
+            )
+            // Legitimately checked: the article has no og:image. Must stay
+            // checked so it is not fetched forever.
+            insertEntryV11(
+                conn,
+                id = "no-image",
+                url = "",
+                log = "[{\"message\":\"No og:image meta tag found, marking as checked\"}]",
             )
         }
 
@@ -589,27 +590,78 @@ class DatabaseMigrationTest {
         )
     }
 
-    private fun ogEntry(id: String, log: String): EntryTable.Entry = EntryTable.Entry(
-            contentType = "html",
-            contentSrc = "",
-            contentText = "",
-            summary = "",
-            id = id,
-            feedId = "feed-1",
-            title = "Entry",
-            published = kotlin.time.Clock.System.now(),
-            updated = kotlin.time.Clock.System.now(),
-            authorName = "",
-            extRead = false,
-            extReadSynced = true,
-            extBookmarked = false,
-            extBookmarkedSynced = true,
-            extCommentsUrl = "",
-            extOpenGraphImageChecked = true,
-            extOpenGraphImageUrl = "",
-            extOpenGraphImageWidth = 0,
-            extOpenGraphImageHeight = 0,
-            extOpenGraphImageFetchedAt = null,
-            extOpenGraphImageLog = log,
+    @Test
+    fun migrate_v11ToV12_dropsOgImageDimensionColumns() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(ENTRY_SCHEMA_V11)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL("PRAGMA user_version=11;")
+
+            insertEntryV11(
+                conn,
+                id = "entry-1",
+                url = "https://example.com/og.png",
+                log = "[]",
+            )
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        // The row and its OG URL survive the drop.
+        assertEquals(
+            "https://example.com/og.png",
+            db.entry.selectById("entry-1")?.extOpenGraphImageUrl,
         )
+        db.close()
+
+        // The dimension columns are gone.
+        driver.open(dbFile.absolutePath).use { conn ->
+            val names = mutableListOf<String>()
+            conn.prepare("SELECT name FROM pragma_table_info('entry');").use { stmt ->
+                while (stmt.step()) names.add(stmt.getText(0))
+            }
+            assertTrue("ext_og_image_width is dropped", "ext_og_image_width" !in names)
+            assertTrue("ext_og_image_height is dropped", "ext_og_image_height" !in names)
+        }
+    }
+
+    /**
+     * Inserts an entry with the v9–v11 column set, which still includes the OG
+     * dimension columns. Raw SQL because the current [EntryTable] no longer
+     * writes them, so it cannot populate an older schema.
+     */
+    private fun insertEntryV11(
+        conn: SQLiteConnection,
+        id: String,
+        url: String,
+        log: String,
+    ) {
+        conn.prepare(
+            """
+            INSERT INTO entry (
+                content_type, content_src, content_text, summary, id, feed_id,
+                title, published, updated, author_name, ext_read, ext_read_synced,
+                ext_bookmarked, ext_bookmarked_synced, ext_comments_url,
+                ext_og_image_checked, ext_og_image_url, ext_og_image_width,
+                ext_og_image_height, ext_og_image_fetched_at, ext_og_log
+            ) VALUES (
+                'html', '', '', '', ?, 'feed-1', 'Entry',
+                '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '',
+                0, 1, 0, 1, '',
+                1, ?, 0, 0, '', ?
+            );
+            """.trimIndent()
+        ).use { stmt ->
+            stmt.bindText(1, id)
+            stmt.bindText(2, url)
+            stmt.bindText(3, log)
+            stmt.step()
+        }
+    }
 }

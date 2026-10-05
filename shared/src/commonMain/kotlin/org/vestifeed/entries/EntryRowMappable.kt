@@ -13,8 +13,6 @@ interface EntryRowMappable {
     val extBookmarked: Boolean
     val extShowPreviewImages: Boolean?
     val extOpenGraphImageUrl: String
-    val extOpenGraphImageWidth: Int
-    val extOpenGraphImageHeight: Int
     val title: String
     val feedTitle: String
     val published: Instant

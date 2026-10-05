@@ -4,7 +4,6 @@ import com.fleeksoft.ksoup.Ksoup
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readBytes
 import io.ktor.http.isSuccess
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
@@ -23,12 +22,14 @@ import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
 
 /**
- * Fetches each entry's OpenGraph image: the article page's `og:image`, then the
- * image itself, storing the URL and its pixel size in the entry.
+ * Resolves each entry's OpenGraph image: the article page's `og:image`. Only
+ * the URL is stored; the image bytes are fetched once, lazily, by the UI's
+ * image loader (Coil), which caches them. Downloading them here just to measure
+ * the size would download every preview image twice for a value nothing reads.
  *
- * Shares [OgImagePlanning]'s pure gating and [imageSize]'s header parsing with
- * every host. Feed/article/image requests go through [proxiedUrl], so on the
- * browser they are relayed by the same-origin proxy.
+ * Shares [OgImagePlanning]'s pure gating with every host. Feed/article requests
+ * go through [proxiedUrl], so on the browser they are relayed by the
+ * same-origin proxy.
  */
 class OgImageFetcher(
     private val db: Database,
@@ -104,28 +105,13 @@ class OgImageFetcher(
             return false
         }
 
-        appendLog(candidate.id, "Found OG image URL: $imageUrl")
-        val size = try {
-            imageSize(httpClient.get(proxiedUrl(imageUrl)).readBytes())
-        } catch (t: Throwable) {
-            appendLog(candidate.id, "Transient failure fetching OG image (${t.message}); will retry")
-            return false
-        }
-
-        if (size == null) {
-            appendLog(candidate.id, "Could not read OG image dimensions, marking as checked")
-            db.entry.updateOgImageChecked(true, candidate.id)
-            return false
-        }
-
+        // Store only the URL: the display layer fetches and caches the bytes.
         db.entry.updateOgImage(
             extOgImageUrl = imageUrl,
-            extOgImageWidth = size.first.toLong(),
-            extOgImageHeight = size.second.toLong(),
             extOgImageFetchedAt = Clock.System.now(),
             id = candidate.id,
         )
-        appendLog(candidate.id, "OG image stored (${size.first}x${size.second})")
+        appendLog(candidate.id, "Found OG image URL: $imageUrl")
         return true
     }
 
