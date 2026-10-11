@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 
 package org.vestifeed.ui
 
@@ -29,7 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.vestifeed.db.Database
@@ -75,6 +77,13 @@ fun VestiApp(
             }
             return@VestiTheme
         }
+
+        // The system/browser back gesture walks the app's own back stack, so
+        // opening an entry and going back returns to the list instead of
+        // closing the app. At the root (nothing to pop) it is left to the
+        // platform, which exits as usual. Dialogs sit above this and still
+        // consume back themselves.
+        BackHandler(enabled = state.canGoBack()) { state.pop() }
 
         when (val screen = state.screen) {
             Screen.Auth -> AuthScreen(state)

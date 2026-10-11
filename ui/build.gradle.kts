@@ -43,6 +43,7 @@ kotlin {
             // Bundles the Material Symbols icon font and resolves it on every
             // platform (Android, JVM and wasm).
             implementation(compose.components.resources)
+            implementation(libs.compose.ui.backhandler)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.coil.compose)
