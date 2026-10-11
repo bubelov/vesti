@@ -37,10 +37,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import org.vestifeed.db.table.EntryTable
@@ -146,6 +146,10 @@ fun EntryScreen(state: AppState, entryId: String) {
         background = MaterialTheme.colorScheme.primary,
         color = MaterialTheme.colorScheme.onPrimary,
     )
+    val linkStyle = SpanStyle(
+        color = MaterialTheme.colorScheme.primary,
+        textDecoration = TextDecoration.Underline,
+    )
 
     // Scroll the current match into view. Each paragraph's layout and its
     // root-relative top let us land on the right position in the scroll content.
@@ -229,17 +233,21 @@ fun EntryScreen(state: AppState, entryId: String) {
                                         ?.takeIf { it.first == blockIndex }
                                         ?.second
                                         ?: -1
-                                    val annotated = if (localMatches.isEmpty()) {
-                                        AnnotatedString(block.text)
-                                    } else {
-                                        highlightMatches(
-                                            block.text,
-                                            localMatches,
-                                            currentLocal,
-                                            matchStyle,
-                                            currentStyle,
-                                        )
-                                    }
+                                    val annotated = paragraphAnnotatedString(
+                                        paragraph = block,
+                                        matches = localMatches,
+                                        currentMatch = currentLocal,
+                                        matchStyle = matchStyle,
+                                        currentStyle = currentStyle,
+                                        linkStyle = linkStyle,
+                                        resolveUrl = { resolveLink(it, state.entryHref) },
+                                        onOpenLink = {
+                                            state.platform.openUrl(
+                                                it,
+                                                state.conf.useBuiltInBrowser,
+                                            )
+                                        },
+                                    )
                                     Text(
                                         text = annotated,
                                         style = MaterialTheme.typography.bodyLarge,
