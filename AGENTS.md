@@ -248,6 +248,14 @@ back to `:desktopApp:run` when hot reload genuinely can't apply the change
 (e.g. an edit to how `main`/the entry point is wired) — otherwise restarting
 just throws away state you could have kept.
 
+**Never restart the app — the desktop one or any other host — unless the user
+explicitly asks you to.** Restarting discards the user's state (navigation,
+scroll position, in-flight work) and is almost never necessary: hot reload
+applies source changes in place, and Compose resources are re-read by the
+running app rather than cached, so even a strings/translation or locale edit
+needs no restart. If you think a change genuinely cannot be hot-applied, ask
+the user before restarting.
+
 ```bash
 # launch — always prefer this over :desktopApp:run
 (./gradlew :desktopApp:hotRunJvm --auto > /tmp/opencode/vesti-hotreload.log 2>&1 &)
