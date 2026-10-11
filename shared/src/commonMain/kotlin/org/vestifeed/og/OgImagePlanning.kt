@@ -1,7 +1,13 @@
 package org.vestifeed.og
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.EntryTable
+import org.vestifeed.json.parseJson
 
 /**
  * The pure planning half of the OpenGraph image fetcher.
@@ -53,6 +59,33 @@ object OgImagePlanning {
         }
         return OgFetchPlan.Fetch(candidates)
     }
+
+    /**
+     * Counts the transient network failures recorded in an entry's
+     * `ext_og_log`. Used to bound retries: a page that deterministically
+     * breaks the fetch (an oversized line, a body the parser rejects) throws
+     * on every attempt, and without a bound the entry stays unchecked
+     * forever and is re-selected by every batch.
+     *
+     * The log is a JSON array of `{timestamp, message}` objects.
+     */
+    internal fun transientFailureCount(log: String): Int {
+        val array = runCatching { parseJson(log).jsonArray }.getOrDefault(JsonArray(emptyList()))
+        return array.count { element ->
+            element.jsonObject["message"]?.jsonPrimitive?.contentOrNull
+                ?.contains("Transient failure") == true
+        }
+    }
+
+    /**
+     * Whether an entry that has failed transiently [transientFailures] times
+     * should be abandoned (marked checked) instead of retried again.
+     */
+    internal fun shouldAbandonAfterTransientFailures(transientFailures: Int): Boolean =
+        transientFailures >= MAX_TRANSIENT_FAILURES
+
+    /** Transient failures tolerated before an entry is abandoned. */
+    const val MAX_TRANSIENT_FAILURES = 5
 }
 
 /**

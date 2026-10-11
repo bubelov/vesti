@@ -183,14 +183,17 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     // The OG fetch runs in the background with no callback, so poll the count
     // of entries whose preview image landed since this screen opened and
     // reload when it grows. Without this, images downloaded after the initial
-    // load stay invisible until the next sync or a screen re-entry.
+    // load stay invisible until the next sync or a screen re-entry. The reload
+    // is deliberately not gated on the sync running: the fetcher keeps landing
+    // images *during* a sync, and holding the reload until the sync finishes
+    // makes a whole run's worth of previews appear in a single frame.
     LaunchedEffect(screen.list) {
         val since = Clock.System.now()
         var seen = 0L
         while (true) {
             delay(OgImagePollInterval)
             val count = state.withDb { state.db.entry.countByOgImageFetchedAfter(since) }
-            if (count != seen && !state.sync.running.value) {
+            if (count != seen) {
                 seen = count
                 refreshKey++
             }

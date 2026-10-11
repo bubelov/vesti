@@ -253,6 +253,53 @@ class OgImagePlanningTest {
     }
 
     // ---------------------------------------------------------------------
+    // Transient-failure retry cap — a page that deterministically breaks the
+    // fetch must not stay unchecked and be re-selected forever.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun transientFailureCount_countsTransientMessagesOnly() {
+        val log = """[
+            {"timestamp":"t1","message":"Attempting to fetch OG image for entry e"},
+            {"timestamp":"t2","message":"Transient failure fetching HTML (boom); will retry"},
+            {"timestamp":"t3","message":"No og:image meta tag found, marking as checked"},
+            {"timestamp":"t4","message":"Transient failure fetching HTML (boom); will retry"}
+        ]"""
+        assertEquals(2, OgImagePlanning.transientFailureCount(log))
+    }
+
+    @Test
+    fun transientFailureCount_isZeroForEmptyOrInvalidLog() {
+        assertEquals(0, OgImagePlanning.transientFailureCount(""))
+        assertEquals(0, OgImagePlanning.transientFailureCount("[]"))
+        assertEquals(0, OgImagePlanning.transientFailureCount("not json"))
+    }
+
+    @Test
+    fun shouldAbandonAfterTransientFailures_belowThresholdKeepsRetrying() {
+        assertFalse(OgImagePlanning.shouldAbandonAfterTransientFailures(0))
+        assertFalse(
+            OgImagePlanning.shouldAbandonAfterTransientFailures(
+                OgImagePlanning.MAX_TRANSIENT_FAILURES - 1,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldAbandonAfterTransientFailures_atOrAboveThresholdAbandons() {
+        assertTrue(
+            OgImagePlanning.shouldAbandonAfterTransientFailures(
+                OgImagePlanning.MAX_TRANSIENT_FAILURES,
+            ),
+        )
+        assertTrue(
+            OgImagePlanning.shouldAbandonAfterTransientFailures(
+                OgImagePlanning.MAX_TRANSIENT_FAILURES + 1,
+            ),
+        )
+    }
+
+    // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
 

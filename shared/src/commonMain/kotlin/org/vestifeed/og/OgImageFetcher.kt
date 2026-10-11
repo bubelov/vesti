@@ -9,6 +9,9 @@ import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.JsonArray
@@ -38,7 +41,7 @@ class OgImageFetcher(
     private val httpClient: HttpClient = vestiFetchHttpClient(
         userAgent = userAgent,
         // The old Android fetcher capped the whole call at 10s; one silent
-        // server must not stall the sequential loop for every later entry.
+        // server must not stall the batch for every later entry.
         requestTimeoutMillis = 15_000,
     ),
     private val isOnline: () -> Boolean = { true },
@@ -67,7 +70,17 @@ class OgImageFetcher(
         when (val plan = OgImagePlanning.planOgImageFetch(conf, candidates)) {
             OgFetchPlan.GlobalOff -> delay(GLOBAL_OFF_INTERVAL)
             OgFetchPlan.Empty -> delay(EMPTY_INTERVAL)
-            is OgFetchPlan.Fetch -> plan.candidates.forEach { fetchOne(it) }
+            is OgFetchPlan.Fetch -> {
+                // One HTTP page fetch per entry dominates the loop, so overlap
+                // them: the DB serialises its own writes, and the network wait
+                // is what a large backlog is spent on. Chunked so at most
+                // FETCH_CONCURRENCY requests are in flight at once.
+                plan.candidates.chunked(FETCH_CONCURRENCY).forEach { chunk ->
+                    coroutineScope {
+                        chunk.map { async { fetchOne(it) } }.awaitAll()
+                    }
+                }
+            }
         }
     }
 
@@ -96,7 +109,15 @@ class OgImageFetcher(
             }
             response.bodyAsText()
         } catch (t: Throwable) {
-            appendLog(candidate.id, "Transient failure fetching HTML (${t.message}); will retry")
+            val log = appendLog(candidate.id, "Transient failure fetching HTML (${t.message}); will retry")
+            val failures = OgImagePlanning.transientFailureCount(log)
+            if (OgImagePlanning.shouldAbandonAfterTransientFailures(failures)) {
+                appendLog(
+                    candidate.id,
+                    "Abandoning after $failures transient failures, marking as checked",
+                )
+                db.entry.updateOgImageChecked(true, candidate.id)
+            }
             return false
         }
 
@@ -122,9 +143,11 @@ class OgImageFetcher(
         return true
     }
 
-    private suspend fun appendLog(entryId: String, message: String) {
-        val entry = db.entry.selectById(entryId) ?: return
-        db.entry.updateOgLog(appendLogSync(entry.extOpenGraphImageLog, message), entryId)
+    private suspend fun appendLog(entryId: String, message: String): String {
+        val entry = db.entry.selectById(entryId) ?: return ""
+        val updated = appendLogSync(entry.extOpenGraphImageLog, message)
+        db.entry.updateOgLog(updated, entryId)
+        return updated
     }
 
     private fun appendLogSync(existing: String, message: String): String {
@@ -141,6 +164,9 @@ class OgImageFetcher(
 
         /** How many unchecked entries to load per iteration. */
         const val BATCH_SIZE = 10L
+
+        /** How many entry pages to fetch concurrently within a batch. */
+        const val FETCH_CONCURRENCY = 6
 
         val GLOBAL_OFF_INTERVAL: Duration = 5.seconds
         val EMPTY_INTERVAL: Duration = 2.seconds
