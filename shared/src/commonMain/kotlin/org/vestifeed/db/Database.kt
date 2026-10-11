@@ -80,8 +80,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
-            conn.execSQL("PRAGMA user_version=12;")
-            version = 12
+            conn.execSQL("PRAGMA user_version=13;")
+            version = 13
         }
 
         if (version == 1) {
@@ -168,6 +168,13 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("ALTER TABLE entry DROP COLUMN ext_og_image_height;")
             conn.execSQL("PRAGMA user_version=12;")
             version = 12
+        }
+
+        if (version == 12) {
+            // The UI language override; null means "follow the system locale".
+            conn.execSQL("ALTER TABLE conf ADD COLUMN language TEXT;")
+            conn.execSQL("PRAGMA user_version=13;")
+            version = 13
         }
     }
 

@@ -31,6 +31,14 @@ interface VestiPlatform {
     val supportsBackgroundSync: Boolean get() = true
 
     /**
+     * Whether the host has an in-app browser to open links in (Android's
+     * Custom Tab). False on desktop and the browser, whose [openUrl] always
+     * hands links to the system browser / a new tab and ignores the flag, so
+     * the "Use built-in browser" setting is shown disabled there.
+     */
+    val supportsBuiltInBrowser: Boolean get() = false
+
+    /**
      * Whether the host favours a physical keyboard, e.g. a desktop window. When
      * true the sign-in form focuses its first field so typing can begin without
      * a click; touch hosts leave it unfocused so no soft keyboard pops up.

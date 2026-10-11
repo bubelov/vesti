@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
@@ -50,6 +51,13 @@ import org.vestifeed.ui.AppState
 import org.vestifeed.ui.entries.formatCalendarDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.close_search
+import org.vestifeed.ui.resources.find_in_page
+import org.vestifeed.ui.resources.find_match_n_of_n
+import org.vestifeed.ui.resources.next_match
+import org.vestifeed.ui.resources.no_content
+import org.vestifeed.ui.resources.previous_match
 
 /**
  * The entry reader. It renders the body as a sequence of prose paragraphs and
@@ -222,7 +230,7 @@ fun EntryScreen(state: AppState, entryId: String) {
 
                     Spacer(Modifier.height(16.dp))
                     if (blocks.isEmpty()) {
-                        Text("(No content)", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(Res.string.no_content), style = MaterialTheme.typography.bodyMedium)
                     } else {
                         blocks.forEachIndexed { blockIndex, block ->
                             if (blockIndex > 0) Spacer(Modifier.height(BlockSpacing))
@@ -332,28 +340,34 @@ private fun EntrySearchBar(
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Find in entry") },
+            placeholder = { Text(stringResource(Res.string.find_in_page)) },
             singleLine = true,
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = if (matchCount == 0) "0/0" else "$currentMatch/$matchCount",
+            text = stringResource(Res.string.find_match_n_of_n, currentMatch, matchCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 8.dp),
         )
         IconButton(onClick = onPrev, enabled = matchCount > 0) {
-            MaterialSymbol(MaterialSymbols.ArrowBack, contentDescription = "Previous match")
+            MaterialSymbol(
+                MaterialSymbols.ArrowBack,
+                contentDescription = stringResource(Res.string.previous_match),
+            )
         }
         IconButton(onClick = onNext, enabled = matchCount > 0) {
             MaterialSymbol(
                 glyph = MaterialSymbols.ArrowBack,
-                contentDescription = "Next match",
+                contentDescription = stringResource(Res.string.next_match),
                 modifier = Modifier.rotate(180f),
             )
         }
         IconButton(onClick = onClose) {
-            MaterialSymbol(MaterialSymbols.Close, contentDescription = "Close search")
+            MaterialSymbol(
+                MaterialSymbols.Close,
+                contentDescription = stringResource(Res.string.close_search),
+            )
         }
     }
 }

@@ -44,6 +44,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.curated.CuratedCatalog
 import org.vestifeed.curated.CuratedCollection
 import org.vestifeed.curated.CuratedFeed
@@ -54,6 +57,22 @@ import org.vestifeed.ui.AppState
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.add
+import org.vestifeed.ui.resources.add_feed_named
+import org.vestifeed.ui.resources.based_on_awesome_rss_feeds
+import org.vestifeed.ui.resources.collection_not_found
+import org.vestifeed.ui.resources.could_not_add_feed
+import org.vestifeed.ui.resources.could_not_load_curated_feeds
+import org.vestifeed.ui.resources.countries
+import org.vestifeed.ui.resources.curated_intro
+import org.vestifeed.ui.resources.following
+import org.vestifeed.ui.resources.hand_picked_feeds
+import org.vestifeed.ui.resources.retry
+import org.vestifeed.ui.resources.retry_adding_feed
+import org.vestifeed.ui.resources.tag_feed_count
+import org.vestifeed.ui.resources.topics
+import org.vestifeed.ui.resources.view_collection_source
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -88,7 +107,7 @@ fun CuratedCollectionsScreen(state: AppState) {
     when (val result = rememberCatalog(state)) {
         CatalogState.Loading -> CenteredProgress()
         is CatalogState.Failed -> CenteredMessage(
-            title = "Couldn't load curated feeds",
+            title = stringResource(Res.string.could_not_load_curated_feeds),
             detail = result.message,
         )
 
@@ -103,7 +122,7 @@ fun CuratedCollectionsScreen(state: AppState) {
                             Tab(
                                 selected = group == selectedGroup,
                                 onClick = { selectedGroup = group },
-                                text = { Text(group.label()) },
+                                text = { Text(stringResource(group.label())) },
                             )
                         }
                     }
@@ -128,9 +147,9 @@ fun CuratedCollectionsScreen(state: AppState) {
 }
 
 /** The tab label for a catalog group. */
-private fun CuratedGroup.label(): String = when (this) {
-    CuratedGroup.Recommended -> "Topics"
-    CuratedGroup.Countries -> "Countries"
+private fun CuratedGroup.label(): StringResource = when (this) {
+    CuratedGroup.Recommended -> Res.string.topics
+    CuratedGroup.Countries -> Res.string.countries
 }
 
 /**
@@ -150,14 +169,14 @@ fun CuratedCollectionScreen(state: AppState, collectionId: String) {
     when (val result = rememberCatalog(state)) {
         CatalogState.Loading -> CenteredProgress()
         is CatalogState.Failed -> CenteredMessage(
-            title = "Couldn't load curated feeds",
+            title = stringResource(Res.string.could_not_load_curated_feeds),
             detail = result.message,
         )
 
         is CatalogState.Ready -> {
             val collection = result.catalog.collection(collectionId)
             if (collection == null) {
-                CenteredMessage(title = "Collection not found", detail = null)
+                CenteredMessage(title = stringResource(Res.string.collection_not_found), detail = null)
                 return
             }
 
@@ -204,13 +223,12 @@ fun CuratedCollectionScreen(state: AppState, collectionId: String) {
 private fun CatalogIntro() {
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text(
-            text = "Hand-picked feeds",
+            text = stringResource(Res.string.hand_picked_feeds),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Start with a whole topic or a country's news. This catalog is " +
-                "based on the Awesome RSS Feeds collection.",
+            text = stringResource(Res.string.curated_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -253,11 +271,11 @@ private fun CollectionRow(collection: CuratedCollection, onClick: () -> Unit) {
         },
         supportingContent = {
             Text(
-                text = if (collection.feeds.size == 1) {
-                    "1 feed"
-                } else {
-                    "${collection.feeds.size} feeds"
-                },
+                text = pluralStringResource(
+                    Res.plurals.tag_feed_count,
+                    collection.feeds.size,
+                    collection.feeds.size,
+                ),
             )
         },
         trailingContent = {
@@ -278,6 +296,17 @@ private fun CuratedFeedRow(
     error: String?,
     onAdd: () -> Unit,
 ) {
+    val addDescription = if (error != null) {
+        stringResource(Res.string.retry_adding_feed, feed.title)
+    } else {
+        stringResource(Res.string.add_feed_named, feed.title)
+    }
+    val buttonLabel = if (error != null) {
+        stringResource(Res.string.retry)
+    } else {
+        stringResource(Res.string.add)
+    }
+
     ListItem(
         headlineContent = {
             Text(feed.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -291,7 +320,7 @@ private fun CuratedFeedRow(
                 )
                 error?.let {
                     Text(
-                        text = "Couldn't add: $it",
+                        text = stringResource(Res.string.could_not_add_feed, it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         maxLines = 2,
@@ -303,7 +332,7 @@ private fun CuratedFeedRow(
         trailingContent = {
             when {
                 following -> Text(
-                    text = "Following",
+                    text = stringResource(Res.string.following),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -316,14 +345,10 @@ private fun CuratedFeedRow(
                 else -> TextButton(
                     onClick = onAdd,
                     modifier = Modifier.semantics {
-                        contentDescription = if (error != null) {
-                            "Retry adding ${feed.title}"
-                        } else {
-                            "Add ${feed.title}"
-                        }
+                        contentDescription = addDescription
                     },
                 ) {
-                    Text(if (error != null) "Retry" else "Add")
+                    Text(buttonLabel)
                 }
             }
         },
@@ -338,13 +363,13 @@ private fun SourceFooter(catalog: CuratedCatalog, state: AppState) {
     ) {
         val license = if (catalog.license.isNotBlank()) " (${catalog.license})" else ""
         Text(
-            text = "Based on the Awesome RSS Feeds collection$license.",
+            text = stringResource(Res.string.based_on_awesome_rss_feeds, license),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         TextButton(onClick = { state.platform.openUrl(catalog.source, false) }) {
-            Text("View the collection source")
+            Text(stringResource(Res.string.view_collection_source))
         }
     }
 }

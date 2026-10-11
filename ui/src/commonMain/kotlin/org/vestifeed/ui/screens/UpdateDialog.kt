@@ -12,9 +12,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.downloading
+import org.vestifeed.ui.resources.later
+import org.vestifeed.ui.resources.update
+import org.vestifeed.ui.resources.update_available
+import org.vestifeed.ui.resources.update_ready_to_install
 
 /**
  * The "a newer build is available" prompt. Rendered at the app root so it can
@@ -31,10 +38,10 @@ fun UpdateAvailableDialog(state: AppState) {
     AlertDialog(
         onDismissRequest = { if (!busy) state.dismissUpdate() },
         icon = { MaterialSymbol(MaterialSymbols.Download, contentDescription = null) },
-        title = { Text("Update available") },
+        title = { Text(stringResource(Res.string.update_available)) },
         text = {
             Column {
-                Text("Vesti ${manifest.versionName} is ready to install.")
+                Text(stringResource(Res.string.update_ready_to_install, manifest.versionName))
                 if (busy) {
                     Spacer(Modifier.height(16.dp))
                     if (progress != null) {
@@ -58,12 +65,18 @@ fun UpdateAvailableDialog(state: AppState) {
         },
         confirmButton = {
             TextButton(onClick = { state.installUpdate() }, enabled = !busy) {
-                Text(if (busy) "Downloading…" else "Update")
+                Text(
+                    if (busy) {
+                        stringResource(Res.string.downloading)
+                    } else {
+                        stringResource(Res.string.update)
+                    },
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = { state.dismissUpdate() }, enabled = !busy) {
-                Text("Later")
+                Text(stringResource(Res.string.later))
             }
         },
     )

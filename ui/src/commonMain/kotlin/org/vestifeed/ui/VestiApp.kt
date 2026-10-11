@@ -34,9 +34,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.Database
+import org.vestifeed.ui.i18n.ProvideAppLanguage
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.add_feed
+import org.vestifeed.ui.resources.app_name
+import org.vestifeed.ui.resources.back
+import org.vestifeed.ui.resources.bookmark
+import org.vestifeed.ui.resources.bookmarks
+import org.vestifeed.ui.resources.browse_curated_feeds
+import org.vestifeed.ui.resources.curated_feeds
+import org.vestifeed.ui.resources.entry
+import org.vestifeed.ui.resources.export_opml
+import org.vestifeed.ui.resources.feed
+import org.vestifeed.ui.resources.feed_settings
+import org.vestifeed.ui.resources.feeds
+import org.vestifeed.ui.resources.import_opml
+import org.vestifeed.ui.resources.mark_as_read
+import org.vestifeed.ui.resources.mark_as_unread
+import org.vestifeed.ui.resources.more_options
+import org.vestifeed.ui.resources.open_in_browser
+import org.vestifeed.ui.resources.podcasts
+import org.vestifeed.ui.resources.remove_bookmark
+import org.vestifeed.ui.resources.saved
+import org.vestifeed.ui.resources.search
+import org.vestifeed.ui.resources.search_entry
+import org.vestifeed.ui.resources.settings
+import org.vestifeed.ui.resources.share
+import org.vestifeed.ui.resources.sync
+import org.vestifeed.ui.resources.tag
+import org.vestifeed.ui.resources.tag_feed_count
+import org.vestifeed.ui.resources.tags
+import org.vestifeed.ui.resources.unread
+import org.vestifeed.ui.resources.unread_n
 import org.vestifeed.ui.screens.AuthScreen
 import org.vestifeed.ui.screens.CuratedCollectionScreen
 import org.vestifeed.ui.screens.CuratedCollectionsScreen
@@ -69,30 +103,34 @@ fun VestiApp(
     VestiImageLoader(userAgent)
     LaunchedEffect(Unit) { state.connect() }
 
-    VestiTheme {
-        if (!state.connected) {
-            Surface(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+    // Wraps the whole tree so every stringResource() resolves against the
+    // user's language choice (null = system default); see ProvideAppLanguage.
+    ProvideAppLanguage(state.conf.language) {
+        VestiTheme {
+            if (!state.connected) {
+                Surface(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
+                return@VestiTheme
             }
-            return@VestiTheme
+
+            // The system/browser back gesture walks the app's own back stack, so
+            // opening an entry and going back returns to the list instead of
+            // closing the app. At the root (nothing to pop) it is left to the
+            // platform, which exits as usual. Dialogs sit above this and still
+            // consume back themselves.
+            BackHandler(enabled = state.canGoBack()) { state.pop() }
+
+            when (val screen = state.screen) {
+                Screen.Auth -> AuthScreen(state)
+                Screen.Loading -> Unit
+                else -> MainScaffold(state, screen)
+            }
+
+            UpdateAvailableDialog(state)
         }
-
-        // The system/browser back gesture walks the app's own back stack, so
-        // opening an entry and going back returns to the list instead of
-        // closing the app. At the root (nothing to pop) it is left to the
-        // platform, which exits as usual. Dialogs sit above this and still
-        // consume back themselves.
-        BackHandler(enabled = state.canGoBack()) { state.pop() }
-
-        when (val screen = state.screen) {
-            Screen.Auth -> AuthScreen(state)
-            Screen.Loading -> Unit
-            else -> MainScaffold(state, screen)
-        }
-
-        UpdateAvailableDialog(state)
     }
 }
 
@@ -105,7 +143,7 @@ private fun MainScaffold(state: AppState, screen: Screen) {
             // Following a new feed is the Feeds screen's primary action.
             if (screen is Screen.Feeds) {
                 FloatingActionButton(onClick = { state.addFeedDialogVisible = true }) {
-                    MaterialSymbol(MaterialSymbols.Add, contentDescription = "Add feed")
+                    MaterialSymbol(MaterialSymbols.Add, contentDescription = stringResource(Res.string.add_feed))
                 }
             }
         },
@@ -137,25 +175,26 @@ private fun AppTopBar(state: AppState, screen: Screen) {
 
     val title = when (screen) {
         is Screen.Entries -> when (val list = screen.list) {
-            EntriesList.Unread -> "Unread (${state.unreadCount})"
-            EntriesList.Bookmarked -> "Bookmarks"
-            is EntriesList.BelongToFeed -> "Feed"
-            is EntriesList.BelongToTag -> "Tag"
+            EntriesList.Unread -> stringResource(Res.string.unread_n, state.unreadCount)
+            EntriesList.Bookmarked -> stringResource(Res.string.bookmarks)
+            is EntriesList.BelongToFeed -> stringResource(Res.string.feed)
+            is EntriesList.BelongToTag -> stringResource(Res.string.tag)
         }
-        is Screen.EntryDetail -> "Entry"
-        Screen.Feeds -> "Feeds"
-        Screen.CuratedFeeds -> "Curated feeds"
-        is Screen.CuratedCollection -> curatedCollection?.name ?: "Curated feeds"
-        is Screen.FeedSettings -> "Feed settings"
-        Screen.Search -> "Search"
-        Screen.Tags -> "Tags"
-        Screen.Podcasts -> "Podcasts"
-        Screen.Settings -> "Settings"
-        else -> "Vesti"
+        is Screen.EntryDetail -> stringResource(Res.string.entry)
+        Screen.Feeds -> stringResource(Res.string.feeds)
+        Screen.CuratedFeeds -> stringResource(Res.string.curated_feeds)
+        is Screen.CuratedCollection -> curatedCollection?.name
+            ?: stringResource(Res.string.curated_feeds)
+        is Screen.FeedSettings -> stringResource(Res.string.feed_settings)
+        Screen.Search -> stringResource(Res.string.search)
+        Screen.Tags -> stringResource(Res.string.tags)
+        Screen.Podcasts -> stringResource(Res.string.podcasts)
+        Screen.Settings -> stringResource(Res.string.settings)
+        else -> stringResource(Res.string.app_name)
     }
 
     val subtitle = curatedCollection?.let { collection ->
-        if (collection.feeds.size == 1) "1 feed" else "${collection.feeds.size} feeds"
+        pluralStringResource(Res.plurals.tag_feed_count, collection.feeds.size, collection.feeds.size)
     }
 
     TopAppBar(
@@ -176,7 +215,10 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         navigationIcon = {
             if (state.canGoBack()) {
                 IconButton(onClick = { state.pop() }) {
-                    MaterialSymbol(MaterialSymbols.ArrowBack, contentDescription = "Back")
+                    MaterialSymbol(
+                        MaterialSymbols.ArrowBack,
+                        contentDescription = stringResource(Res.string.back),
+                    )
                 }
             }
         },
@@ -196,7 +238,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        MaterialSymbol(MaterialSymbols.Sync, contentDescription = "Sync")
+                        MaterialSymbol(MaterialSymbols.Sync, contentDescription = stringResource(Res.string.sync))
                     }
                 }
             }
@@ -209,9 +251,9 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                             MaterialSymbols.BookmarkAdd
                         },
                         contentDescription = if (state.entryBookmarked) {
-                            "Remove bookmark"
+                            stringResource(Res.string.remove_bookmark)
                         } else {
-                            "Bookmark"
+                            stringResource(Res.string.bookmark)
                         },
                     )
                 }
@@ -222,26 +264,32 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                 // own close button, so hide this one to avoid duplicating it.
                 if (!state.entrySearchVisible) {
                     IconButton(onClick = { state.entrySearchVisible = true }) {
-                        MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search entry")
+                        MaterialSymbol(
+                            MaterialSymbols.Search,
+                            contentDescription = stringResource(Res.string.search_entry),
+                        )
                     }
                 }
             } else {
                 IconButton(onClick = { state.navigate(Screen.Search) }) {
-                    MaterialSymbol(MaterialSymbols.Search, contentDescription = "Search")
+                    MaterialSymbol(MaterialSymbols.Search, contentDescription = stringResource(Res.string.search))
                 }
             }
             if (screen is Screen.EntryDetail) {
                 var menuExpanded by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
-                        MaterialSymbol(MaterialSymbols.MoreVert, contentDescription = "More options")
+                        MaterialSymbol(
+                            MaterialSymbols.MoreVert,
+                            contentDescription = stringResource(Res.string.more_options),
+                        )
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Open in browser") },
+                            text = { Text(stringResource(Res.string.open_in_browser)) },
                             enabled = state.entryHref != null,
                             onClick = {
                                 menuExpanded = false
@@ -249,7 +297,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Share") },
+                            text = { Text(stringResource(Res.string.share)) },
                             onClick = {
                                 menuExpanded = false
                                 state.shareEntry()
@@ -257,7 +305,13 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                         )
                         DropdownMenuItem(
                             text = {
-                                Text(if (state.entryRead) "Mark as unread" else "Mark as read")
+                                Text(
+                                    if (state.entryRead) {
+                                        stringResource(Res.string.mark_as_unread)
+                                    } else {
+                                        stringResource(Res.string.mark_as_read)
+                                    },
+                                )
                             },
                             onClick = {
                                 menuExpanded = false
@@ -271,28 +325,31 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                 var menuExpanded by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
-                        MaterialSymbol(MaterialSymbols.MoreVert, contentDescription = "More options")
+                        MaterialSymbol(
+                            MaterialSymbols.MoreVert,
+                            contentDescription = stringResource(Res.string.more_options),
+                        )
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Browse curated feeds") },
+                            text = { Text(stringResource(Res.string.browse_curated_feeds)) },
                             onClick = {
                                 menuExpanded = false
                                 state.navigate(Screen.CuratedFeeds)
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Import OPML") },
+                            text = { Text(stringResource(Res.string.import_opml)) },
                             onClick = {
                                 menuExpanded = false
                                 state.opmlImportDialogVisible = true
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Export OPML") },
+                            text = { Text(stringResource(Res.string.export_opml)) },
                             onClick = {
                                 menuExpanded = false
                                 state.opmlExportRequested = true
@@ -312,14 +369,14 @@ private fun BottomBar(state: AppState, screen: Screen) {
             selected = screen is Screen.Entries && screen.list !is EntriesList.Bookmarked,
             onClick = { state.navigateRoot(Screen.Entries(EntriesList.Unread)) },
             icon = { MaterialSymbol(MaterialSymbols.Newspaper, contentDescription = null) },
-            label = { Text("Unread") },
+            label = { Text(stringResource(Res.string.unread)) },
             colors = vestiNavItemColors,
         )
         NavigationBarItem(
             selected = screen is Screen.Entries && screen.list is EntriesList.Bookmarked,
             onClick = { state.navigateRoot(Screen.Entries(EntriesList.Bookmarked)) },
             icon = { MaterialSymbol(MaterialSymbols.Bookmark, contentDescription = null) },
-            label = { Text("Saved") },
+            label = { Text(stringResource(Res.string.saved)) },
             colors = vestiNavItemColors,
         )
         NavigationBarItem(
@@ -328,7 +385,7 @@ private fun BottomBar(state: AppState, screen: Screen) {
                 screen is Screen.CuratedCollection,
             onClick = { state.navigateRoot(Screen.Feeds) },
             icon = { MaterialSymbol(MaterialSymbols.RssFeed, contentDescription = null) },
-            label = { Text("Feeds") },
+            label = { Text(stringResource(Res.string.feeds)) },
             colors = vestiNavItemColors,
         )
         // The Tags and Podcasts tabs are opt-in, so they appear as soon as their
@@ -338,7 +395,7 @@ private fun BottomBar(state: AppState, screen: Screen) {
                 selected = screen is Screen.Tags,
                 onClick = { state.navigateRoot(Screen.Tags) },
                 icon = { MaterialSymbol(MaterialSymbols.Label, contentDescription = null) },
-                label = { Text("Tags") },
+                label = { Text(stringResource(Res.string.tags)) },
                 colors = vestiNavItemColors,
             )
         }
@@ -349,7 +406,7 @@ private fun BottomBar(state: AppState, screen: Screen) {
                 selected = screen is Screen.Podcasts,
                 onClick = { state.navigateRoot(Screen.Podcasts) },
                 icon = { MaterialSymbol(MaterialSymbols.Podcasts, contentDescription = null) },
-                label = { Text("Podcasts") },
+                label = { Text(stringResource(Res.string.podcasts)) },
                 colors = vestiNavItemColors,
             )
         }
@@ -357,7 +414,7 @@ private fun BottomBar(state: AppState, screen: Screen) {
             selected = screen is Screen.Settings,
             onClick = { state.navigateRoot(Screen.Settings) },
             icon = { MaterialSymbol(MaterialSymbols.Settings, contentDescription = null) },
-            label = { Text("Settings") },
+            label = { Text(stringResource(Res.string.settings)) },
             colors = vestiNavItemColors,
         )
     }

@@ -10,7 +10,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.FeedTagTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
@@ -62,7 +61,7 @@ class DatabaseConcurrencyTest {
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
-            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(CONF_SCHEMA_V12)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL("BEGIN;")

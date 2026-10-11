@@ -3,6 +3,7 @@ package org.vestifeed.db.table
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -167,6 +168,19 @@ class ConfTest {
 
         db.conf.update { it.copy(showTagsTab = false) }
         assertFalse(db.conf.select().showTagsTab)
+    }
+
+    @Test
+    fun confQueries_language_roundTrips() = runBlocking<Unit> {
+        // null means "follow the system locale" (the default).
+        db.conf.insert(createConf())
+        assertNull(db.conf.select().language)
+
+        db.conf.update { it.copy(language = "ru") }
+        assertEquals("ru", db.conf.select().language)
+
+        db.conf.update { it.copy(language = null) }
+        assertNull(db.conf.select().language)
     }
 
     @Test

@@ -6,6 +6,7 @@ import androidx.sqlite.execSQL
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -544,7 +545,7 @@ class DatabaseMigrationTest {
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
-            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(CONF_SCHEMA_V12)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL("PRAGMA user_version=10;")
@@ -597,7 +598,7 @@ class DatabaseMigrationTest {
             conn.execSQL(FeedTable.SCHEMA)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
-            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(CONF_SCHEMA_V12)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL("PRAGMA user_version=11;")
@@ -629,6 +630,29 @@ class DatabaseMigrationTest {
             assertTrue("ext_og_image_width is dropped", "ext_og_image_width" !in names)
             assertTrue("ext_og_image_height is dropped", "ext_og_image_height" !in names)
         }
+    }
+
+    @Test
+    fun migrate_v12ToV13_addsLanguageColumn() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(CONF_SCHEMA_V12)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL("PRAGMA user_version=12;")
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        // The added column lands on the default: follow the system locale.
+        assertNull(db.conf.select().language)
+
+        db.conf.update { it.copy(language = "ru") }
+        assertEquals("ru", db.conf.select().language)
     }
 
     /**

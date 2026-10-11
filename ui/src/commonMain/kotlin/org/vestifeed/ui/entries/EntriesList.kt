@@ -2,10 +2,16 @@ package org.vestifeed.ui.entries
 
 import kotlin.time.Clock
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.StringResource
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.entries.EntryRowMappable
 import org.vestifeed.ui.EntriesList
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.news_list_is_empty
+import org.vestifeed.ui.resources.tag_has_no_unread_entries
+import org.vestifeed.ui.resources.you_have_no_bookmarks
+import org.vestifeed.ui.resources.you_have_no_feeds
 
 /** The rows backing an entries list. */
 suspend fun EntriesList.load(db: Database): List<EntryRowMappable> = when (this) {
@@ -19,11 +25,13 @@ suspend fun EntriesList.load(db: Database): List<EntryRowMappable> = when (this)
 }
 
 /** The empty-list message for an entries list, given the current feed count. */
-fun EntriesList.emptyMessage(feedCount: Int): String = when (this) {
-    EntriesList.Unread -> if (feedCount == 0) "You have no feeds yet" else "The news list is empty"
-    EntriesList.Bookmarked -> "You have no bookmarks"
-    is EntriesList.BelongToFeed -> "The news list is empty"
-    is EntriesList.BelongToTag -> "This tag has no unread entries"
+fun EntriesList.emptyMessage(feedCount: Int): StringResource = when (this) {
+    EntriesList.Unread ->
+        if (feedCount == 0) Res.string.you_have_no_feeds else Res.string.news_list_is_empty
+
+    EntriesList.Bookmarked -> Res.string.you_have_no_bookmarks
+    is EntriesList.BelongToFeed -> Res.string.news_list_is_empty
+    is EntriesList.BelongToTag -> Res.string.tag_has_no_unread_entries
 }
 
 /**

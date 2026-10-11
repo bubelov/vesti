@@ -31,6 +31,9 @@ class AndroidVestiPlatform(
             AndroidUpdateService(context, it, buildTime, userAgent)
         }
 
+    // Android opens links in an in-app Custom Tab when the setting is on.
+    override val supportsBuiltInBrowser: Boolean = true
+
     private var player: MediaPlayer? = null
 
     /**

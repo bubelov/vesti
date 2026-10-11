@@ -28,7 +28,8 @@ class ConfTable(private val conn: SQLiteConnection) {
                 use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
                 show_tags_tab INTEGER NOT NULL DEFAULT 0,
                 show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
-                entries_view TEXT NOT NULL DEFAULT 'cards'
+                entries_view TEXT NOT NULL DEFAULT 'cards',
+                language TEXT
             ) STRICT;
         """
 
@@ -50,6 +51,7 @@ class ConfTable(private val conn: SQLiteConnection) {
             showTagsTab = false,
             showPodcastsTab = true,
             entriesView = EntriesView.Cards,
+            language = null,
         )
     }
 
@@ -107,6 +109,10 @@ class ConfTable(private val conn: SQLiteConnection) {
         val showPodcastsTab: Boolean,
         // how the entries screens lay their rows out
         val entriesView: EntriesView,
+        // UI language override as a `values-<code>` qualifier (e.g. "ru"),
+        // or null to follow the system locale. The default String? keeps
+        // callers that predate this field source-compatible.
+        val language: String? = null,
     )
 
     fun SQLiteStatement.toConf(): Conf = Conf(
@@ -127,13 +133,14 @@ class ConfTable(private val conn: SQLiteConnection) {
         showTagsTab = getInt(14) == 1,
         showPodcastsTab = getInt(15) == 1,
         entriesView = getEntriesView(16),
+        language = getTextOrNull(17),
     )
 
     suspend fun insert(conf: Conf) {
         conn.prepare(
             """
-            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
         ).use { stmt ->
             stmt.bindTextOrNull(1, conf.backend?.name?.lowercase())
@@ -153,6 +160,7 @@ class ConfTable(private val conn: SQLiteConnection) {
             stmt.bindInt(15, if (conf.showTagsTab) 1 else 0)
             stmt.bindInt(16, if (conf.showPodcastsTab) 1 else 0)
             stmt.bindText(17, conf.entriesView.name.lowercase())
+            stmt.bindTextOrNull(18, conf.language)
             stmt.step()
         }
     }
@@ -160,7 +168,7 @@ class ConfTable(private val conn: SQLiteConnection) {
     suspend fun select(): Conf {
         conn.prepare(
             """
-            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view
+            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language
             FROM conf
             """
         ).use { stmt ->

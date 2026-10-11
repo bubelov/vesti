@@ -28,10 +28,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.EntryRow
 import org.vestifeed.ui.entries.toRow
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.no_results
+import org.vestifeed.ui.resources.search
+import org.vestifeed.ui.resources.type_at_least_3_characters_to_search
 
 @Composable
 fun SearchScreen(state: AppState) {
@@ -57,7 +62,7 @@ fun SearchScreen(state: AppState) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            label = { Text("Search") },
+            label = { Text(stringResource(Res.string.search)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -67,7 +72,7 @@ fun SearchScreen(state: AppState) {
             query.trim().length < 3 -> Box(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center,
-            ) { Text("Type at least 3 characters.") }
+            ) { Text(stringResource(Res.string.type_at_least_3_characters_to_search)) }
 
             loading -> Box(
                 Modifier.weight(1f).fillMaxWidth(),
@@ -77,7 +82,7 @@ fun SearchScreen(state: AppState) {
             rows.isEmpty() -> Box(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center,
-            ) { Text("No results.") }
+            ) { Text(stringResource(Res.string.no_results)) }
 
             else -> LazyColumn(Modifier.weight(1f)) {
                 items(rows, key = { it.id }) { row ->

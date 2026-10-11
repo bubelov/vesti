@@ -32,16 +32,52 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.i18n.SupportedLanguages
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.about
+import org.vestifeed.ui.resources.account
+import org.vestifeed.ui.resources.backend
+import org.vestifeed.ui.resources.cards
+import org.vestifeed.ui.resources.check_for_updates
+import org.vestifeed.ui.resources.crop_feed_images
+import org.vestifeed.ui.resources.entry_layout
+import org.vestifeed.ui.resources.fetch_news_in_background
+import org.vestifeed.ui.resources.fetch_news_on_startup
+import org.vestifeed.ui.resources.language
+import org.vestifeed.ui.resources.list
+import org.vestifeed.ui.resources.log_out
+import org.vestifeed.ui.resources.media
+import org.vestifeed.ui.resources.miniflux_url
+import org.vestifeed.ui.resources.not_available_on_this_platform
+import org.vestifeed.ui.resources.not_configured
+import org.vestifeed.ui.resources.reading
+import org.vestifeed.ui.resources.show_author_name
+import org.vestifeed.ui.resources.show_feed_images
+import org.vestifeed.ui.resources.show_podcasts_tab
+import org.vestifeed.ui.resources.show_preview_text
+import org.vestifeed.ui.resources.show_tags_tab
+import org.vestifeed.ui.resources.sync
+import org.vestifeed.ui.resources.system_default
+import org.vestifeed.ui.resources.tabs
+import org.vestifeed.ui.resources.unknown
+import org.vestifeed.ui.resources.use_built_in_audio_player
+import org.vestifeed.ui.resources.use_built_in_browser
+import org.vestifeed.ui.resources.version
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -53,6 +89,7 @@ private val ContentWidth = 720.dp
  */
 @Composable
 fun SettingsScreen(state: AppState) {
+    var languageDialogVisible by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier
@@ -61,7 +98,17 @@ fun SettingsScreen(state: AppState) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            SettingsSection("Reading", isFirst = true) {
+            SettingsSection(stringResource(Res.string.language), isFirst = true) {
+                SettingAction(
+                    glyph = MaterialSymbols.Web,
+                    label = state.conf.language
+                        ?.let { SupportedLanguages.displayName(it) ?: it }
+                        ?: stringResource(Res.string.system_default),
+                    onClick = { languageDialogVisible = true },
+                )
+            }
+
+            SettingsSection(stringResource(Res.string.reading)) {
                 LayoutSetting(
                     selected = state.conf.entriesView,
                     onSelect = { view -> state.updateConf { conf -> conf.copy(entriesView = view) } },
@@ -69,100 +116,112 @@ fun SettingsScreen(state: AppState) {
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Image,
-                    label = "Show preview images",
+                    label = stringResource(Res.string.show_feed_images),
                     checked = state.conf.showPreviewImages,
                 ) { state.updateConf { conf -> conf.copy(showPreviewImages = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Crop,
-                    label = "Crop preview images",
+                    label = stringResource(Res.string.crop_feed_images),
                     checked = state.conf.cropPreviewImages,
                 ) { state.updateConf { conf -> conf.copy(cropPreviewImages = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Notes,
-                    label = "Show preview text",
+                    label = stringResource(Res.string.show_preview_text),
                     checked = state.conf.showPreviewText,
                 ) { state.updateConf { conf -> conf.copy(showPreviewText = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Person,
-                    label = "Show author name",
+                    label = stringResource(Res.string.show_author_name),
                     checked = state.conf.showAuthorName,
                 ) { state.updateConf { conf -> conf.copy(showAuthorName = it) } }
-                SettingDivider()
+            }
+
+            SettingsSection(stringResource(Res.string.media)) {
                 SettingSwitch(
                     glyph = MaterialSymbols.OpenInBrowser,
-                    label = "Use built-in browser",
+                    label = stringResource(Res.string.use_built_in_browser),
                     checked = state.conf.useBuiltInBrowser,
+                    enabled = state.platform.supportsBuiltInBrowser,
+                    supportingText = if (!state.platform.supportsBuiltInBrowser) {
+                        stringResource(Res.string.not_available_on_this_platform)
+                    } else {
+                        null
+                    },
                 ) { state.updateConf { conf -> conf.copy(useBuiltInBrowser = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Headphones,
-                    label = "Use built-in audio player",
+                    label = stringResource(Res.string.use_built_in_audio_player),
                     checked = state.conf.useBuiltInAudioPlayer,
                 ) { state.updateConf { conf -> conf.copy(useBuiltInAudioPlayer = it) } }
             }
 
-            SettingsSection("Sync") {
+            SettingsSection(stringResource(Res.string.sync)) {
                 SettingSwitch(
                     glyph = MaterialSymbols.Sync,
-                    label = "Sync on startup",
+                    label = stringResource(Res.string.fetch_news_on_startup),
                     checked = state.conf.syncOnStartup,
                 ) { state.updateConf { conf -> conf.copy(syncOnStartup = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Schedule,
-                    label = "Sync in background",
+                    label = stringResource(Res.string.fetch_news_in_background),
                     checked = state.conf.syncInBackground,
                     enabled = state.platform.supportsBackgroundSync,
                     supportingText = if (!state.platform.supportsBackgroundSync) {
-                        "Not available on this platform"
+                        stringResource(Res.string.not_available_on_this_platform)
                     } else {
                         null
                     },
                 ) { state.updateConf { conf -> conf.copy(syncInBackground = it) } }
             }
 
-            SettingsSection("Tabs") {
+            SettingsSection(stringResource(Res.string.tabs)) {
                 SettingSwitch(
                     glyph = MaterialSymbols.Label,
-                    label = "Show tags tab",
+                    label = stringResource(Res.string.show_tags_tab),
                     checked = state.conf.showTagsTab,
                 ) { state.updateConf { conf -> conf.copy(showTagsTab = it) } }
                 SettingDivider()
                 SettingSwitch(
                     glyph = MaterialSymbols.Podcasts,
-                    label = "Show podcasts tab",
+                    label = stringResource(Res.string.show_podcasts_tab),
                     checked = state.conf.showPodcastsTab,
                 ) { state.updateConf { conf -> conf.copy(showPodcastsTab = it) } }
             }
 
-            SettingsSection("Account") {
+            SettingsSection(stringResource(Res.string.account)) {
                 InfoRow(
                     glyph = MaterialSymbols.Dns,
-                    label = "Backend",
-                    value = state.conf.backend?.name ?: "Not configured",
+                    label = stringResource(Res.string.backend),
+                    value = state.conf.backend?.name ?: stringResource(Res.string.not_configured),
                 )
                 state.conf.minifluxUrl?.let {
                     SettingDivider()
-                    InfoRow(glyph = MaterialSymbols.Link, label = "Miniflux URL", value = it)
+                    InfoRow(
+                        glyph = MaterialSymbols.Link,
+                        label = stringResource(Res.string.miniflux_url),
+                        value = it,
+                    )
                 }
             }
 
             // Only hosts that can install their own updates (Android nightlies)
             // have a version to report or a channel to check.
             if (state.supportsUpdates) {
-                SettingsSection("About") {
+                SettingsSection(stringResource(Res.string.about)) {
                     InfoRow(
                         glyph = MaterialSymbols.Download,
-                        label = "Version",
-                        value = state.currentVersionLabel ?: "Unknown",
+                        label = stringResource(Res.string.version),
+                        value = state.currentVersionLabel ?: stringResource(Res.string.unknown),
                     )
                     SettingDivider()
                     SettingAction(
                         glyph = MaterialSymbols.Sync,
-                        label = "Check for updates",
+                        label = stringResource(Res.string.check_for_updates),
                         supportingText = state.updateMessage,
                         busy = state.updateBusy,
                     ) { state.checkForUpdates(manual = true) }
@@ -178,10 +237,21 @@ fun SettingsScreen(state: AppState) {
             ) {
                 MaterialSymbol(MaterialSymbols.Logout, contentDescription = null, size = 18.sp)
                 Spacer(Modifier.width(8.dp))
-                Text("Log out")
+                Text(stringResource(Res.string.log_out))
             }
 
             Spacer(Modifier.height(8.dp))
+        }
+
+        if (languageDialogVisible) {
+            LanguageDialog(
+                selected = state.conf.language,
+                onSelect = { code ->
+                    state.updateConf { conf -> conf.copy(language = code) }
+                    languageDialogVisible = false
+                },
+                onDismiss = { languageDialogVisible = false },
+            )
         }
     }
 }
@@ -227,7 +297,7 @@ private fun LayoutSetting(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(16.dp))
-            Text("Entry layout", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(Res.string.entry_layout), style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(Modifier.height(12.dp))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -238,7 +308,7 @@ private fun LayoutSetting(
                 icon = {
                     MaterialSymbol(MaterialSymbols.GridView, contentDescription = null, size = 18.sp)
                 },
-            ) { Text("Cards") }
+            ) { Text(stringResource(Res.string.cards)) }
             SegmentedButton(
                 selected = selected == ConfTable.EntriesView.List,
                 onClick = { onSelect(ConfTable.EntriesView.List) },
@@ -246,7 +316,7 @@ private fun LayoutSetting(
                 icon = {
                     MaterialSymbol(MaterialSymbols.ViewList, contentDescription = null, size = 18.sp)
                 },
-            ) { Text("List") }
+            ) { Text(stringResource(Res.string.list)) }
         }
     }
 }
@@ -306,7 +376,9 @@ private fun SettingSwitch(
             }
         },
         trailingContent = {
-            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+            // A disabled row reads as "unavailable", so show it off rather than
+            // its stored (possibly on) value, which would look active-but-broken.
+            Switch(checked = enabled && checked, onCheckedChange = null, enabled = enabled)
         },
     )
 }

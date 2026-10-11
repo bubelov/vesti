@@ -22,12 +22,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.TagTable
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.EntriesList
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.you_have_no_tags
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -55,7 +58,7 @@ fun TagsScreen(state: AppState) {
 
                 tags.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No tags",
+                        text = stringResource(Res.string.you_have_no_tags),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

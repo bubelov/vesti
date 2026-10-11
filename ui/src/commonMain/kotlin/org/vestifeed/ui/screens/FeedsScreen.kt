@@ -50,6 +50,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.opml.OpmlDocument
@@ -64,6 +67,27 @@ import org.vestifeed.ui.EntriesList
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.add
+import org.vestifeed.ui.resources.add_feed
+import org.vestifeed.ui.resources.add_feed_by_url
+import org.vestifeed.ui.resources.add_feed_description
+import org.vestifeed.ui.resources.added_feed
+import org.vestifeed.ui.resources.browse_curated_feeds
+import org.vestifeed.ui.resources.cancel
+import org.vestifeed.ui.resources.empty_feeds_description
+import org.vestifeed.ui.resources.feed_options
+import org.vestifeed.ui.resources.feed_settings
+import org.vestifeed.ui.resources.feed_url
+import org.vestifeed.ui.resources.import_label
+import org.vestifeed.ui.resources.import_opml
+import org.vestifeed.ui.resources.import_opml_description
+import org.vestifeed.ui.resources.imported_feeds_count
+import org.vestifeed.ui.resources.no_feeds_yet
+import org.vestifeed.ui.resources.opml_xml
+import org.vestifeed.ui.resources.remove_feed
+import org.vestifeed.ui.resources.removed_feed
+import org.vestifeed.ui.resources.unread_entry_count
 import org.vestifeed.util.toUrl
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
@@ -118,7 +142,7 @@ fun FeedsScreen(state: AppState) {
             state.addFeedByUrl(newFeedUrl)
                 .onSuccess { feed ->
                     newFeedUrl = ""
-                    message = "Added ${feed.title}"
+                    message = getString(Res.string.added_feed, feed.title)
                     messageIsError = false
                     refreshKey++
                     state.addFeedDialogVisible = false
@@ -143,7 +167,7 @@ fun FeedsScreen(state: AppState) {
                     }
                 }
                 state.refreshUnreadCount()
-                message = "Removed $title"
+                message = getString(Res.string.removed_feed, title)
                 messageIsError = false
                 refreshKey++
             } catch (t: Throwable) {
@@ -185,7 +209,7 @@ fun FeedsScreen(state: AppState) {
                     }
                 }
                 opmlText = ""
-                message = "Imported $count feed(s)"
+                message = getString(Res.string.imported_feeds_count, count)
                 messageIsError = false
                 refreshKey++
                 state.opmlImportDialogVisible = false
@@ -318,11 +342,11 @@ private fun AddFeedDialog(
 ) {
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text("Add feed") },
+        title = { Text(stringResource(Res.string.add_feed)) },
         text = {
             Column {
                 Text(
-                    text = "Paste an RSS or Atom URL to follow a new feed.",
+                    text = stringResource(Res.string.add_feed_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -332,13 +356,13 @@ private fun AddFeedDialog(
                     onClick = onBrowseCurated,
                     contentPadding = PaddingValues(start = 0.dp, end = 12.dp),
                 ) {
-                    Text("Browse curated feeds")
+                    Text(stringResource(Res.string.browse_curated_feeds))
                 }
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = url,
                     onValueChange = onUrlChange,
-                    label = { Text("Feed URL") },
+                    label = { Text(stringResource(Res.string.feed_url)) },
                     placeholder = { Text("https://example.com/feed.xml") },
                     singleLine = true,
                     isError = error != null,
@@ -366,12 +390,14 @@ private fun AddFeedDialog(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Add")
+                    Text(stringResource(Res.string.add))
                 }
             }
         },
         dismissButton = {
-            TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel") }
+            TextButton(enabled = !busy, onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
+            }
         },
     )
 }
@@ -393,28 +419,31 @@ private fun FeedRow(
             Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
-            Text(if (unread == 1) "1 unread entry" else "$unread unread entries")
+            Text(pluralStringResource(Res.plurals.unread_entry_count, unread, unread))
         },
         trailingContent = {
             // Nudge right by 12dp so the icon lines up with the app bar's
             // overflow (the list item keeps 16dp end padding, the bar uses 4dp).
             Box(modifier = Modifier.offset(x = 12.dp)) {
                 IconButton(onClick = { menuExpanded = true }) {
-                    MaterialSymbol(MaterialSymbols.MoreVert, contentDescription = "Feed options")
+                    MaterialSymbol(
+                        MaterialSymbols.MoreVert,
+                        contentDescription = stringResource(Res.string.feed_options),
+                    )
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Feed settings") },
+                        text = { Text(stringResource(Res.string.feed_settings)) },
                         onClick = {
                             menuExpanded = false
                             onSettings()
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Remove feed") },
+                        text = { Text(stringResource(Res.string.remove_feed)) },
                         onClick = {
                             menuExpanded = false
                             onRemove()
@@ -463,19 +492,20 @@ private fun EmptyFeeds(
         modifier = Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No feeds yet", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(Res.string.no_feeds_yet), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Add your first feed by URL, or pick a few from the " +
-                "Awesome RSS Feeds collection.",
+            text = stringResource(Res.string.empty_feeds_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onAddFeed) { Text("Add feed by URL") }
+        Button(onClick = onAddFeed) { Text(stringResource(Res.string.add_feed_by_url)) }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBrowseCurated) { Text("Browse curated feeds") }
+        OutlinedButton(onClick = onBrowseCurated) {
+            Text(stringResource(Res.string.browse_curated_feeds))
+        }
     }
 }
 
@@ -519,11 +549,11 @@ private fun OpmlImportDialog(
 ) {
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text("Import OPML") },
+        title = { Text(stringResource(Res.string.import_opml)) },
         text = {
             Column {
                 Text(
-                    text = "Paste the contents of an OPML file to add its feeds.",
+                    text = stringResource(Res.string.import_opml_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -531,7 +561,7 @@ private fun OpmlImportDialog(
                 OutlinedTextField(
                     value = xml,
                     onValueChange = onXmlChange,
-                    label = { Text("OPML XML") },
+                    label = { Text(stringResource(Res.string.opml_xml)) },
                     minLines = 4,
                     maxLines = 8,
                     isError = error != null,
@@ -555,12 +585,14 @@ private fun OpmlImportDialog(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Import")
+                    Text(stringResource(Res.string.import_label))
                 }
             }
         },
         dismissButton = {
-            TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel") }
+            TextButton(enabled = !busy, onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
+            }
         },
     )
 }

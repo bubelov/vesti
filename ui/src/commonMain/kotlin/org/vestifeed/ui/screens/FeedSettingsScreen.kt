@@ -34,12 +34,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.feedsettings.exportFeedSettings
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.blocked_words
+import org.vestifeed.ui.resources.comma_separated
+import org.vestifeed.ui.resources.delete_feed
+import org.vestifeed.ui.resources.export_settings
+import org.vestifeed.ui.resources.follow_global
+import org.vestifeed.ui.resources.hide
+import org.vestifeed.ui.resources.open_entries_in_browser
+import org.vestifeed.ui.resources.preview_images
+import org.vestifeed.ui.resources.save
+import org.vestifeed.ui.resources.saved
+import org.vestifeed.ui.resources.show
+import org.vestifeed.ui.resources.title
 
 @Composable
 fun FeedSettingsScreen(state: AppState, feedId: String) {
@@ -78,22 +93,27 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title") },
+            label = { Text(stringResource(Res.string.title)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(Modifier.height(20.dp))
-        Text("Preview images", style = MaterialTheme.typography.titleMedium)
-        PreviewOption("Follow global", showImages == null) { showImages = null }
-        PreviewOption("Show", showImages == true) { showImages = true }
-        PreviewOption("Hide", showImages == false) { showImages = false }
+        Text(stringResource(Res.string.preview_images), style = MaterialTheme.typography.titleMedium)
+        PreviewOption(stringResource(Res.string.follow_global), showImages == null) { showImages = null }
+        PreviewOption(stringResource(Res.string.show), showImages == true) { showImages = true }
+        PreviewOption(stringResource(Res.string.hide), showImages == false) { showImages = false }
 
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(
             value = blockedWords,
             onValueChange = { blockedWords = it },
-            label = { Text("Blocked words (comma separated)") },
+            label = {
+                Text(
+                    "${stringResource(Res.string.blocked_words)} " +
+                        "(${stringResource(Res.string.comma_separated)})",
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -102,7 +122,10 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Open entries in browser", modifier = Modifier.weight(1f))
+            Text(
+                text = stringResource(Res.string.open_entries_in_browser),
+                modifier = Modifier.weight(1f),
+            )
             Switch(checked = openInBrowser == true, onCheckedChange = { openInBrowser = it })
         }
 
@@ -122,14 +145,14 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                         runCatching { backend(state.db, state.userAgent).updateFeedTitle(feedId, title) }
                     }
                     feed = updated
-                    message = "Saved"
+                    message = getString(Res.string.saved)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
             MaterialSymbol(MaterialSymbols.Save, contentDescription = null, size = 18.sp)
             Spacer(Modifier.width(8.dp))
-            Text("Save")
+            Text(stringResource(Res.string.save))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -145,7 +168,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         ) {
             MaterialSymbol(MaterialSymbols.Download, contentDescription = null, size = 18.sp)
             Spacer(Modifier.width(8.dp))
-            Text("Export settings")
+            Text(stringResource(Res.string.export_settings))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -167,7 +190,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         ) {
             MaterialSymbol(MaterialSymbols.Delete, contentDescription = null, size = 18.sp)
             Spacer(Modifier.width(8.dp))
-            Text("Delete feed")
+            Text(stringResource(Res.string.delete_feed))
         }
 
         message?.let {

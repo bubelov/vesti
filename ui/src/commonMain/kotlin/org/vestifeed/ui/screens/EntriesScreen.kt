@@ -79,6 +79,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
@@ -92,6 +93,17 @@ import org.vestifeed.ui.entries.load
 import org.vestifeed.ui.entries.toRow
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.add_feed_by_url
+import org.vestifeed.ui.resources.bookmark
+import org.vestifeed.ui.resources.browse_curated_feeds
+import org.vestifeed.ui.resources.empty_unread_description
+import org.vestifeed.ui.resources.mark_as_read
+import org.vestifeed.ui.resources.remove_bookmark
+import org.vestifeed.ui.resources.sync_failed
+import org.vestifeed.ui.resources.syncing_your_feeds
+import org.vestifeed.ui.resources.syncing_your_feeds_description
+import org.vestifeed.ui.resources.you_have_no_feeds
 
 /** The reading width of the list, centered on wide (desktop) windows. */
 private val ContentWidth = 760.dp
@@ -264,7 +276,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     Column(Modifier.fillMaxSize()) {
         lastError?.let {
             Text(
-                text = "Sync failed: $it",
+                text = stringResource(Res.string.sync_failed, it),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
@@ -308,7 +320,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                         )
 
                     rows.isEmpty() -> Text(
-                        text = screen.list.emptyMessage(feedCount),
+                        text = stringResource(screen.list.emptyMessage(feedCount)),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
@@ -420,22 +432,23 @@ private fun EmptyUnreadState(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "You have no feeds yet",
+            text = stringResource(Res.string.you_have_no_feeds),
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Jump to the Feeds tab to add a feed by URL, or start with a " +
-                "few picks from the Awesome RSS Feeds collection.",
+            text = stringResource(Res.string.empty_unread_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onAddFeed) { Text("Add a feed by URL") }
+        Button(onClick = onAddFeed) { Text(stringResource(Res.string.add_feed_by_url)) }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBrowseCurated) { Text("Browse curated feeds") }
+        OutlinedButton(onClick = onBrowseCurated) {
+            Text(stringResource(Res.string.browse_curated_feeds))
+        }
     }
 }
 
@@ -453,14 +466,13 @@ private fun SyncingUnreadState() {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Syncing your feeds…",
+            text = stringResource(Res.string.syncing_your_feeds),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Your feeds and entries are being downloaded. This may take a " +
-                "moment.",
+            text = stringResource(Res.string.syncing_your_feeds_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -911,7 +923,7 @@ private fun CardActionButtons(
     ) {
         CardActionButton(
             glyph = MaterialSymbols.Visibility,
-            contentDescription = "Mark as read",
+            contentDescription = stringResource(Res.string.mark_as_read),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             onScrim = onScrim,
             onClick = onMarkRead,
@@ -922,7 +934,11 @@ private fun CardActionButtons(
             } else {
                 MaterialSymbols.BookmarkAdd
             },
-            contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark",
+            contentDescription = if (isBookmarked) {
+                stringResource(Res.string.remove_bookmark)
+            } else {
+                stringResource(Res.string.bookmark)
+            },
             tint = if (isBookmarked) {
                 MaterialTheme.colorScheme.primary
             } else {

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
@@ -40,6 +41,10 @@ import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.formatCalendarDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.play
+import org.vestifeed.ui.resources.stop
+import org.vestifeed.ui.resources.you_have_no_podcasts
 
 /** The reading width of the screen's content, centered on wide (desktop) windows. */
 private val ContentWidth = 720.dp
@@ -165,7 +170,7 @@ fun PodcastsScreen(state: AppState) {
 
                     rows.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "No podcasts",
+                            text = stringResource(Res.string.you_have_no_podcasts),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -220,14 +225,14 @@ fun PodcastsScreen(state: AppState) {
                                         ) {
                                             MaterialSymbol(
                                                 glyph = MaterialSymbols.Stop,
-                                                contentDescription = "Stop",
+                                                contentDescription = stringResource(Res.string.stop),
                                             )
                                         }
 
                                         else -> IconButton(onClick = { onPlay(row) }) {
                                             MaterialSymbol(
                                                 glyph = MaterialSymbols.PlayArrow,
-                                                contentDescription = "Play",
+                                                contentDescription = stringResource(Res.string.play),
                                             )
                                         }
                                     }
@@ -282,7 +287,7 @@ private fun NowPlayingBar(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onStop) {
-                    MaterialSymbol(MaterialSymbols.Stop, contentDescription = "Stop")
+                    MaterialSymbol(MaterialSymbols.Stop, contentDescription = stringResource(Res.string.stop))
                 }
                 Text(
                     text = formatDuration(dragValue?.toLong() ?: positionMs),

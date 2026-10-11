@@ -63,11 +63,29 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.api_token
+import org.vestifeed.ui.resources.auth_tagline
+import org.vestifeed.ui.resources.backend
+import org.vestifeed.ui.resources.continue_label
+import org.vestifeed.ui.resources.embedded
+import org.vestifeed.ui.resources.embedded_mode_experimental
+import org.vestifeed.ui.resources.embedded_mode_warning_body
+import org.vestifeed.ui.resources.enter_miniflux_api_token
+import org.vestifeed.ui.resources.enter_miniflux_server_url
+import org.vestifeed.ui.resources.hide_password
+import org.vestifeed.ui.resources.miniflux
+import org.vestifeed.ui.resources.miniflux_url
+import org.vestifeed.ui.resources.server_url_hint
+import org.vestifeed.ui.resources.show_password
+import org.vestifeed.ui.resources.sign_in
+import org.vestifeed.ui.resources.signing_in
 
 /** The width the sign-in form is capped at on every screen. */
 private val FormMaxWidth = 420.dp
@@ -223,7 +241,7 @@ private fun BrandPanel(modifier: Modifier = Modifier) {
         Brand(logoSize = 96.sp, titleSize = 32.sp)
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "A simple, private feed reader.",
+            text = stringResource(Res.string.auth_tagline),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -321,7 +339,7 @@ private fun AuthForm(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
         Text(
-            text = "Backend",
+            text = stringResource(Res.string.backend),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -335,7 +353,7 @@ private fun AuthForm(
                 },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                 icon = {},
-            ) { Text("Miniflux") }
+            ) { Text(stringResource(Res.string.miniflux)) }
             SegmentedButton(
                 selected = form.backend == ConfTable.Backend.Embedded,
                 onClick = {
@@ -344,7 +362,7 @@ private fun AuthForm(
                 },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                 icon = {},
-            ) { Text("Embedded") }
+            ) { Text(stringResource(Res.string.embedded)) }
         }
 
         if (miniflux) {
@@ -355,12 +373,12 @@ private fun AuthForm(
                     form.url = it
                     clearErrors()
                 },
-                label = { Text("Miniflux URL") },
-                placeholder = { Text("https://feeds.example.com") },
+                label = { Text(stringResource(Res.string.miniflux_url)) },
+                placeholder = { Text(stringResource(Res.string.server_url_hint)) },
                 singleLine = true,
                 isError = urlError,
                 supportingText = if (urlError) {
-                    { Text("Enter your Miniflux server URL") }
+                    { Text(stringResource(Res.string.enter_miniflux_server_url)) }
                 } else {
                     null
                 },
@@ -388,11 +406,11 @@ private fun AuthForm(
                     form.token = it
                     clearErrors()
                 },
-                label = { Text("API token") },
+                label = { Text(stringResource(Res.string.api_token)) },
                 singleLine = true,
                 isError = tokenError,
                 supportingText = if (tokenError) {
-                    { Text("Enter your Miniflux API token") }
+                    { Text(stringResource(Res.string.enter_miniflux_api_token)) }
                 } else {
                     null
                 },
@@ -410,9 +428,9 @@ private fun AuthForm(
                                 MaterialSymbols.Visibility
                             },
                             contentDescription = if (form.tokenVisible) {
-                                "Hide password"
+                                stringResource(Res.string.hide_password)
                             } else {
-                                "Show password"
+                                stringResource(Res.string.show_password)
                             },
                         )
                     }
@@ -465,9 +483,9 @@ private fun AuthForm(
             }
             Text(
                 text = when {
-                    form.busy -> "Signing in…"
-                    miniflux -> "Sign in"
-                    else -> "Continue"
+                    form.busy -> stringResource(Res.string.signing_in)
+                    miniflux -> stringResource(Res.string.sign_in)
+                    else -> stringResource(Res.string.continue_label)
                 },
             )
         }
@@ -508,13 +526,12 @@ private fun EmbeddedWarning(modifier: Modifier = Modifier) {
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "Embedded mode is experimental",
+                    text = stringResource(Res.string.embedded_mode_experimental),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Your data may not survive app updates. " +
-                        "Back up your feeds regularly by exporting them as OPML.",
+                    text = stringResource(Res.string.embedded_mode_warning_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }

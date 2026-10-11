@@ -100,3 +100,32 @@ const val ENTRY_SCHEMA_V11 = """
         ext_og_log TEXT NOT NULL DEFAULT '[]'
     ) STRICT;
 """
+
+/**
+ * Schema of the `conf` table as it looked from v9 through v12 — the v12 shape
+ * minus the `language` column added by v12→v13. Used by migration tests that
+ * boot a DB below v13, so the `ALTER TABLE conf ADD COLUMN language` has not
+ * already been applied when [org.vestifeed.db.table.ConfTable.SCHEMA] would
+ * have included it.
+ */
+const val CONF_SCHEMA_V12 = """
+    CREATE TABLE conf (
+        backend TEXT,
+        miniflux_url TEXT,
+        miniflux_token TEXT,
+        minifluxIncrementalSyncTimestamp TEXT,
+        show_preview_images INTEGER NOT NULL,
+        crop_preview_images INTEGER NOT NULL,
+        sync_on_startup INTEGER NOT NULL,
+        sync_in_background INTEGER NOT NULL,
+        background_sync_interval_millis INTEGER NOT NULL,
+        use_built_in_browser INTEGER NOT NULL,
+        show_preview_text INTEGER NOT NULL,
+        entry_body_font_size INTEGER NOT NULL,
+        show_author_name INTEGER NOT NULL DEFAULT 0,
+        use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
+        show_tags_tab INTEGER NOT NULL DEFAULT 0,
+        show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
+        entries_view TEXT NOT NULL DEFAULT 'cards'
+    ) STRICT;
+"""

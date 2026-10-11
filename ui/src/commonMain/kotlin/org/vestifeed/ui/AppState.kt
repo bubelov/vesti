@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.vestifeed.backend.backend
 import org.vestifeed.curated.CuratedCatalog
 import org.vestifeed.db.Database
@@ -16,6 +17,11 @@ import org.vestifeed.db.table.FeedTable
 import org.vestifeed.platform.ioDispatcher
 import org.vestifeed.sync.Sync
 import org.vestifeed.ui.curated.loadCuratedCatalog
+import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.allow_vesti_to_install_updates
+import org.vestifeed.ui.resources.could_not_check_for_updates
+import org.vestifeed.ui.resources.could_not_install_update
+import org.vestifeed.ui.resources.you_are_up_to_date
 import org.vestifeed.ui.updates.UpdateInstallResult
 import org.vestifeed.ui.updates.UpdateService
 import org.vestifeed.update.UpdateManifest
@@ -244,8 +250,11 @@ class AppState(
                     if (manual || !service.isDismissed(status.manifest.buildTime)) {
                         availableUpdate = status.manifest
                     }
-                UpdateStatus.UpToDate -> if (manual) updateMessage = "You're up to date"
-                UpdateStatus.Unknown -> if (manual) updateMessage = "Could not check for updates"
+                UpdateStatus.UpToDate ->
+                    if (manual) updateMessage = getString(Res.string.you_are_up_to_date)
+
+                UpdateStatus.Unknown ->
+                    if (manual) updateMessage = getString(Res.string.could_not_check_for_updates)
             }
         }
     }
@@ -266,15 +275,16 @@ class AppState(
             updateBusy = true
             updateProgress = null
             updateMessage = null
+            val installFailed = getString(Res.string.could_not_install_update)
             val result = runCatching {
                 service.install(manifest) { updateProgress = it }
-            }.getOrDefault(UpdateInstallResult.Failed("Could not install the update"))
+            }.getOrDefault(UpdateInstallResult.Failed(installFailed))
             updateBusy = false
             updateProgress = null
             when (result) {
                 UpdateInstallResult.Started -> availableUpdate = null
                 UpdateInstallResult.NeedsPermission ->
-                    updateMessage = "Allow Vesti to install updates, then tap Update again"
+                    updateMessage = getString(Res.string.allow_vesti_to_install_updates)
                 is UpdateInstallResult.Failed -> updateMessage = result.message
             }
         }
