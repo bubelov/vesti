@@ -47,6 +47,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -108,23 +109,25 @@ private val GridMinCellWidth = 320.dp
 private val SwipeMaxWidth = 600.dp
 
 /**
- * How far the card must travel horizontally, in touch slops, before a swipe
- * engages. Compose's own `draggable(Horizontal)` starts as soon as horizontal
- * touch slop is crossed with the gesture within ~30° of horizontal, so a
- * scroll that opens with a sideways flick (the finger drifting across before
- * turning vertical) still gets captured as a swipe — once captured, it never
- * gives the gesture back. Requiring extra horizontal travel while the gesture
- * stays vertically insignificant leaves those scrolls to the list.
+ * How far the card must travel before the release commits the action, as a
+ * fraction of the card's width. Matches the native `ItemTouchHelper` default
+ * `getSwipeThreshold` of 0.5.
  */
-private const val SwipeEngageSlopMultiplier = 2f
+private const val SwipeCommitFraction = 0.5f
 
 /**
- * A flick released at least this fast commits the swipe in the direction of
- * the flick, even when the card never travelled past half its width. Short,
- * sharp gestures carry their intent in the velocity, not the distance; below
- * this threshold the release position decides, as before.
+ * A flick released at least this fast — and in the direction the card was
+ * dragged — commits the swipe even when the card never travelled past
+ * [SwipeCommitFraction] of its width. Short, sharp gestures carry their intent
+ * in the velocity, not the distance.
+ *
+ * 125 dp/s is Material 3's `SwipeToDismissBox` velocity threshold; the native
+ * `ItemTouchHelper` default is 120 dp/s. The earlier 1000 dp/s here was about
+ * eight times too high, so an ordinary flick sprang back instead of committing
+ * and the swipe only fired after a long drag — the main reason the gesture
+ * felt broken.
  */
-private val SwipeFlingVelocity = 1000.dp
+private val SwipeEscapeVelocity = 125.dp
 
 /**
  * How often to check for OG preview images downloaded by the background
@@ -478,13 +481,45 @@ private suspend fun alternateHref(state: AppState, entryId: String): String? {
  * and the action runs (the row is then removed, or the card springs back when
  * the action keeps the entry); released short of that, it just springs back.
  *
- * The gesture waits for the drag to be clearly horizontal (see
- * [SwipeEngageSlopMultiplier]) before engaging, then consumes it; anything
- * more vertical is left to the list so a scroll is never mistaken for a swipe.
- * A release either past half the card width or faster than
- * [SwipeFlingVelocity] commits the action, so a short sharp flick works even
- * when the card barely moved.
+ * The gesture locks to whichever axis dominates once touch slop is crossed, the
+ * way the native `ItemTouchHelper` did: a drag that is more vertical than
+ * horizontal is left to the list as a scroll, and once horizontal wins the card
+ * follows the finger with no further dead zone. A release either past
+ * [SwipeCommitFraction] of the card's width or flicked faster than
+ * [SwipeEscapeVelocity] along the drag commits the action, so a short sharp
+ * flick works even when the card barely moved.
  */
+internal data class SwipeRelease(val commit: Boolean, val bookmark: Boolean)
+
+/**
+ * Decides how a released swipe settles, split out from [SwipeableEntry] so the
+ * thresholds can be tested without a gesture.
+ *
+ * A flick commits when it exceeds [escapeVelocity] along the drag and is not
+ * dominated by vertical movement — the native `ItemTouchHelper` matches the
+ * velocity direction against the drag and requires |vx| > |vy| the same way —
+ * so a quick flick works even when the card barely moved. Otherwise the release
+ * commits only once the card passed [SwipeCommitFraction] of [width].
+ */
+internal fun resolveSwipeRelease(
+    offset: Float,
+    velocityX: Float,
+    velocityY: Float,
+    width: Float,
+    escapeVelocity: Float,
+): SwipeRelease {
+    val flingingRight = velocityX >= escapeVelocity && velocityX > abs(velocityY)
+    val flingingLeft = velocityX <= -escapeVelocity && -velocityX > abs(velocityY)
+    val flinging = when {
+        flingingRight -> offset >= 0f
+        flingingLeft -> offset <= 0f
+        else -> false
+    }
+    val bookmark = if (flinging) velocityX > 0f else offset > 0f
+    val commit = flinging || (width > 0f && abs(offset) > width * SwipeCommitFraction)
+    return SwipeRelease(commit = commit, bookmark = bookmark)
+}
+
 @Composable
 private fun SwipeableEntry(
     enabled: Boolean,
@@ -517,6 +552,11 @@ private fun SwipeableEntry(
     var offset by remember { mutableFloatStateOf(0f) }
     var settleJob by remember { mutableStateOf<Job?>(null) }
 
+    // The composition reads the offset only through this derived state, so a
+    // drag frame that merely moves the card does not recompose its content.
+    val swiping by remember { derivedStateOf { offset != 0f } }
+    val markingRead by remember { derivedStateOf { offset < 0f } }
+
     Box(
         modifier = modifier
             .onGloballyPositioned { widthPx = it.size.width.toFloat() }
@@ -524,16 +564,17 @@ private fun SwipeableEntry(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val touchSlop = viewConfiguration.touchSlop
-                    val flingVelocity = SwipeFlingVelocity.toPx()
+                    val escapeVelocity = SwipeEscapeVelocity.toPx()
                     val velocityTracker = VelocityTracker()
                     velocityTracker.addPointerInputChange(down)
                     var total = Offset.Zero
                     var dragging = false
 
-                    // Accumulate until the direction is unambiguous. Once the
-                    // horizontal movement clearly dominates, take the gesture
-                    // and never give it back; if the vertical one wins, stop
-                    // tracking events so the list scrolls normally.
+                    // Wait for the gesture to clear touch slop, then hand it to
+                    // the axis with the larger movement. A drag that is more
+                    // vertical is left untouched so the list scrolls; a
+                    // horizontal one is locked in for the rest of the gesture
+                    // and never given back.
                     while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -544,52 +585,54 @@ private fun SwipeableEntry(
                             break
                         }
 
+                        val delta = change.positionChange()
                         if (!dragging) {
-                            total += change.positionChange()
+                            total += delta
                             val horizontal = abs(total.x)
                             val vertical = abs(total.y)
-                            if (vertical > touchSlop) {
+                            if (horizontal < touchSlop && vertical < touchSlop) continue
+                            if (vertical >= horizontal) {
                                 // A real vertical scroll is under way: stop
-                                // watching and leave the rest of the gesture to
-                                // the list.
+                                // watching and leave the rest of the gesture
+                                // to the list.
                                 break
                             }
-                            if (horizontal > touchSlop * SwipeEngageSlopMultiplier) {
-                                dragging = true
-                                settleJob?.cancel()
-                                settleJob = null
-                            }
-                        }
-
-                        if (dragging) {
-                            val delta = change.positionChange().x
+                            dragging = true
+                            settleJob?.cancel()
+                            settleJob = null
                             change.consume()
-                            val limit = widthPx
-                            offset = (offset + delta).coerceIn(-limit, limit)
+                            // Catch the card up to the distance already
+                            // travelled, so it tracks the finger at once
+                            // instead of lagging a slop behind.
+                            offset = total.x.coerceIn(-widthPx, widthPx)
+                        } else {
+                            change.consume()
+                            offset = (offset + delta.x).coerceIn(-widthPx, widthPx)
                         }
                     }
 
                     if (dragging) {
                         val limit = widthPx
                         val current = offset
-                        val velocity = velocityTracker.calculateVelocity().x
-                        // A sharp flick commits regardless of how far the card
-                        // actually travelled; otherwise the release position
-                        // decides as before.
-                        val flinging = abs(velocity) > flingVelocity
-                        val swipingBookmark = if (flinging) velocity > 0f else current > 0f
-                        val commit = flinging || (limit > 0f && abs(current) > limit / 2f)
+                        val velocity = velocityTracker.calculateVelocity()
+                        val release = resolveSwipeRelease(
+                            offset = current,
+                            velocityX = velocity.x,
+                            velocityY = velocity.y,
+                            width = limit,
+                            escapeVelocity = escapeVelocity,
+                        )
                         settleJob?.cancel()
                         settleJob = scope.launch {
-                            if (commit) {
+                            if (release.commit) {
                                 // Finish the swipe, then act.
                                 animate(
                                     initialValue = current,
-                                    targetValue = if (swipingBookmark) limit else -limit,
+                                    targetValue = if (release.bookmark) limit else -limit,
                                     animationSpec = tween(durationMillis = 180),
                                 ) { value, _ -> offset = value }
-                                if (swipingBookmark) currentOnToggleBookmark() else currentOnMarkRead()
-                                val keeps = if (swipingBookmark) {
+                                if (release.bookmark) currentOnToggleBookmark() else currentOnMarkRead()
+                                val keeps = if (release.bookmark) {
                                     !currentBookmarkRemoves
                                 } else {
                                     !currentMarkReadRemoves
@@ -605,9 +648,9 @@ private fun SwipeableEntry(
                 }
             },
     ) {
-        if (offset != 0f) {
+        if (swiping) {
             SwipeBackground(
-                markingRead = offset < 0f,
+                markingRead = markingRead,
                 modifier = Modifier.matchParentSize(),
             )
         }
