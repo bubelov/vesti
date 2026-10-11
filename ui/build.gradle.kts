@@ -14,7 +14,10 @@ kotlin {
 
     android {
         namespace = "org.vestifeed.ui"
-        compileSdk = 37
+        // Compose Multiplatform 1.13 requires compileSdk 37.1.
+        compileSdk {
+            version = release(37) { minorApiLevel = 1 }
+        }
         minSdk = 34
 
         // Required for Compose Resources (the Material Symbols icon font) to be

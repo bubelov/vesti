@@ -11,7 +11,10 @@ kotlin {
 
     android {
         namespace = "org.vestifeed.shared"
-        compileSdk = 37
+        // Compose Multiplatform 1.13 requires compileSdk 37.1.
+        compileSdk {
+            version = release(37) { minorApiLevel = 1 }
+        }
         minSdk = 34
     }
 
