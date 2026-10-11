@@ -42,7 +42,7 @@ from a shared Kotlin Multiplatform codebase, with a Compose Multiplatform UI.
 ./gradlew :ui:compileKotlinJvm :ui:compileKotlinWasmJs
 ./gradlew :webApp:wasmJsBrowserDistribution  # browser bundle in webApp/build/dist
 ./gradlew :shared:compileKotlinWasmJs        # wasm compile check for the core
-./gradlew :desktopApp:run                    # launch the desktop app
+./gradlew :desktopApp:hotRunJvm --auto       # launch the desktop app (hot reload on save)
 ./gradlew :desktopApp:createDistributable    # app image in desktopApp/build/compose/binaries
 ./gradlew :desktopApp:packageDistributionForCurrentOS  # native installer
 ```
@@ -60,6 +60,18 @@ needs `Cross-Origin-Opener-Policy: same-origin` and
 ```bash
 python3 -m http.server -d webApp/build/dist/wasmJs/productionExecutable 8080
 ```
+
+## Waiting on commands
+
+- **Never `sleep` for more than a second.** Long sleeps block the session and
+  give no signal; they are not how you wait for something. Instead:
+  - run long work (builds, deploys, the desktop app) as a **background task**, so
+    its completion notification brings you back, or
+  - **poll** with short waits (about a second at a time) against a concrete exit
+    condition, under a bounded timeout, so you stop as soon as the condition is
+    met.
+- Don't busy-wait or pad timing with fixed multi-second sleeps. The desktop
+  GUI launch/polling notes further down follow this same rule.
 
 ## Architecture Notes
 
@@ -227,20 +239,46 @@ work in a browser because most origins do not send CORS headers.
 
 ## Desktop Target (JVM)
 
-`./gradlew :desktopApp:run` opens the Compose Desktop window. On this machine
-the session is Wayland and Compose Desktop's Skiko renderer is X11-only, so the
-window is an **XWayland** client, and `run` blocks for the life of the window.
+The desktop window is driven by **Compose Hot Reload** (CHR), which ships
+bundled with Compose Multiplatform 1.10+ and is applied automatically to
+`:desktopApp`. **Always launch the desktop app with hot reload enabled, and
+prefer hot reloading a running window over restarting it whenever you change
+code.** Sources in `:ui`, `:shared` and `:desktopApp` are all hot. Only fall
+back to `:desktopApp:run` when hot reload genuinely can't apply the change
+(e.g. an edit to how `main`/the entry point is wired) — otherwise restarting
+just throws away state you could have kept.
 
-- **Never run `:desktopApp:run` in the foreground, and never `sleep`/poll
-  waiting for it to start.** Launch it detached with its output in a named log,
-  e.g. `(./gradlew :desktopApp:run > /tmp/opencode/vesti-desktop.log 2>&1 &)`,
-  then return control.
+```bash
+# launch — always prefer this over :desktopApp:run
+(./gradlew :desktopApp:hotRunJvm --auto > /tmp/opencode/vesti-hotreload.log 2>&1 &)
+```
+
+CHR runs the app on an auto-provisioned **JetBrains Runtime** (JBR 21, under
+`~/.gradle/jdks/jetbrains_s_r_o_-21-*`), resolved through the foojay toolchain
+plugin already in `settings.gradle.kts`; the project's own toolchain must target
+Java 21 or earlier (this one uses 17). With `--auto`, saving a source file
+recompiles just that module and reloads the changed classes **in place: the
+running JVM keeps its PID and its state** (no restart, no lost navigation or
+scroll position). The reload loop and the "Compose Runtime Analyzer" dirty-scope
+report are logged to `desktopApp/build/run/jvmMain/jvmMain.chr.log`; the build
+output goes to the launch log above. In explicit mode (omit `--auto`) a change
+is applied by running `./gradlew :desktopApp:reload` or clicking the in-app
+**Reload UI** button. CHR is desktop-only: Android and wasm have no equivalent.
+
+On this machine the session is Wayland and Compose Desktop's Skiko renderer is
+X11-only, so the window is an **XWayland** client, and the task blocks for the
+life of the window.
+
+- **Never run the desktop task (`hotRunJvm`/`run`) in the foreground, and don't
+  block waiting for it to start.** Launch it detached with its output in a named
+  log, as above, then return control (to observe progress, poll per "Waiting on
+  commands").
 - The running app is identified by `pgrep -f "org.vestifeed.desktop.MainK[t]"`
-  (the brackets keep the pattern from matching the shell) when launched with
-  `:desktopApp:run`. The packaged launcher instead shows up as
-  `.../Vesti/bin/Vesti`, so match `pgrep -f "bin/Vest[i]"` for that one. Check it
-  *before* launching; if it is listed, the window is already open. Stop it with
-  the same pattern piped to `xargs -r kill`.
+  (the brackets keep the pattern from matching the shell) whether it was launched
+  with `:desktopApp:hotRunJvm` or `:desktopApp:run`. The packaged launcher
+  instead shows up as `.../Vesti/bin/Vesti`, so match `pgrep -f "bin/Vest[i]"`
+  for that one. Check it *before* launching; if it is listed, the window is
+  already open. Stop it with the same pattern piped to `xargs -r kill`.
 - Find the client window with `xdotool search --name "Vesti"`. The app owns
   several windows: the full-size client is the one whose geometry is the
   window's logical size × the display scale, and whose `xdotool getwindowpid
