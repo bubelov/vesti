@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
+    <!-- Adaptive launcher icon background (see drawable/ic_launcher.xml). -->
     <color name="launcher">#2b90d9</color>
-    <color name="warning">#D32F2F</color>
-    <color name="find_in_page_highlight">#66FFEB3B</color>
-    <color name="find_in_page_current_match">#FFFFEB3B</color>
 </resources>
