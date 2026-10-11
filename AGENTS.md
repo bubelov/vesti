@@ -167,6 +167,33 @@ in the repository. It is based on the Awesome RSS Feeds collection but is not
 an exact copy: the feeds were reviewed and some were removed. Because upstream
 feeds go dead over time, verify any refreshed batch before shipping it.
 
+### Nightly self-update
+
+Nightlies are side-loaded from vestifeed.org, so there is no store to push an
+update. `./devtools app deploy` therefore also publishes
+`website/releases/vesti-nightly.json` next to the APK (both gitignored), and the
+nightly app checks that manifest on startup, then offers to download and install
+the newer APK through the system installer.
+
+The manifest is `{versionCode, versionName, buildTime, apk}`. The comparison
+(`org.vestifeed.update.evaluateUpdate`) prefers a higher version code, or a
+later `buildTime` within the same version code — the nightly shares the
+release's version code, so the build time is what tells two nightlies apart.
+The deploy stamps `-PvestiBuildTime=<epoch millis>`, which lands in both the
+APK's `BuildConfig.BUILD_TIME` and the manifest, so the two always agree. The
+manifest itself is written by the `:app` `writeUpdateManifest` task, which the
+deploy runs and copies; it must run on every deploy (its inputs include the
+build time).
+
+Only the nightly has a channel: `App.updateManifestUrl` returns the nightly
+manifest URL for an applicationId ending in `.nightly` and `""` otherwise, so
+the update UI is hidden on the release, the debug build and the non-Android
+hosts (`VestiPlatform.updates` is null without a channel). Installing needs the
+`REQUEST_INSTALL_PACKAGES` permission and the per-app "install unknown apps"
+grant; `AndroidUpdateService` opens that settings screen when it is missing. The
+downloaded APK reaches the installer through a `FileProvider` (authority
+`${applicationId}.updates`, cache path `updates/`).
+
 ## Web Target (wasmJs)
 
 The web app is deployed at **https://app.vestifeed.org** (host `vesti`,

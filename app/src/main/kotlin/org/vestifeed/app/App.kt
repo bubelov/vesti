@@ -23,6 +23,18 @@ class App : Application() {
      */
     internal val userAgent = "Vesti/${BuildConfig.VERSION_NAME} (Android)"
 
+    /**
+     * The update manifest this build checks, or "" when it does not
+     * self-update. Only the nightly is published on the website; the release
+     * reaches users through its store listing.
+     */
+    internal val updateManifestUrl: String =
+        if (BuildConfig.APPLICATION_ID.endsWith(".nightly")) {
+            "https://vestifeed.org/releases/vesti-nightly.json"
+        } else {
+            ""
+        }
+
     internal val db by lazy {
         Database(
             driver = AndroidSQLiteDriver(),

@@ -154,19 +154,31 @@ cmd_app_uninstall() {
 
 cmd_app_deploy() {
   local apk_path="./app/build/outputs/apk/nightly/app-nightly.apk"
+  local manifest_src="./app/build/updates/vesti-nightly.json"
   local dest="./website/releases/vesti-nightly.apk"
+  local manifest_dest="./website/releases/vesti-nightly.json"
+
+  # Stamp the build so the APK and the manifest it publishes agree and each
+  # rollout is newer than the last one users may have installed.
+  local build_time
+  build_time=$(date +%s%3N)
 
   echo "Building nightly APK..."
-  ./gradlew assembleNightly "$@"
+  ./gradlew assembleNightly :app:writeUpdateManifest -PvestiBuildTime="$build_time" "$@"
 
   if [ ! -f "$apk_path" ]; then
     echo "Error: nightly APK not found at $apk_path" >&2
     return 1
   fi
+  if [ ! -f "$manifest_src" ]; then
+    echo "Error: update manifest not found at $manifest_src" >&2
+    return 1
+  fi
 
-  echo "Copying nightly APK to $dest"
+  echo "Copying the nightly APK and its update manifest to website/releases"
   mkdir -p "$(dirname "$dest")"
   cp "$apk_path" "$dest"
+  cp "$manifest_src" "$manifest_dest"
   rsync -avz --delete "./website/" vesti:/srv/http/vestifeed.org/
 }
 

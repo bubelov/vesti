@@ -25,6 +25,15 @@ val keystoreProperties = Properties().apply {
 }
 val keystorePath = keystoreProperties.getProperty("storeFile")?.let(::file)
 
+/*
+ * When this build was made, in epoch milliseconds, used by the nightly update
+ * check to tell one nightly from the next (they share a version code). The
+ * deploy passes an explicit `-PvestiBuildTime=…` so the APK and the manifest it
+ * publishes agree; other builds leave it at 0, which never looks newer than a
+ * published nightly.
+ */
+val buildTime: Long = (findProperty("vestiBuildTime") as String?)?.toLongOrNull() ?: 0L
+
 android {
     namespace = "org.vestifeed"
 
@@ -38,6 +47,8 @@ android {
         targetSdk = 37
         versionCode = 24
         versionName = "0.4.3"
+
+        buildConfigField("long", "BUILD_TIME", "${buildTime}L")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -121,4 +132,32 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+/**
+ * Writes the update manifest the nightly's update check reads. `devtools app
+ * deploy` copies it to `website/releases/vesti-nightly.json`, next to the APK.
+ * Kept in Gradle so the version code, name and build time in the manifest are
+ * exactly the ones baked into the APK.
+ */
+val writeUpdateManifest by tasks.registering {
+    val outputFile = layout.buildDirectory.file("updates/vesti-nightly.json")
+    outputs.file(outputFile)
+    val versionCode = android.defaultConfig.versionCode ?: 1
+    val versionName = android.defaultConfig.versionName ?: ""
+    val buildTimeValue = buildTime
+    // Declared as inputs so a new build time (a fresh rollout) re-runs the task
+    // instead of leaving the previous manifest in place.
+    inputs.property("versionCode", versionCode)
+    inputs.property("versionName", versionName)
+    inputs.property("buildTime", buildTimeValue)
+    doLast {
+        val file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            "{\"versionCode\":$versionCode,\"versionName\":\"$versionName\"," +
+                "\"buildTime\":$buildTimeValue," +
+                "\"apk\":\"https://vestifeed.org/releases/vesti-nightly.apk\"}"
+        )
+    }
 }

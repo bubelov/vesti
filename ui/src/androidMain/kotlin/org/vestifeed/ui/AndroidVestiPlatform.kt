@@ -10,11 +10,26 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.vestifeed.ui.updates.AndroidUpdateService
+import org.vestifeed.ui.updates.UpdateService
 
 /** Android implementation of the shared UI's platform services. */
 class AndroidVestiPlatform(
     private val context: Context,
+    updateManifestUrl: String = "",
+    buildTime: Long = 0L,
+    userAgent: String = "",
 ) : VestiPlatform {
+
+    /**
+     * Enabled only for the channels that publish an update manifest (the
+     * nightly). A build without one — debug, release — reports no channel so
+     * the update check stays hidden.
+     */
+    override val updates: UpdateService? =
+        updateManifestUrl.takeIf { it.isNotBlank() }?.let {
+            AndroidUpdateService(context, it, buildTime, userAgent)
+        }
 
     private var player: MediaPlayer? = null
 
@@ -113,15 +128,18 @@ private fun audioFileName(url: String): String {
 
 /**
  * Streams [url] into [file], reporting progress, and returns its path (or null
- * on failure). An existing non-empty file is reused; downloads land in a
- * `.part` file first so a failed attempt never poisons the cache.
+ * on failure). When [reuseExisting] is set, an existing non-empty file is
+ * reused; otherwise it is always re-downloaded (an update must not serve a
+ * stale APK). Downloads land in a `.part` file first so a failed attempt never
+ * poisons the cache.
  */
-private fun downloadToFile(
+internal fun downloadToFile(
     url: String,
     file: File,
     onProgress: (Double?) -> Unit,
+    reuseExisting: Boolean = true,
 ): String? {
-    if (file.exists() && file.length() > 0) {
+    if (reuseExisting && file.exists() && file.length() > 0) {
         onProgress(1.0)
         return file.absolutePath
     }

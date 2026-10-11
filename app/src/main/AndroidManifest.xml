@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The nightly self-updates by handing a downloaded APK to the system
+         installer; the user must still grant "install unknown apps" for it. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name="org.vestifeed.app.App"
@@ -51,6 +54,19 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Serves the downloaded update APK to the system installer as a
+             content:// URI (a file:// URI would be rejected on modern Android).
+             The authority is per-variant via the applicationId suffix. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
 
     </application>
 

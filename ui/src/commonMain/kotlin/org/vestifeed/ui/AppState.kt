@@ -16,6 +16,11 @@ import org.vestifeed.db.table.FeedTable
 import org.vestifeed.platform.ioDispatcher
 import org.vestifeed.sync.Sync
 import org.vestifeed.ui.curated.loadCuratedCatalog
+import org.vestifeed.ui.updates.UpdateInstallResult
+import org.vestifeed.ui.updates.UpdateService
+import org.vestifeed.update.UpdateManifest
+import org.vestifeed.update.UpdateStatus
+import org.vestifeed.update.evaluateUpdate
 import org.vestifeed.util.toUrl
 import org.vestifeed.util.withHttpsScheme
 
@@ -187,6 +192,94 @@ class AppState(
 
     val sync = Sync(scope, db, userAgent)
 
+    /**
+     * The host's self-update channel, or null where the app cannot install
+     * packages (desktop, browser). Everything below is inert without one.
+     */
+    private val updates: UpdateService? = platform.updates
+
+    /** Whether this host can install its own updates (Android nightlies). */
+    val supportsUpdates: Boolean get() = updates != null
+
+    /** The running build's label for the settings row, or null without a channel. */
+    val currentVersionLabel: String? get() = updates?.currentVersionLabel
+
+    /**
+     * A newer build the check found, shown as the update prompt. Null when
+     * there is nothing to offer or the user dismissed it.
+     */
+    var availableUpdate by mutableStateOf<UpdateManifest?>(null)
+        private set
+
+    /** True while an update check or download is running. */
+    var updateBusy by mutableStateOf(false)
+        private set
+
+    /** Download progress in `0f..1f`, or null while it is unknown or idle. */
+    var updateProgress by mutableStateOf<Double?>(null)
+        private set
+
+    /** The latest manual check/install outcome, shown by the settings row. */
+    var updateMessage by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Looks for a newer build on the update channel. An available build opens
+     * the prompt unless [manual] is set (which always surfaces it) or the user
+     * already dismissed it. The automatic check runs once on [connect]; the
+     * settings row runs it manually.
+     */
+    fun checkForUpdates(manual: Boolean = false) {
+        val service = updates ?: return
+        if (updateBusy) return
+        scope.launch {
+            updateBusy = true
+            if (manual) updateMessage = null
+            val status = runCatching {
+                evaluateUpdate(service.currentVersionCode, service.currentBuildTime, service.fetchLatest())
+            }.getOrDefault(UpdateStatus.Unknown)
+            updateBusy = false
+            when (status) {
+                is UpdateStatus.Available ->
+                    if (manual || !service.isDismissed(status.manifest.buildTime)) {
+                        availableUpdate = status.manifest
+                    }
+                UpdateStatus.UpToDate -> if (manual) updateMessage = "You're up to date"
+                UpdateStatus.Unknown -> if (manual) updateMessage = "Could not check for updates"
+            }
+        }
+    }
+
+    /** Closes the update prompt and remembers the build as dismissed. */
+    fun dismissUpdate() {
+        availableUpdate?.let { updates?.dismiss(it.buildTime) }
+        availableUpdate = null
+        updateMessage = null
+    }
+
+    /** Downloads the offered update and hands it to the system installer. */
+    fun installUpdate() {
+        val service = updates ?: return
+        val manifest = availableUpdate ?: return
+        if (updateBusy) return
+        scope.launch {
+            updateBusy = true
+            updateProgress = null
+            updateMessage = null
+            val result = runCatching {
+                service.install(manifest) { updateProgress = it }
+            }.getOrDefault(UpdateInstallResult.Failed("Could not install the update"))
+            updateBusy = false
+            updateProgress = null
+            when (result) {
+                UpdateInstallResult.Started -> availableUpdate = null
+                UpdateInstallResult.NeedsPermission ->
+                    updateMessage = "Allow Vesti to install updates, then tap Update again"
+                is UpdateInstallResult.Failed -> updateMessage = result.message
+            }
+        }
+    }
+
     private val backStack = mutableStateListOf<Screen>()
 
     var screen by mutableStateOf<Screen>(Screen.Loading)
@@ -221,6 +314,9 @@ class AppState(
         if (conf.backend != null && conf.syncOnStartup) {
             sync.runInBackground()
         }
+        // Ask the update channel whether a newer nightly has been rolled out.
+        // It is a no-op on hosts with no channel.
+        checkForUpdates()
     }
 
     fun refreshConf() {

@@ -1,11 +1,19 @@
 package org.vestifeed.ui
 
+import org.vestifeed.ui.updates.UpdateService
+
 /**
  * The platform services the shared Compose UI needs from its host. Android
  * implements these with a Custom Tab / share intent; the browser target opens
  * a new tab / uses the Web Share API.
  */
 interface VestiPlatform {
+    /**
+     * The host's self-update channel, or null when the host cannot install
+     * packages (desktop, browser) so the update check is hidden.
+     */
+    val updates: UpdateService? get() = null
+
     /**
      * Whether the host supports the touch pull-to-refresh gesture on the entry
      * lists. True on Android; the desktop window and the browser have no touch

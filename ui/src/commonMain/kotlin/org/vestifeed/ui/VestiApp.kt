@@ -48,6 +48,7 @@ import org.vestifeed.ui.screens.PodcastsScreen
 import org.vestifeed.ui.screens.SearchScreen
 import org.vestifeed.ui.screens.SettingsScreen
 import org.vestifeed.ui.screens.TagsScreen
+import org.vestifeed.ui.screens.UpdateAvailableDialog
 import org.vestifeed.ui.theme.VestiTheme
 import org.vestifeed.ui.theme.vestiNavItemColors
 
@@ -90,6 +91,8 @@ fun VestiApp(
             Screen.Loading -> Unit
             else -> MainScaffold(state, screen)
         }
+
+        UpdateAvailableDialog(state)
     }
 }
 

@@ -2,6 +2,7 @@
 
 package org.vestifeed.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -11,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
@@ -144,6 +147,25 @@ fun SettingsScreen(state: AppState) {
                 state.conf.minifluxUrl?.let {
                     SettingDivider()
                     InfoRow(glyph = MaterialSymbols.Link, label = "Miniflux URL", value = it)
+                }
+            }
+
+            // Only hosts that can install their own updates (Android nightlies)
+            // have a version to report or a channel to check.
+            if (state.supportsUpdates) {
+                SettingsSection("About") {
+                    InfoRow(
+                        glyph = MaterialSymbols.Download,
+                        label = "Version",
+                        value = state.currentVersionLabel ?: "Unknown",
+                    )
+                    SettingDivider()
+                    SettingAction(
+                        glyph = MaterialSymbols.Sync,
+                        label = "Check for updates",
+                        supportingText = state.updateMessage,
+                        busy = state.updateBusy,
+                    ) { state.checkForUpdates(manual = true) }
                 }
             }
 
@@ -301,5 +323,42 @@ private fun InfoRow(glyph: String, label: String, value: String) {
         },
         headlineContent = { Text(label) },
         supportingContent = { Text(value) },
+    )
+}
+
+/**
+ * A settings row that performs an action when tapped, with an optional result
+ * line and a spinner while it is [busy] (the "Check for updates" row).
+ */
+@Composable
+private fun SettingAction(
+    glyph: String,
+    label: String,
+    supportingText: String? = null,
+    busy: Boolean = false,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        modifier = Modifier.clickable(enabled = !busy, onClick = onClick),
+        leadingContent = {
+            MaterialSymbol(
+                glyph = glyph,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        headlineContent = { Text(label) },
+        supportingContent = supportingText?.let { { Text(it) } },
+        trailingContent = {
+            if (busy) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                MaterialSymbol(
+                    glyph = MaterialSymbols.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
     )
 }
