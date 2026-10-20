@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         applicationId = "org.vestifeed"
-        minSdk = 34
+        minSdk = 33
         targetSdk = 37
         versionCode = 24
         versionName = "0.4.3"
@@ -108,7 +108,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines)
 
     // AndroidX
-    implementation(libs.androidx.sqlite.framework)
+    // The bundled driver, not the platform one: the schema uses STRICT tables
+    // (SQLite 3.37+), which Android 13's system SQLite predates. Bundling keeps
+    // the same SQLite on every host the app runs on.
+    implementation(libs.androidx.sqlite.bundled)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.activity.compose)
 

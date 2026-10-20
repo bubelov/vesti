@@ -18,7 +18,7 @@ kotlin {
         compileSdk {
             version = release(37) { minorApiLevel = 1 }
         }
-        minSdk = 34
+        minSdk = 33
 
         // Required for Compose Resources (the Material Symbols icon font) to be
         // assembled and packaged into the Android host's assets.

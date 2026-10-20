@@ -1,7 +1,7 @@
 package org.vestifeed.app
 
 import android.app.Application
-import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +37,7 @@ class App : Application() {
 
     internal val db by lazy {
         Database(
-            driver = AndroidSQLiteDriver(),
+            driver = BundledSQLiteDriver(),
             path = databaseFile.absolutePath,
         )
     }
