@@ -22,8 +22,10 @@ from a shared Kotlin Multiplatform codebase, with a Compose Multiplatform UI.
   Android-specific platform services and the `AbstractComposeView` host live in
   `androidMain`.
 - **`:app`** — the Android application. A thin host: it creates the
-  `Database` with `AndroidSQLiteDriver`, sets up `Sync`, and puts `:ui`'s
-  `VestiComposeView` on screen. It has no Compose compiler and no UI code.
+  `Database` with `androidx.sqlite`'s `BundledSQLiteDriver` (the platform's
+  system SQLite predates the STRICT tables the schema uses), sets up `Sync`,
+  and puts `:ui`'s `VestiComposeView` on screen. It has no Compose compiler and
+  no UI code.
 - **`:webApp`** — the wasmJs browser application. `main` builds the
   `Database` with `androidx.sqlite`'s `WebWorkerSQLiteDriver` (driving the
   vendored `sqlite-worker.js`), and renders `VestiApp` through
@@ -97,6 +99,9 @@ python3 -m http.server -d webApp/build/dist/wasmJs/productionExecutable 8080
   **every query method is `suspend`** and `Database.connect()` is a separate
   step from construction. On JVM/Android the connection is wrapped in
   `LockingSQLiteConnection`; on wasm it is returned as-is (single-threaded).
+  Android and desktop both use `BundledSQLiteDriver`, so every host runs the
+  same SQLite and the schema's `STRICT` tables work on Android 13 too (its
+  system SQLite is older than 3.37).
 
 ### UI is Compose Multiplatform
 
@@ -259,6 +264,7 @@ the user before restarting.
 ```bash
 # launch — always prefer this over :desktopApp:run
 (./gradlew :desktopApp:hotRunJvm --auto > /tmp/opencode/vesti-hotreload.log 2>&1 &)
+# or: ./devtools app run — the same launch, detached and waited on
 ```
 
 CHR runs the app on an auto-provisioned **JetBrains Runtime** (JBR 21, under
@@ -354,11 +360,44 @@ life of the window.
   `connect()`).
 - Do not add iOS or other targets without discussing it first.
 
-## Emulator (debug device)
+## Android device (Waydroid)
+
+The Android build runs inside [Waydroid](https://waydro.id) — a container that
+boots a full Android system on the host kernel — rather than Google's emulator,
+so there is no AVD, emulator binary or SDK system image to install. Waydroid is
+in Arch's official repositories and fetches its image once:
 
 ```bash
-./devtools emulator start     # boot the AVD
-./devtools emulator stop      # shut down cleanly
-./devtools app run            # assemble debug APK, install it, launch it
-./devtools app uninstall      # uninstall the debug APK from a running emulator
+sudo pacman -S waydroid        # from Arch's official repositories
+sudo waydroid init             # once; downloads the Android image
+./devtools emulator start      # boot the session and show Android
+./devtools app run --android   # assemble debug APK, install it, launch it
+./devtools app uninstall       # uninstall the debug APK from Waydroid
 ```
+
+The guest needs the Android binder driver (`linux-zen`, `binder_linux-dkms`, or
+a mounted binderfs); `./devtools emulator start` says so when `/dev/binder` is
+missing. The app commands go through `adb` from the SDK's platform-tools
+(`waydroid app install` fails silently on recent images) and resolve the guest
+on Waydroid's `192.168.240.0/24` network. `./devtools` finds the SDK through
+`ANDROID_HOME`, `sdk.dir` in `local.properties`, or `~/Android/Sdk`, and puts
+its `platform-tools` on `PATH`.
+
+Waydroid suspends the guest (`Container: FROZEN`) when no app is on screen, and
+a frozen guest stops answering adb, so the device commands show the full UI to
+wake it first. adb calls carry timeouts so an unresponsive guest fails instead
+of hanging. Native guest crashes land on the host in
+`~/.local/share/waydroid/data/tombstones/` — SurfaceFlinger and the graphics
+composer HAL are the ones to look at when the guest reboots on its own.
+
+Waydroid's stock image is Android 13 (LineageOS 20), so the app's `minSdk` is
+33; the schema's `STRICT` tables need SQLite 3.37+, which is why the Android host
+uses `BundledSQLiteDriver` rather than the platform's system SQLite.
+
+`./devtools emulator start` keeps the session in fullscreen mode
+(`persist.waydroid.multi_windows=false`): the image's windowed mode is unreliable
+(app tasks regress to fullscreen and SurfaceFlinger has crashed there), so the
+whole Android UI stays in one window. It also keeps the guest screen on
+(`screen_off_timeout`) and turns off Android's on-screen keyboard (`settings put
+secure show_ime_with_hard_keyboard 0`): Waydroid presents the host keyboard as a
+hardware keyboard, and the image otherwise pops the IME up over a focused field.

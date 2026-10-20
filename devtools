@@ -4,13 +4,14 @@ set -euo pipefail
 
 print_usage() {
   cat <<EOF
-devtools — manage the Vesti Android dev environment.
+devtools — manage the Vesti dev environment.
 
 Usage:
-  ./devtools emulator start    Boot the AVD asynchronously
-  ./devtools emulator stop     Shut the emulator down cleanly
+  ./devtools emulator start    Boot Waydroid, the Android container
+  ./devtools app run           Run the app (desktop by default, under Compose Hot
+                               Reload; --android for Waydroid, --cold for a
+                               plain desktop run)
   ./devtools app install       Install debug build
-  ./devtools app run           Install and run debug build
   ./devtools app uninstall     Uninstall the app
   ./devtools app deploy        Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
   ./devtools website run       Open the website in a local browser tab
@@ -18,25 +19,33 @@ Usage:
 EOF
 }
 
+err() {
+  echo "Error: $*" >&2
+}
+
 print_usage_emulator() {
   cat <<EOF
 Usage: ./devtools emulator <command>
 
 Commands:
-  start    Boot the AVD asynchronously
-  stop     Shut the emulator down cleanly
+  start    Boot the Waydroid session and show Android
 EOF
 }
 
 print_usage_app() {
   cat <<EOF
-Usage: ./devtools emulator <command>
+Usage: ./devtools app <command>
 
 Commands:
-  install      Install debug build
-  run          Install and run debug build
-  uninstall    Uninstall the app
-  deploy       Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
+  run        Run the app. Runs the desktop app by default, or the Android build
+             in Waydroid with --android. The desktop app runs under Compose Hot
+             Reload, so code changes reach the running window without a
+             restart; --cold starts a plain run instead. Remaining arguments go
+             to Gradle, e.g. --no-auto to reload on demand instead of on every
+             save.
+  install    Install the debug build in Waydroid
+  uninstall  Uninstall the debug build from Waydroid
+  deploy     Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
 EOF
 }
 
@@ -52,15 +61,162 @@ EOF
 
 # START emulator section
 
-cmd_emulator_start() {
-  # Detach from the shell so the script can exit cleanly while the
-  # emulator keeps running.
-  nohup setsid emulator -avd Resizable_Experimental -gpu host > emulator.log 2>&1 < /dev/null & disown
+# The Android target runs inside Waydroid — a container that boots a full
+# Android system on the host kernel — instead of Google's emulator: no AVD to
+# keep around, no emulator binary, no SDK system images. Waydroid is in Arch's
+# official repositories (`sudo pacman -S waydroid`) and fetches its image once
+# (`sudo waydroid init`). The session is driven through Waydroid's own CLI;
+# the app commands talk to the guest over adb (see the app section).
+emulator_log="waydroid.log"
+
+require_waydroid() {
+  if ! command -v waydroid >/dev/null 2>&1; then
+    err "waydroid is not installed. Install it with: sudo pacman -S waydroid"
+    return 1
+  fi
+  if waydroid status 2>&1 | grep -q "not initialized"; then
+    err "Waydroid is not initialized. Initialize it once with: sudo waydroid init"
+    return 1
+  fi
 }
 
-cmd_emulator_stop() {
-  adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done
-  rm emulator.log
+waydroid_session_running() {
+  # `waydroid status` separates the label from the value with a tab.
+  waydroid status 2>/dev/null | grep -qE '^Session:[[:space:]]*RUNNING'
+}
+
+waydroid_container_frozen() {
+  waydroid status 2>/dev/null | grep -qE '^Container:[[:space:]]*FROZEN'
+}
+
+# Waydroid suspends the guest when no app is on screen (suspend_action=freeze),
+# and a frozen guest stops answering adb — device commands would just hang.
+# Showing the full UI unfreezes it (the launcher counts as the active app).
+wake_waydroid() {
+  if waydroid_container_frozen; then
+    waydroid show-full-ui >/dev/null 2>&1 || true
+  fi
+}
+
+# Multi-window (one window per app, managed by the desktop instead of one
+# full-screen Android surface) is a persistent guest property. The guest only
+# reads it when the session starts, so changing it means restarting the session.
+waydroid_multi_window() {
+  waydroid prop get persist.waydroid.multi_windows 2>/dev/null \
+    | tr -d '[:space:]' | grep -qx true
+}
+
+start_waydroid_session() {
+  # Detached: the session manager blocks for as long as the guest runs, so this
+  # returns once Android is up, not when the session ends. Its details go to the
+  # log rather than to Waydroid's own log file, so a failed boot can be read with
+  # the tail below.
+  nohup setsid waydroid --details-to-stdout session start > "$emulator_log" 2>&1 \
+    < /dev/null & disown
+
+  echo "Booting Waydroid (logs: $emulator_log)..."
+  local waited=0
+  while [ "$waited" -lt 240 ]; do
+    if waydroid_session_running; then
+      return 0
+    fi
+    # A session manager that has died — no binder device, the container service
+    # not running — never reaches RUNNING, so stop waiting for it.
+    if ! pgrep -f '[w]aydroid .*session start' >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+
+  err "Waydroid did not come up (see $emulator_log):"
+  tail -n 20 "$emulator_log" >&2
+  return 1
+}
+
+stop_waydroid_session() {
+  waydroid session stop >/dev/null 2>&1 || true
+  local waited=0
+  while [ "$waited" -lt 40 ]; do
+    if ! waydroid_session_running; then
+      return 0
+    fi
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+
+  err "Waydroid did not shut down"
+  return 1
+}
+
+# The session is what the guest's Android system runs under; without it every
+# `waydroid app` command logs "WayDroid session is stopped" and exits 0, so
+# check for it up front instead of after a silent failure.
+require_waydroid_session() {
+  require_waydroid || return 1
+  if ! waydroid_session_running; then
+    err "the Waydroid session is not running. Start it with: ./devtools emulator start"
+    return 1
+  fi
+}
+
+cmd_emulator_start() {
+  require_waydroid || return 1
+
+  local booted=0
+
+  if waydroid_session_running; then
+    echo "Waydroid is already running."
+  else
+    # Waydroid's guest reaches the host through the Android binder driver. A
+    # kernel without it (or with binderfs left unmounted) can never start the
+    # container, and the failure only shows up as a session that never comes up.
+    if [ ! -e /dev/binder ] && [ ! -d /dev/binderfs ]; then
+      cat >&2 <<'EOF'
+Error: no Android binder device: /dev/binder is missing and /dev/binderfs is
+not mounted.
+
+Waydroid needs the Android binder driver. Either run a kernel that ships it
+(linux-zen), install binder_linux-dkms, or mount binderfs and link its devices
+into /dev. See https://wiki.archlinux.org/title/Waydroid.
+EOF
+      return 1
+    fi
+
+    start_waydroid_session || return 1
+    booted=1
+  fi
+
+  # The image's windowed mode (one window per app) turned out to be fragile —
+  # it regressed to fullscreen tasks and crashed SurfaceFlinger — so the dev
+  # session runs with the whole Android UI in one window instead.
+  if waydroid_multi_window; then
+    echo "Switching Waydroid back to fullscreen mode..."
+    if ! waydroid prop set persist.waydroid.multi_windows false; then
+      err "could not turn off Waydroid multi-window mode"
+      return 1
+    fi
+    # The guest reads the property when it starts, so the session has to be
+    # restarted for the display to leave freeform mode.
+    stop_waydroid_session || return 1
+    start_waydroid_session || return 1
+    booted=1
+  fi
+
+  # A frozen guest does not answer adb, so wake it, then apply the guest-side
+  # settings (screen stays on, no on-screen keyboard).
+  wake_waydroid
+  if ! configure_guest; then
+    echo "Note: could not apply the Waydroid guest settings (adb unavailable)." >&2
+  fi
+
+  if [ "$booted" -eq 1 ]; then
+    # Puts the guest on screen: the session alone has no visible window. When
+    # the session was already up, leave it where the user left it.
+    waydroid show-full-ui >/dev/null 2>&1 || true
+  fi
+
+  echo "Install and launch the app with: ./devtools app run --android"
 }
 
 cmd_emulator() {
@@ -68,7 +224,6 @@ cmd_emulator() {
   shift || true
   case "$sub" in
     start)     cmd_emulator_start ;;
-    stop)      cmd_emulator_stop ;;
     help|-h|--help) print_usage_emulator ;;
     *) err "Unknown emulator command: $sub"; print_usage_emulator; return 1 ;;
   esac
@@ -78,76 +233,314 @@ cmd_emulator() {
 
 # START app section
 
+# The application id, which is also the package the debug build installs into
+# the guest (the release keeps `org.vestifeed`, the nightly `.nightly`).
+app_package="org.vestifeed.debug"
+
+# The SDK is where both the build and adb come from. Gradle finds it only
+# through ANDROID_HOME/ANDROID_SDK_ROOT or `sdk.dir` in local.properties, which
+# is per checkout and gitignored; fall back to the usual per-user install so the
+# Android target works from a plain shell.
+require_android_sdk() {
+  local sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+  if [ -z "$sdk" ] && [ -f local.properties ]; then
+    sdk="$(sed -n 's/^sdk\.dir=//p' local.properties | head -n1)"
+  fi
+  if [ -z "$sdk" ] && [ -d "$HOME/Android/Sdk" ]; then
+    sdk="$HOME/Android/Sdk"
+  fi
+  if [ -z "$sdk" ] || [ ! -d "$sdk" ]; then
+    err "the Android SDK was not found: set ANDROID_HOME or sdk.dir in local.properties"
+    return 1
+  fi
+
+  export ANDROID_HOME="$sdk"
+  case ":$PATH:" in
+    *":$sdk/platform-tools:"*) ;;
+    *) export PATH="$sdk/platform-tools:$PATH" ;;
+  esac
+  if ! command -v adb >/dev/null 2>&1; then
+    err "adb was not found in $sdk/platform-tools"
+    return 1
+  fi
+}
+
+# The guest is reached over adb on Waydroid's container network. Waydroid's own
+# `waydroid app install` logs its failures instead of failing (recent images
+# break it outright), so the app commands use adb, whose failures are visible.
+waydroid_device() {
+  require_waydroid_session || return 1
+  require_android_sdk || return 1
+  wake_waydroid
+
+  local ip serial waited=0
+  ip="$(waydroid status 2>/dev/null | sed -n 's/^IP address:[[:space:]]*//p' | head -n1)"
+  if [ -z "$ip" ]; then
+    err "could not read the Waydroid guest address from: waydroid status"
+    return 1
+  fi
+  serial="$ip:5555"
+
+  # The session reports RUNNING before Android has finished booting, and adb
+  # shows the guest as offline for a moment after a (re)start, so wait for the
+  # guest itself to say it is ready rather than race it.
+  while [ "$waited" -lt 120 ]; do
+    adb connect "$serial" >/dev/null 2>&1 || true
+    if [ "$(timeout 5 adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null \
+        | tr -d '\r[:space:]')" = "1" ]; then
+      echo "$serial"
+      return 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  err "adb cannot reach the Waydroid guest at $serial; accept its debugging prompt in Waydroid"
+  return 1
+}
+
+# Guest-side settings applied on every start:
+# - keep the Android screen on: a sleeping guest hides the app window and lets
+#   Waydroid freeze the container, which adb then cannot talk to;
+# - keep the IME away from focused fields: Waydroid presents the host keyboard as
+#   a hardware keyboard, but the image asks for the virtual keyboard anyway.
+configure_guest() {
+  local serial
+
+  # Called in this shell, not the substitution below: require_android_sdk puts
+  # platform-tools on PATH, which a subshell would not pass back.
+  require_android_sdk || return 1
+  serial="$(waydroid_device)" || return 1
+
+  timeout 15 adb -s "$serial" shell settings put system screen_off_timeout 2147483647 >/dev/null
+  timeout 15 adb -s "$serial" shell settings put secure show_ime_with_hard_keyboard 0 >/dev/null
+}
+
+install_apk() {
+  local apk_path="$1" serial
+
+  serial="$(waydroid_device)" || return 1
+
+  echo "Installing $apk_path in Waydroid..."
+  if ! timeout 180 adb -s "$serial" install -r -t "$apk_path"; then
+    err "the APK did not install (see the failure above)"
+    return 1
+  fi
+}
+
+# `waydroid app launch` is Waydroid's own launch — it also records the active
+# app for the host — whereas `am start` only updates the activity. The CLI logs
+# a failed launch and still exits 0, so wait for the process instead.
+launch_app() {
+  local serial="$1" pid waited attempt=0
+
+  while [ "$attempt" -lt 3 ]; do
+    echo "Launching $app_package..."
+    waydroid app launch "$app_package"
+
+    waited=0
+    while [ "$waited" -lt 10 ]; do
+      pid="$(timeout 5 adb -s "$serial" shell pidof "$app_package" 2>/dev/null | tr -d '\r[:space:]')"
+      if [ -n "$pid" ]; then
+        return 0
+      fi
+      sleep 0.5
+      waited=$((waited + 1))
+    done
+    attempt=$((attempt + 1))
+  done
+
+  err "$app_package did not start; see: waydroid log"
+  return 1
+}
+
 cmd_app_install() {
-  local device="emulator-5554"
   local apk_path="./app/build/outputs/apk/debug/app-debug.apk"
 
-  if ! adb devices | grep -q "^$device[[:space:]]"; then
-    echo "Error: emulator $device is not running. Start it with: ./devtools emulator start" >&2
-    return 1
-  fi
+  require_waydroid_session || return 1
+  require_java || return 1
+  require_android_sdk || return 1
 
   echo "Assembling debug APK..."
   ./gradlew assembleDebug "$@"
 
   if [ ! -f "$apk_path" ]; then
-    echo "Error: APK not found at $apk_path" >&2
+    err "APK not found at $apk_path"
     return 1
   fi
 
-  echo "Installing $apk_path on $device..."
-  adb -s "$device" install -r -t "$apk_path"
+  install_apk "$apk_path"
 }
 
-cmd_app_run() {
-  local device="emulator-5554"
-  local package="org.vestifeed.debug"
-  local apk_path="./app/build/outputs/apk/debug/app-debug.apk"
+cmd_app_run_android() {
+  local apk_path="./app/build/outputs/apk/debug/app-debug.apk" serial
 
-  if ! adb devices | grep -q "^$device[[:space:]]"; then
-    echo "Error: emulator $device is not running. Start it with: ./devtools emulator start" >&2
-    return 1
-  fi
+  require_waydroid_session || return 1
+  require_java || return 1
+  require_android_sdk || return 1
 
   echo "Assembling debug APK..."
   ./gradlew assembleDebug "$@"
 
   if [ ! -f "$apk_path" ]; then
-    echo "Error: APK not found at $apk_path" >&2
+    err "APK not found at $apk_path"
     return 1
   fi
 
-  echo "Installing $apk_path on $device..."
-  adb -s "$device" install -r -t "$apk_path"
+  install_apk "$apk_path" || return 1
 
-  echo "Launching $package..."
-  adb -s "$device" shell monkey -p "$package" -c android.intent.category.LAUNCHER 1
-
-  echo "Process status:"
-  adb -s "$device" shell ps -A | grep vesti || echo "(process not visible yet — give it a moment)"
+  serial="$(waydroid_device)" || return 1
+  launch_app "$serial"
 }
 
-cmd_app_uninstall() {
-  local device="emulator-5554"
-  local package="org.vestifeed.debug"
-
-  if ! adb devices | grep -q "^$device[[:space:]]"; then
-    echo "Error: emulator $device is not running. Start it with: ./devtools emulator start" >&2
-    return 1
+# The desktop run is detached (see cmd_app_run_desktop), so a Gradle wrapper that
+# cannot start would die out of sight in the log. Check the one prerequisite that
+# is easy to be missing before handing off, rather than let the launch look
+# successful and leave a window that never appears.
+require_java() {
+  if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    return 0
   fi
-
-  if ! adb -s "$device" shell pm list packages "$package" 2>/dev/null \
-      | tr -d '\r' | grep -qx "package:$package"; then
-    echo "$package is not installed on $device. Nothing to do."
+  if command -v java >/dev/null 2>&1; then
     return 0
   fi
 
-  echo "Uninstalling $package from $device..."
-  local result
-  if result=$(adb -s "$device" uninstall "$package" 2>&1); then
-    echo "$result"
+  cat >&2 <<'EOF'
+Error: Java is missing: no `java` on PATH, and JAVA_HOME is unset or does not
+contain bin/java.
+
+Gradle needs a JDK 17 or newer to start. The JetBrains runtime the desktop app
+itself runs on under hot reload is downloaded by Gradle automatically on the
+first run, so any JDK 17+ will do. Install one — on Arch: sudo pacman -S
+jdk-openjdk — or point JAVA_HOME at an existing one.
+EOF
+  return 1
+}
+
+cmd_app_run_desktop() {
+  local log="${TMPDIR:-/tmp}/vesti-desktop.log"
+
+  # Two instances would open the same database under the platform's data
+  # directory, so refuse to start a second one. The bracketed patterns keep
+  # pgrep from matching its own command line; `:desktopApp:hotRunJvm` is
+  # specific enough not to match another project's hot run.
+  if pgrep -f '[o]rg.vestifeed.desktop.MainKt' >/dev/null 2>&1 \
+      || pgrep -f '[d]esktopApp:hotRunJvm' >/dev/null 2>&1; then
+    echo "The desktop app is already running; not starting a second instance."
+    echo "Stop it with: pkill -f '[o]rg.vestifeed.desktop.MainKt'; pkill -f '[d]esktopApp:hotRunJvm'"
+    return 0
+  fi
+
+  require_java || return 1
+
+  local task=":desktopApp:hotRunJvm"
+  # --auto watches the sources and reloads the running window whenever one
+  # changes, which is the point of running under hot reload here. It keeps the
+  # Gradle build alive between reloads; --no-auto (forwarded to Gradle) turns
+  # that off and leaves the reload to `./gradlew :desktopApp:reload`.
+  local args=(--auto)
+
+  if [ -z "$desktop_hot" ]; then
+    task=":desktopApp:run"
+    args=()
+    echo "Launching the desktop app (logs: $log)..."
   else
-    echo "Uninstall failed: $result" >&2
+    # Hot reload runs the app on the JetBrains Runtime, not on the toolchain the
+    # plain run uses: only the JBR can redefine the classes it has already
+    # loaded. The toolchain resolver provisions it into ~/.gradle/jdks (a large
+    # download, once) on the first hot run.
+    echo "Launching the desktop app with Compose Hot Reload (logs: $log)..."
+    echo "Saving a source file reloads the window."
+  fi
+
+  echo "Waiting for the window to appear (build output: $log)..."
+
+  # Truncated here rather than by the subshell's redirection: the wait loop below
+  # must never read a marker left from the previous run before this one starts.
+  : > "$log"
+
+  # Detached: the task blocks for the life of the window, so control returns
+  # here once the window is up. It keeps the app's output (and, under hot reload,
+  # each reload's) in $log, because `hotRunJvm` runs the app attached.
+  (
+    echo "vesti: devtools app run started at $(date +%H:%M:%S.%3N)"
+    exec ./gradlew "$task" "${args[@]}" "$@"
+  ) >> "$log" 2>&1 &
+  local pid=$!
+
+  # Ctrl+C during the wait cancels the launch instead of leaving the build
+  # running invisibly after the prompt has come back.
+  trap 'kill -TERM "$pid" 2>/dev/null; echo "Launch cancelled." >&2; exit 130' INT TERM
+
+  # Block until the app has committed its first composition: a launch that fails
+  # should fail the command, not return a prompt that looks like success while
+  # the window never appears. The mark is the app's own (see Main.kt) and is the
+  # closest thing to "a window is on screen" here — it means the UI is up, not
+  # merely that Gradle finished compiling. The build (and the hot reload loop)
+  # keeps running once we return.
+  while kill -0 "$pid" 2>/dev/null; do
+    if grep -qF ': first composition committed' "$log" 2>/dev/null; then
+      trap - INT TERM
+      echo "The app is running (logs: $log)."
+      return 0
+    fi
+    sleep 0.5
+  done
+  trap - INT TERM
+
+  err "the desktop app exited before its window appeared."
+  tail -n 20 "$log" >&2
+  return 1
+}
+
+# Chooses the app target from optional --android/--desktop flags (desktop by
+# default), leaving the remaining arguments (forwarded to Gradle) in
+# app_target_args. The desktop app runs under Compose Hot Reload unless --cold
+# is given, because reloading the running window is how the desktop app is
+# iterated on; the Android target has no equivalent and always runs plainly.
+# Prints the app usage and returns 1 when asked for help.
+app_target="desktop"
+app_target_args=()
+desktop_hot=1
+
+parse_app_target() {
+  app_target="desktop"
+  app_target_args=()
+  desktop_hot=1
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --android) app_target="android" ;;
+      --desktop) app_target="desktop" ;;
+      --cold|--no-hot) desktop_hot="" ;;
+      help|-h|--help) print_usage_app; return 1 ;;
+      *) app_target_args+=("$arg") ;;
+    esac
+  done
+}
+
+cmd_app_run() {
+  parse_app_target "$@" || return 0
+  case "$app_target" in
+    android) cmd_app_run_android "${app_target_args[@]}" ;;
+    desktop) cmd_app_run_desktop "${app_target_args[@]}" ;;
+  esac
+}
+
+cmd_app_uninstall() {
+  local serial
+
+  serial="$(waydroid_device)" || return 1
+
+  if ! timeout 30 adb -s "$serial" shell pm list packages "$app_package" 2>/dev/null \
+      | tr -d '\r' | grep -qx "package:$app_package"; then
+    echo "$app_package is not installed in Waydroid. Nothing to do."
+    return 0
+  fi
+
+  echo "Uninstalling $app_package..."
+  if ! timeout 120 adb -s "$serial" uninstall "$app_package"; then
+    err "the app did not uninstall (see the failure above)"
     return 1
   fi
 }
@@ -191,7 +584,7 @@ cmd_app() {
     uninstall) cmd_app_uninstall "$@" ;;
     deploy) cmd_app_deploy "$@" ;;
     help|-h|--help) print_usage_app ;;
-    *) err "Unknown deploy target: $target"; print_usage_app; return 1 ;;
+    *) err "Unknown app command: $target"; print_usage_app; return 1 ;;
   esac
 }
 
