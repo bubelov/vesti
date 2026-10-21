@@ -23,7 +23,10 @@ val keystoreProperties = Properties().apply {
         keystorePropertiesFile.inputStream().use { load(it) }
     }
 }
-val keystorePath = keystoreProperties.getProperty("storeFile")?.let(::file)
+// Relative to the root project, not this module: `local.properties` names the
+// keystore from the checkout root (`storeFile=vesti.jks`), while `file(…)` here
+// would resolve it against `app/`.
+val keystorePath = keystoreProperties.getProperty("storeFile")?.let { rootProject.file(it) }
 
 /*
  * When this build was made, in epoch milliseconds, used by the nightly update
