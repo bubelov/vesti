@@ -71,7 +71,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Clock
@@ -85,6 +84,7 @@ import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.EntriesList
+import org.vestifeed.ui.RetryingAsyncImage
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.EntryRow
 import org.vestifeed.ui.entries.emptyMessage
@@ -772,7 +772,7 @@ private fun EntryListCard(
                 // with the card's top, left and bottom edges (the card's shape
                 // clips the corners).
                 Box(Modifier.matchParentSize()) {
-                    AsyncImage(
+                    RetryingAsyncImage(
                         model = proxiedUrl(row.imageUrl),
                         contentDescription = null,
                         contentScale = if (row.cropImage) ContentScale.Crop else ContentScale.Fit,
@@ -826,7 +826,7 @@ private fun EntryGridCard(
                     // the fixed 16:9 band; otherwise the band takes the image's
                     // own aspect ratio, so a full width shows the whole picture.
                     var aspectRatio by remember(row.imageUrl) { mutableStateOf<Float?>(null) }
-                    AsyncImage(
+                    RetryingAsyncImage(
                         model = proxiedUrl(row.imageUrl),
                         contentDescription = null,
                         contentScale = if (row.cropImage) ContentScale.Crop else ContentScale.Fit,

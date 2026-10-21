@@ -9,6 +9,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -53,7 +54,17 @@ class OgImageFetcher(
         // The host may start this before its UI has connected the database.
         db.connect()
         while (coroutineContext.isActive) {
-            runOnce()
+            try {
+                runOnce()
+            } catch (c: CancellationException) {
+                throw c
+            } catch (_: Throwable) {
+                // A single bad iteration (a page the parser chokes on, a
+                // transient database error) must not stop preview fetching for
+                // the rest of the session: the hosts wrap this call in
+                // runCatching, so an escaping exception would be silent.
+                delay(ERROR_INTERVAL)
+            }
         }
     }
 
@@ -121,11 +132,30 @@ class OgImageFetcher(
             return false
         }
 
-        val imageUrl = Ksoup.parse(html)
-            .select("meta[property=\"og:image\"]")
-            .firstOrNull()
-            ?.attr("content")
-            .orEmpty()
+        val imageUrl = try {
+            Ksoup.parse(html)
+                .select("meta[property=\"og:image\"]")
+                .firstOrNull()
+                ?.attr("content")
+                .orEmpty()
+        } catch (t: Throwable) {
+            // A page the parser cannot handle must not escape and kill the
+            // whole loop; count it like any other transient failure so a
+            // deterministically broken page is eventually abandoned.
+            val log = appendLog(
+                candidate.id,
+                "Transient failure parsing HTML (${t.message}); will retry",
+            )
+            val failures = OgImagePlanning.transientFailureCount(log)
+            if (OgImagePlanning.shouldAbandonAfterTransientFailures(failures)) {
+                appendLog(
+                    candidate.id,
+                    "Abandoning after $failures transient failures, marking as checked",
+                )
+                db.entry.updateOgImageChecked(true, candidate.id)
+            }
+            return false
+        }
 
         if (imageUrl.isBlank()) {
             appendLog(candidate.id, "No og:image meta tag found, marking as checked")
@@ -171,5 +201,8 @@ class OgImageFetcher(
         val GLOBAL_OFF_INTERVAL: Duration = 5.seconds
         val EMPTY_INTERVAL: Duration = 2.seconds
         val OFFLINE_INTERVAL: Duration = 5.seconds
+
+        /** Pause after an iteration that failed unexpectedly, before retrying. */
+        val ERROR_INTERVAL: Duration = 5.seconds
     }
 }

@@ -42,12 +42,12 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.RetryingAsyncImage
 import org.vestifeed.ui.entries.formatCalendarDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
@@ -291,7 +291,7 @@ private fun EntryImage(block: EntryBlock.Image) {
     var aspectRatio by remember(block.url) { mutableStateOf<Float?>(null) }
 
     Column(Modifier.fillMaxWidth()) {
-        AsyncImage(
+        RetryingAsyncImage(
             model = proxiedUrl(block.url),
             contentDescription = block.caption,
             contentScale = ContentScale.FillWidth,
