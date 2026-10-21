@@ -138,8 +138,8 @@ dependencies {
 }
 
 /**
- * Writes the update manifest the nightly's update check reads. `devtools app
- * deploy` copies it to `website/releases/vesti-nightly.json`, next to the APK.
+ * Writes the update manifest the nightly's update check reads. `devtools
+ * publish` uploads it next to the APK on the server.
  * Kept in Gradle so the version code, name and build time in the manifest are
  * exactly the ones baked into the APK.
  */

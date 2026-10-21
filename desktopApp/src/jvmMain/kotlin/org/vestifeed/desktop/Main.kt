@@ -42,8 +42,8 @@ fun main() = application {
     ) {
         // Runs once the first composition has been applied — the closest thing
         // to "a window is on screen" this side of the surface can see. It is
-        // what `./devtools app run` waits for before it returns control (see
-        // cmd_app_run_desktop), so an early failure does not look like a launch.
+        // what `./devtools run` waits for before it returns control (see
+        // cmd_run_desktop), so an early failure does not look like a launch.
         LaunchedEffect(Unit) { println("vesti: first composition committed") }
         VestiApp(
             platform = remember { DesktopVestiPlatform() },

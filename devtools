@@ -1,61 +1,21 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -o errexit   # Exit immediately if a command exits with a non-zero status
+set -o nounset   # Treat unset variables as an error when substituting
+set -o pipefail  # A pipeline fails if any stage fails, not just the last one
 
 print_usage() {
   cat <<EOF
 devtools — manage the Vesti dev environment.
 
 Usage:
-  ./devtools emulator start    Boot Waydroid, the Android container
-  ./devtools app run           Run the app (desktop by default, under Compose Hot
-                               Reload; --android for Waydroid, --cold for a
-                               plain desktop run)
-  ./devtools app install       Install debug build
-  ./devtools app uninstall     Uninstall the app
-  ./devtools app deploy        Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
-  ./devtools website run       Open the website in a local browser tab
-  ./devtools website deploy    Deploy website with rsync
-EOF
-}
-
-err() {
-  echo "Error: $*" >&2
-}
-
-print_usage_emulator() {
-  cat <<EOF
-Usage: ./devtools emulator <command>
-
-Commands:
-  start    Boot the Waydroid session and show Android
-EOF
-}
-
-print_usage_app() {
-  cat <<EOF
-Usage: ./devtools app <command>
-
-Commands:
-  run        Run the app. Runs the desktop app by default, or the Android build
-             in Waydroid with --android. The desktop app runs under Compose Hot
-             Reload, so code changes reach the running window without a
-             restart; --cold starts a plain run instead. Remaining arguments go
-             to Gradle, e.g. --no-auto to reload on demand instead of on every
-             save.
-  install    Install the debug build in Waydroid
-  uninstall  Uninstall the debug build from Waydroid
-  deploy     Build a signed nightly APK and copy it to website/releases/vesti-nightly.apk
-EOF
-}
-
-print_usage_website() {
-  cat <<EOF
-Usage: ./devtools website <command>
-
-Commands:
-  run       Open the website in a local browser tab
-  deploy    Deploy website with rsync
+  ./devtools run       Run the app. Runs the desktop app by default, or the
+                       Android build in Waydroid with --android, which boots
+                       Waydroid first if it is not already running. The desktop
+                       app runs under Compose Hot Reload, so code changes reach
+                       the running window without a restart.
+  ./devtools publish   Build a signed nightly APK and upload it to
+                       vestifeed.org
 EOF
 }
 
@@ -71,11 +31,11 @@ emulator_log="waydroid.log"
 
 require_waydroid() {
   if ! command -v waydroid >/dev/null 2>&1; then
-    err "waydroid is not installed. Install it with: sudo pacman -S waydroid"
+    echo "Error: waydroid is not installed. Install it with: sudo pacman -S waydroid" >&2
     return 1
   fi
   if waydroid status 2>&1 | grep -q "not initialized"; then
-    err "Waydroid is not initialized. Initialize it once with: sudo waydroid init"
+    echo "Error: Waydroid is not initialized. Initialize it once with: sudo waydroid init" >&2
     return 1
   fi
 }
@@ -129,7 +89,7 @@ start_waydroid_session() {
     waited=$((waited + 1))
   done
 
-  err "Waydroid did not come up (see $emulator_log):"
+  echo "Error: Waydroid did not come up (see $emulator_log):" >&2
   tail -n 20 "$emulator_log" >&2
   return 1
 }
@@ -145,7 +105,7 @@ stop_waydroid_session() {
     waited=$((waited + 1))
   done
 
-  err "Waydroid did not shut down"
+  echo "Error: Waydroid did not shut down" >&2
   return 1
 }
 
@@ -155,19 +115,20 @@ stop_waydroid_session() {
 require_waydroid_session() {
   require_waydroid || return 1
   if ! waydroid_session_running; then
-    err "the Waydroid session is not running. Start it with: ./devtools emulator start"
+    echo "Error: the Waydroid session is not running. Boot it with: ./devtools run --android" >&2
     return 1
   fi
 }
 
-cmd_emulator_start() {
+# `run --android` calls this, so there is no separate command to start
+# Waydroid: the session is a prerequisite of running the app, not a step of its
+# own. Boots it when it is not up, then applies the dev settings.
+ensure_waydroid_session() {
   require_waydroid || return 1
 
   local booted=0
 
-  if waydroid_session_running; then
-    echo "Waydroid is already running."
-  else
+  if ! waydroid_session_running; then
     # Waydroid's guest reaches the host through the Android binder driver. A
     # kernel without it (or with binderfs left unmounted) can never start the
     # container, and the failure only shows up as a session that never comes up.
@@ -193,7 +154,7 @@ EOF
   if waydroid_multi_window; then
     echo "Switching Waydroid back to fullscreen mode..."
     if ! waydroid prop set persist.waydroid.multi_windows false; then
-      err "could not turn off Waydroid multi-window mode"
+      echo "Error: could not turn off Waydroid multi-window mode" >&2
       return 1
     fi
     # The guest reads the property when it starts, so the session has to be
@@ -215,18 +176,6 @@ EOF
     # the session was already up, leave it where the user left it.
     waydroid show-full-ui >/dev/null 2>&1 || true
   fi
-
-  echo "Install and launch the app with: ./devtools app run --android"
-}
-
-cmd_emulator() {
-  local sub="${1:-help}"
-  shift || true
-  case "$sub" in
-    start)     cmd_emulator_start ;;
-    help|-h|--help) print_usage_emulator ;;
-    *) err "Unknown emulator command: $sub"; print_usage_emulator; return 1 ;;
-  esac
 }
 
 # END emulator section
@@ -250,7 +199,7 @@ require_android_sdk() {
     sdk="$HOME/Android/Sdk"
   fi
   if [ -z "$sdk" ] || [ ! -d "$sdk" ]; then
-    err "the Android SDK was not found: set ANDROID_HOME or sdk.dir in local.properties"
+    echo "Error: the Android SDK was not found: set ANDROID_HOME or sdk.dir in local.properties" >&2
     return 1
   fi
 
@@ -260,7 +209,7 @@ require_android_sdk() {
     *) export PATH="$sdk/platform-tools:$PATH" ;;
   esac
   if ! command -v adb >/dev/null 2>&1; then
-    err "adb was not found in $sdk/platform-tools"
+    echo "Error: adb was not found in $sdk/platform-tools" >&2
     return 1
   fi
 }
@@ -276,7 +225,7 @@ waydroid_device() {
   local ip serial waited=0
   ip="$(waydroid status 2>/dev/null | sed -n 's/^IP address:[[:space:]]*//p' | head -n1)"
   if [ -z "$ip" ]; then
-    err "could not read the Waydroid guest address from: waydroid status"
+    echo "Error: could not read the Waydroid guest address from: waydroid status" >&2
     return 1
   fi
   serial="$ip:5555"
@@ -295,7 +244,7 @@ waydroid_device() {
     waited=$((waited + 1))
   done
 
-  err "adb cannot reach the Waydroid guest at $serial; accept its debugging prompt in Waydroid"
+  echo "Error: adb cannot reach the Waydroid guest at $serial; accept its debugging prompt in Waydroid" >&2
   return 1
 }
 
@@ -323,7 +272,7 @@ install_apk() {
 
   echo "Installing $apk_path in Waydroid..."
   if ! timeout 180 adb -s "$serial" install -r -t "$apk_path"; then
-    err "the APK did not install (see the failure above)"
+    echo "Error: the APK did not install (see the failure above)" >&2
     return 1
   fi
 }
@@ -350,40 +299,22 @@ launch_app() {
     attempt=$((attempt + 1))
   done
 
-  err "$app_package did not start; see: waydroid log"
+  echo "Error: $app_package did not start; see: waydroid log" >&2
   return 1
 }
 
-cmd_app_install() {
-  local apk_path="./app/build/outputs/apk/debug/app-debug.apk"
-
-  require_waydroid_session || return 1
-  require_java || return 1
-  require_android_sdk || return 1
-
-  echo "Assembling debug APK..."
-  ./gradlew assembleDebug "$@"
-
-  if [ ! -f "$apk_path" ]; then
-    err "APK not found at $apk_path"
-    return 1
-  fi
-
-  install_apk "$apk_path"
-}
-
-cmd_app_run_android() {
+cmd_run_android() {
   local apk_path="./app/build/outputs/apk/debug/app-debug.apk" serial
 
-  require_waydroid_session || return 1
   require_java || return 1
   require_android_sdk || return 1
+  ensure_waydroid_session || return 1
 
   echo "Assembling debug APK..."
-  ./gradlew assembleDebug "$@"
+  ./gradlew assembleDebug
 
   if [ ! -f "$apk_path" ]; then
-    err "APK not found at $apk_path"
+    echo "Error: APK not found at $apk_path" >&2
     return 1
   fi
 
@@ -393,7 +324,7 @@ cmd_app_run_android() {
   launch_app "$serial"
 }
 
-# The desktop run is detached (see cmd_app_run_desktop), so a Gradle wrapper that
+# The desktop run is detached (see cmd_run_desktop), so a Gradle wrapper that
 # cannot start would die out of sight in the log. Check the one prerequisite that
 # is easy to be missing before handing off, rather than let the launch look
 # successful and leave a window that never appears.
@@ -417,41 +348,17 @@ EOF
   return 1
 }
 
-cmd_app_run_desktop() {
+cmd_run_desktop() {
   local log="${TMPDIR:-/tmp}/vesti-desktop.log"
-
-  # Two instances would open the same database under the platform's data
-  # directory, so refuse to start a second one. The bracketed patterns keep
-  # pgrep from matching its own command line; `:desktopApp:hotRunJvm` is
-  # specific enough not to match another project's hot run.
-  if pgrep -f '[o]rg.vestifeed.desktop.MainKt' >/dev/null 2>&1 \
-      || pgrep -f '[d]esktopApp:hotRunJvm' >/dev/null 2>&1; then
-    echo "The desktop app is already running; not starting a second instance."
-    echo "Stop it with: pkill -f '[o]rg.vestifeed.desktop.MainKt'; pkill -f '[d]esktopApp:hotRunJvm'"
-    return 0
-  fi
 
   require_java || return 1
 
-  local task=":desktopApp:hotRunJvm"
-  # --auto watches the sources and reloads the running window whenever one
-  # changes, which is the point of running under hot reload here. It keeps the
-  # Gradle build alive between reloads; --no-auto (forwarded to Gradle) turns
-  # that off and leaves the reload to `./gradlew :desktopApp:reload`.
-  local args=(--auto)
-
-  if [ -z "$desktop_hot" ]; then
-    task=":desktopApp:run"
-    args=()
-    echo "Launching the desktop app (logs: $log)..."
-  else
-    # Hot reload runs the app on the JetBrains Runtime, not on the toolchain the
-    # plain run uses: only the JBR can redefine the classes it has already
-    # loaded. The toolchain resolver provisions it into ~/.gradle/jdks (a large
-    # download, once) on the first hot run.
-    echo "Launching the desktop app with Compose Hot Reload (logs: $log)..."
-    echo "Saving a source file reloads the window."
-  fi
+  # Hot reload runs the app on the JetBrains Runtime, not on the system JDK
+  # toolchain the build uses: only the JBR can redefine the classes it has
+  # already loaded. The toolchain resolver provisions it into ~/.gradle/jdks
+  # (a large download, once) on the first hot run.
+  echo "Launching the desktop app with Compose Hot Reload (logs: $log)..."
+  echo "Saving a source file reloads the window."
 
   echo "Waiting for the window to appear (build output: $log)..."
 
@@ -463,8 +370,11 @@ cmd_app_run_desktop() {
   # here once the window is up. It keeps the app's output (and, under hot reload,
   # each reload's) in $log, because `hotRunJvm` runs the app attached.
   (
-    echo "vesti: devtools app run started at $(date +%H:%M:%S.%3N)"
-    exec ./gradlew "$task" "${args[@]}" "$@"
+    echo "vesti: devtools run started at $(date +%H:%M:%S.%3N)"
+    # --auto is the hot-reload task's auto mode: it watches the sources and
+    # reloads the running window whenever one changes, which is the point of
+    # running the desktop app under hot reload here.
+    exec ./gradlew :desktopApp:hotRunJvm --auto
   ) >> "$log" 2>&1 &
   local pid=$!
 
@@ -488,68 +398,54 @@ cmd_app_run_desktop() {
   done
   trap - INT TERM
 
-  err "the desktop app exited before its window appeared."
+  echo "Error: the desktop app exited before its window appeared." >&2
   tail -n 20 "$log" >&2
   return 1
 }
 
 # Chooses the app target from optional --android/--desktop flags (desktop by
-# default), leaving the remaining arguments (forwarded to Gradle) in
-# app_target_args. The desktop app runs under Compose Hot Reload unless --cold
-# is given, because reloading the running window is how the desktop app is
-# iterated on; the Android target has no equivalent and always runs plainly.
-# Prints the app usage and returns 1 when asked for help.
-app_target="desktop"
-app_target_args=()
-desktop_hot=1
-
-parse_app_target() {
-  app_target="desktop"
-  app_target_args=()
-  desktop_hot=1
+# default). The desktop app runs under Compose Hot Reload, because reloading
+# the running window is how it is iterated on; the Android target has no
+# equivalent and always runs plainly.
+parse_run_target() {
+  run_target="desktop"
   local arg
   for arg in "$@"; do
     case "$arg" in
-      --android) app_target="android" ;;
-      --desktop) app_target="desktop" ;;
-      --cold|--no-hot) desktop_hot="" ;;
-      help|-h|--help) print_usage_app; return 1 ;;
-      *) app_target_args+=("$arg") ;;
+      --android) run_target="android" ;;
+      --desktop) run_target="desktop" ;;
+      *) echo "Error: Unknown option: $arg" >&2; print_usage; return 1 ;;
     esac
   done
 }
 
-cmd_app_run() {
-  parse_app_target "$@" || return 0
-  case "$app_target" in
-    android) cmd_app_run_android "${app_target_args[@]}" ;;
-    desktop) cmd_app_run_desktop "${app_target_args[@]}" ;;
+cmd_run() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      help|-h|--help) print_usage; return 0 ;;
+    esac
+  done
+
+  parse_run_target "$@" || return 1
+  case "$run_target" in
+    android) cmd_run_android ;;
+    desktop) cmd_run_desktop ;;
   esac
 }
 
-cmd_app_uninstall() {
-  local serial
+cmd_publish() {
+  case "${1:-}" in
+    help|-h|--help) print_usage; return 0 ;;
+  esac
 
-  serial="$(waydroid_device)" || return 1
-
-  if ! timeout 30 adb -s "$serial" shell pm list packages "$app_package" 2>/dev/null \
-      | tr -d '\r' | grep -qx "package:$app_package"; then
-    echo "$app_package is not installed in Waydroid. Nothing to do."
-    return 0
-  fi
-
-  echo "Uninstalling $app_package..."
-  if ! timeout 120 adb -s "$serial" uninstall "$app_package"; then
-    err "the app did not uninstall (see the failure above)"
-    return 1
-  fi
-}
-
-cmd_app_deploy() {
   local apk_path="./app/build/outputs/apk/nightly/app-nightly.apk"
   local manifest_src="./app/build/updates/vesti-nightly.json"
-  local dest="./website/releases/vesti-nightly.apk"
-  local manifest_dest="./website/releases/vesti-nightly.json"
+  local remote_dir="root@vestifeed.org:/srv/http/vestifeed.org/releases"
+
+  # The nightly is an Android build, so Gradle needs the SDK just like the
+  # Android run does; it is found through the same env/property fallbacks.
+  require_android_sdk || return 1
 
   # Stamp the build so the APK and the manifest it publishes agree and each
   # rollout is newer than the last one users may have installed.
@@ -557,7 +453,7 @@ cmd_app_deploy() {
   build_time=$(date +%s%3N)
 
   echo "Building nightly APK..."
-  ./gradlew assembleNightly :app:writeUpdateManifest -PvestiBuildTime="$build_time" "$@"
+  ./gradlew assembleNightly :app:writeUpdateManifest -PvestiBuildTime="$build_time"
 
   if [ ! -f "$apk_path" ]; then
     echo "Error: nightly APK not found at $apk_path" >&2
@@ -568,61 +464,23 @@ cmd_app_deploy() {
     return 1
   fi
 
-  echo "Copying the nightly APK and its update manifest to website/releases"
-  mkdir -p "$(dirname "$dest")"
-  cp "$apk_path" "$dest"
-  cp "$manifest_src" "$manifest_dest"
-  rsync -avz --delete "./website/" vesti:/srv/http/vestifeed.org/
-}
-
-cmd_app() {
-  local target="${1:-help}"
-  shift || true
-  case "$target" in
-    install) cmd_app_install "$@" ;;
-    run) cmd_app_run "$@" ;;
-    uninstall) cmd_app_uninstall "$@" ;;
-    deploy) cmd_app_deploy "$@" ;;
-    help|-h|--help) print_usage_app ;;
-    *) err "Unknown app command: $target"; print_usage_app; return 1 ;;
-  esac
+  echo "Uploading the nightly APK and its update manifest to vestifeed.org..."
+  # Renamed on the way out: the local build outputs carry Gradle's names, but
+  # the manifest URL and the download link both point at vesti-nightly.*.
+  rsync -avz "$apk_path" "$remote_dir/vesti-nightly.apk"
+  rsync -avz "$manifest_src" "$remote_dir/vesti-nightly.json"
 }
 
 # END app section
-
-# START website section
-
-cmd_website_run() {
-  echo "Opening the local website in the default browser..."
-  xdg-open ./website/index.html
-}
-
-cmd_website_deploy() {
-  rsync -avz --delete "./website/" vesti:/srv/http/vestifeed.org/
-}
-
-cmd_website() {
-  local sub="${1:-help}"
-  shift || true
-  case "$sub" in
-    run) cmd_website_run ;;
-    deploy) cmd_website_deploy ;;
-    help|-h|--help) print_usage_website ;;
-    *) err "Unknown deploy target: $target"; print_usage_app; return 1 ;;
-  esac
-}
-
-# END website section
 
 main() {
   local cmd="${1:-help}"
   shift || true
   case "$cmd" in
-    emulator) cmd_emulator "$@" ;;
-    app) cmd_app "$@" ;;
-    website) cmd_website "$@" ;;
+    run) cmd_run "$@" ;;
+    publish) cmd_publish "$@" ;;
     help|-h|--help) print_usage ;;
-    *) err "Unknown command: $cmd"; print_usage; return 1 ;;
+    *) echo "Error: Unknown command: $cmd" >&2; print_usage; return 1 ;;
   esac
 }
 

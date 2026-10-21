@@ -5,9 +5,9 @@ import org.vestifeed.json.vestiJson
 
 /**
  * The build published at an update channel's manifest URL, e.g.
- * `https://vestifeed.org/releases/vesti-nightly.json`. The deploy writes it
- * next to the APK, so an installed build can discover a newer one without
- * downloading it first.
+ * `https://vestifeed.org/releases/vesti-nightly.json`. `devtools publish`
+ * uploads it next to the APK, so an installed build can discover a newer one
+ * without downloading it first.
  */
 @Serializable
 data class UpdateManifest(
