@@ -33,6 +33,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -87,8 +88,8 @@ import org.vestifeed.ui.theme.VestiTheme
 import org.vestifeed.ui.theme.vestiNavItemColors
 
 /**
- * The shared root composable. Both hosts (Android and wasm) call this with
- * their own [Database] and [VestiPlatform]. The database is connected lazily
+ * The shared root composable. Every host (Android, wasm, desktop) calls this
+ * with its own [Database] and [VestiPlatform]. The database is connected lazily
  * on first composition.
  */
 @Composable
@@ -96,6 +97,11 @@ fun VestiApp(
     platform: VestiPlatform,
     database: Database,
     userAgent: String,
+    /**
+     * Overrides the display density, used by the desktop host to apply the
+     * Wayland session's fractional scale; see [VestiTheme].
+     */
+    density: Density? = null,
 ) {
     val scope = rememberCoroutineScope()
     val state = remember { AppState(platform, database, scope, userAgent) }
@@ -106,7 +112,7 @@ fun VestiApp(
     // Wraps the whole tree so every stringResource() resolves against the
     // user's language choice (null = system default); see ProvideAppLanguage.
     ProvideAppLanguage(state.conf.language) {
-        VestiTheme {
+        VestiTheme(density = density) {
             if (!state.connected) {
                 Surface(Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

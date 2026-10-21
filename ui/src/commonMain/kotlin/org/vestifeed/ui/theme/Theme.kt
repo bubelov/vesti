@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Density
 import org.jetbrains.compose.resources.Font
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.material_symbols
@@ -129,6 +131,12 @@ val vestiNavItemColors: NavigationBarItemColors
 @Composable
 fun VestiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    /**
+     * Replaces the display density for the content. The desktop passes the
+     * Wayland session's fractional scale here: Compose Desktop's AWT host only
+     * reports whole-number scales, so a 275% session would render at 200%.
+     */
+    density: Density? = null,
     content: @Composable () -> Unit,
 ) {
     val iconFont = FontFamily(Font(Res.font.material_symbols))
@@ -136,6 +144,7 @@ fun VestiTheme(
     CompositionLocalProvider(
         LocalIconFont provides iconFont,
         LocalDarkTheme provides darkTheme,
+        LocalDensity provides (density ?: LocalDensity.current),
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,

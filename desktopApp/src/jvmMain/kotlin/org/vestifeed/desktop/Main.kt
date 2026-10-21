@@ -3,6 +3,8 @@ package org.vestifeed.desktop
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -45,10 +47,26 @@ fun main() = application {
         // what `./devtools run` waits for before it returns control (see
         // cmd_run_desktop), so an early failure does not look like a launch.
         LaunchedEffect(Unit) { println("vesti: first composition committed") }
+
+        // Compose Desktop has no native Wayland backend on Linux: it runs on
+        // XWayland, whose AWT toolkit only reports whole-number scales. A 275%
+        // session therefore arrives as 200%, so recover the compositor's
+        // fractional scale and use it as the density of this window's content.
+        // Outside a Wayland session, and on the other platforms, the helper
+        // returns the toolkit's value unchanged.
+        val toolkitDensity = LocalDensity.current
+        val uiScale = remember(toolkitDensity.density) {
+            waylandUiScale(toolkitDensity.density)
+        }
+        val uiDensity = remember(uiScale, toolkitDensity.fontScale) {
+            Density(uiScale, toolkitDensity.fontScale)
+        }
+
         VestiApp(
             platform = remember { DesktopVestiPlatform() },
             database = database,
             userAgent = USER_AGENT,
+            density = uiDensity,
         )
     }
 }
