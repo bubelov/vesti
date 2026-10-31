@@ -12,11 +12,15 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.channels.OverlappingFileLockException
+import java.nio.file.StandardOpenOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlin.system.exitProcess
 import org.jetbrains.compose.resources.painterResource
 import org.vestifeed.db.Database
 import org.vestifeed.desktop.resources.Res
@@ -26,7 +30,26 @@ import org.vestifeed.ui.VestiApp
 
 private const val USER_AGENT = "Vesti/0.4.3 (Desktop)"
 
-fun main() = application {
+// Holds the single-instance lock reachable for as long as the app runs: if the
+// channel were collected, its cleaner would release the lock mid-session.
+private var instanceLock: FileChannel? = null
+
+fun main() {
+    // One copy per user, because a second one would open the same SQLite file
+    // and the same window. The lock is an OS file lock rather than a PID file:
+    // the kernel drops it when the process dies, so a crash can never leave the
+    // app permanently refusing to start.
+    instanceLock = acquireInstanceLock()
+    if (instanceLock == null) {
+        System.err.println("vesti: another instance is already running")
+        exitProcess(0)
+    }
+    startUi()
+}
+
+// `application` exits the process when the window closes, which is also what
+// releases the instance lock; there is nothing to clean up afterwards.
+private fun startUi() = application {
     val database = remember { Database(BundledSQLiteDriver(), databaseFile().absolutePath) }
     val scope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 
@@ -75,6 +98,31 @@ fun main() = application {
             density = uiDensity,
         )
     }
+}
+
+/**
+ * Takes this user's data directory for the lifetime of the process. Returns null
+ * when another process already holds it, which is how a second launch knows to
+ * exit instead of fighting the first one over the SQLite file.
+ */
+private fun acquireInstanceLock(): FileChannel? {
+    val directory = dataDirectory().apply { mkdirs() }
+    val channel = FileChannel.open(
+        File(directory, "instance.lock").toPath(),
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE,
+    )
+    val locked = try {
+        channel.tryLock() != null
+    } catch (_: OverlappingFileLockException) {
+        // Another classloader in this JVM holds the same file — still a duplicate.
+        false
+    }
+    if (!locked) {
+        channel.close()
+        return null
+    }
+    return channel
 }
 
 /**

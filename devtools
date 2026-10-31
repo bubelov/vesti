@@ -12,7 +12,8 @@ Usage:
   ./devtools run       Run the app. Runs the desktop app by default, or the
                        Android build in Waydroid with --android, which boots
                        Waydroid first if it is not already running. The desktop
-                       app runs on the local JVM, so code changes need a restart.
+                       app runs on the local JVM, so code changes need a restart;
+                       an instance that is already up is stopped first.
   ./devtools publish   Build a signed nightly APK and upload it to
                        vestifeed.org
 EOF
@@ -350,6 +351,8 @@ cmd_run_desktop() {
 
   require_java || return 1
 
+  stop_desktop_app
+
   echo "Launching the desktop app (logs: $log)..."
 
   echo "Waiting for the window to appear (build output: $log)..."
@@ -387,9 +390,48 @@ cmd_run_desktop() {
   done
   trap - INT TERM
 
+  if grep -qF "vesti: another instance is already running" "$log" 2>/dev/null; then
+    echo "Error: another Vesti instance is already running; close it and retry." >&2
+    return 1
+  fi
+
   echo "Error: the desktop app exited before its window appeared." >&2
   tail -n 20 "$log" >&2
   return 1
+}
+
+# The app refuses to start twice (see acquireInstanceLock in Main.kt), so a
+# second `run` would otherwise fail at startup. `run` means "run the current
+# code": stop the window that is already up and let the new build take its
+# place, which is also the only way a rebuild is ever picked up.
+desktop_app_pids() {
+  ps -axo pid=,comm=,args= 2>/dev/null |
+    awk -v mainclass="org.vestifeed.desktop.MainKt" \
+      'index($0, mainclass) && $2 ~ /java/ { print $1 }'
+}
+
+stop_desktop_app() {
+  local pids pid
+
+  pids="$(desktop_app_pids)"
+  [ -n "$pids" ] || return 0
+
+  echo "Stopping the running desktop app (PID $(echo $pids | tr '\n' ' ' | sed 's/ $//'))..."
+  for pid in $pids; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+
+  # Wait for the JVM to exit: the data-directory lock is only released when the
+  # process is gone, so starting earlier would hit "another instance" instead.
+  for _ in $(seq 1 50); do
+    [ -n "$(desktop_app_pids)" ] || return 0
+    sleep 0.2
+  done
+
+  pids="$(desktop_app_pids)"
+  for pid in $pids; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
 }
 
 # Chooses the app target from optional --android/--desktop flags (desktop by
