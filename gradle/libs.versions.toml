@@ -8,10 +8,10 @@ agp = "9.4.1"
 kotlin = "2.4.20"
 # Compose Multiplatform
 # https://github.com/JetBrains/compose-multiplatform/releases
-compose-plugin = "1.13.0-alpha02"
+compose-plugin = "1.13.0-beta01"
 # AndroidX Compose UI, pinned to the version Compose Multiplatform resolves for
 # the Android target (used by the instrumented test artifacts).
-androidx-compose = "1.13.0-alpha03"
+androidx-compose = "1.13.0-beta01"
 # Enables suspending functions
 # https://github.com/Kotlin/kotlinx.coroutines/releases
 coroutines = "1.11.0"
