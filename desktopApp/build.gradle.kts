@@ -25,6 +25,12 @@ kotlin {
             // opens; unlike Android there is no system SQLite to fall back on.
             implementation(libs.androidx.sqlite.bundled.jvm)
         }
+
+        getByName("commonMain").dependencies {
+            // The generated Res accessors for the window icon live in commonMain,
+            // so the loader that dereferences them has to be on this classpath.
+            implementation(libs.compose.components.resources)
+        }
     }
 }
 
@@ -37,6 +43,11 @@ compose.desktop {
         jvmArgs += listOf("--enable-native-access=ALL-UNNAMED")
 
         nativeDistributions {
+            // The .deb launcher otherwise shows the Kotlin/Compose default icon;
+            // the other targets need .ico/.icns variants and keep their defaults.
+            linux {
+                iconFile.set(project.file("src/commonMain/composeResources/drawable/icon.png"))
+            }
             targetFormats(
                 TargetFormat.Dmg,
                 TargetFormat.Msi,
@@ -46,4 +57,12 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+compose.resources {
+    // Only Main.kt reads the window icon; nothing here is part of a public API.
+    publicResClass = false
+    // Single-module resources are sourced from commonMain and get their accessors
+    // generated there even though this module only targets JVM.
+    packageOfResClass = "org.vestifeed.desktop.resources"
 }

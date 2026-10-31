@@ -17,7 +17,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.vestifeed.db.Database
+import org.vestifeed.desktop.resources.Res
+import org.vestifeed.desktop.resources.icon
 import org.vestifeed.og.OgImageFetcher
 import org.vestifeed.ui.VestiApp
 
@@ -40,6 +43,9 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "Vesti",
+        // The same artwork as the Android launcher icon, so the window/taskbar
+        // entry does not fall back to the Java runtime's default icon.
+        icon = painterResource(Res.drawable.icon),
         state = rememberWindowState(size = DpSize(1100.dp, 800.dp)),
     ) {
         // Runs once the first composition has been applied — the closest thing
