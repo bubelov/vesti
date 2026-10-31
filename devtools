@@ -12,8 +12,7 @@ Usage:
   ./devtools run       Run the app. Runs the desktop app by default, or the
                        Android build in Waydroid with --android, which boots
                        Waydroid first if it is not already running. The desktop
-                       app runs under Compose Hot Reload, so code changes reach
-                       the running window without a restart.
+                       app runs on the local JVM, so code changes need a restart.
   ./devtools publish   Build a signed nightly APK and upload it to
                        vestifeed.org
 EOF
@@ -340,9 +339,7 @@ require_java() {
 Error: Java is missing: no `java` on PATH, and JAVA_HOME is unset or does not
 contain bin/java.
 
-Gradle needs a JDK 17 or newer to start. The JetBrains runtime the desktop app
-itself runs on under hot reload is downloaded by Gradle automatically on the
-first run, so any JDK 17+ will do. Install one — on Arch: sudo pacman -S
+Gradle needs a JDK 17 or newer to start. Install one — on Arch: sudo pacman -S
 jdk-openjdk — or point JAVA_HOME at an existing one.
 EOF
   return 1
@@ -353,12 +350,7 @@ cmd_run_desktop() {
 
   require_java || return 1
 
-  # Hot reload runs the app on the JetBrains Runtime, not on the system JDK
-  # toolchain the build uses: only the JBR can redefine the classes it has
-  # already loaded. The toolchain resolver provisions it into ~/.gradle/jdks
-  # (a large download, once) on the first hot run.
-  echo "Launching the desktop app with Compose Hot Reload (logs: $log)..."
-  echo "Saving a source file reloads the window."
+  echo "Launching the desktop app (logs: $log)..."
 
   echo "Waiting for the window to appear (build output: $log)..."
 
@@ -367,14 +359,11 @@ cmd_run_desktop() {
   : > "$log"
 
   # Detached: the task blocks for the life of the window, so control returns
-  # here once the window is up. It keeps the app's output (and, under hot reload,
-  # each reload's) in $log, because `hotRunJvm` runs the app attached.
+  # here once the window is up. It keeps the app's output in $log, because
+  # `run` runs the app attached.
   (
     echo "vesti: devtools run started at $(date +%H:%M:%S.%3N)"
-    # --auto is the hot-reload task's auto mode: it watches the sources and
-    # reloads the running window whenever one changes, which is the point of
-    # running the desktop app under hot reload here.
-    exec ./gradlew :desktopApp:hotRunJvm --auto
+    exec ./gradlew :desktopApp:run
   ) >> "$log" 2>&1 &
   local pid=$!
 
@@ -386,8 +375,8 @@ cmd_run_desktop() {
   # should fail the command, not return a prompt that looks like success while
   # the window never appears. The mark is the app's own (see Main.kt) and is the
   # closest thing to "a window is on screen" here — it means the UI is up, not
-  # merely that Gradle finished compiling. The build (and the hot reload loop)
-  # keeps running once we return.
+  # merely that Gradle finished compiling. The build keeps running once we
+  # return.
   while kill -0 "$pid" 2>/dev/null; do
     if grep -qF ': first composition committed' "$log" 2>/dev/null; then
       trap - INT TERM
@@ -404,9 +393,8 @@ cmd_run_desktop() {
 }
 
 # Chooses the app target from optional --android/--desktop flags (desktop by
-# default). The desktop app runs under Compose Hot Reload, because reloading
-# the running window is how it is iterated on; the Android target has no
-# equivalent and always runs plainly.
+# default). Both targets run the app plainly; only the desktop one is built and
+# run on the local JVM rather than installed into Waydroid.
 parse_run_target() {
   run_target="desktop"
   local arg
