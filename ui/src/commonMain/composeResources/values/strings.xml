@@ -157,4 +157,25 @@
         <item quantity="many">%d unread entries</item>
         <item quantity="other">%d unread entries</item>
     </plurals>
+
+    <string name="database_statistics">Database statistics</string>
+    <string name="data">Data</string>
+    <string name="database">Database</string>
+    <string name="file">File</string>
+    <string name="size">Size</string>
+    <string name="tables">Tables</string>
+    <string name="rows">Rows</string>
+    <string name="schema_version">Schema version</string>
+    <string name="state">State</string>
+    <string name="last_sync">Last sync</string>
+    <string name="duration">Duration</string>
+    <string name="never">Never</string>
+    <string name="idle">Idle</string>
+    <string name="syncing">Syncing…</string>
+    <string name="failed">Failed</string>
+    <string name="error">Error</string>
+    <string name="pending_sync">Pending sync</string>
+    <string name="pending_changes">Pending changes</string>
+    <string name="server">Server</string>
+    <string name="bookmarked">Bookmarked</string>
 </resources>

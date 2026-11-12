@@ -49,6 +49,7 @@ import org.vestifeed.ui.resources.bookmark
 import org.vestifeed.ui.resources.bookmarks
 import org.vestifeed.ui.resources.browse_curated_feeds
 import org.vestifeed.ui.resources.curated_feeds
+import org.vestifeed.ui.resources.database_statistics
 import org.vestifeed.ui.resources.entry
 import org.vestifeed.ui.resources.export_opml
 import org.vestifeed.ui.resources.feed
@@ -75,6 +76,7 @@ import org.vestifeed.ui.resources.unread_n
 import org.vestifeed.ui.screens.AuthScreen
 import org.vestifeed.ui.screens.CuratedCollectionScreen
 import org.vestifeed.ui.screens.CuratedCollectionsScreen
+import org.vestifeed.ui.screens.DbStatsScreen
 import org.vestifeed.ui.screens.EntriesScreen
 import org.vestifeed.ui.screens.EntryScreen
 import org.vestifeed.ui.screens.FeedSettingsScreen
@@ -166,6 +168,7 @@ private fun MainScaffold(state: AppState, screen: Screen) {
                 Screen.Tags -> TagsScreen(state)
                 Screen.Podcasts -> PodcastsScreen(state)
                 Screen.Settings -> SettingsScreen(state)
+                Screen.DbStats -> DbStatsScreen(state)
                 else -> Unit
             }
         }
@@ -196,6 +199,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         Screen.Tags -> stringResource(Res.string.tags)
         Screen.Podcasts -> stringResource(Res.string.podcasts)
         Screen.Settings -> stringResource(Res.string.settings)
+        Screen.DbStats -> stringResource(Res.string.database_statistics)
         else -> stringResource(Res.string.app_name)
     }
 
@@ -229,8 +233,9 @@ private fun AppTopBar(state: AppState, screen: Screen) {
             }
         },
         actions = {
-            // Syncing only makes sense on the entry lists.
-            if (screen is Screen.Entries) {
+            // Syncing only makes sense on the entry lists, and the stats screen
+            // offers it so the sync card can be refreshed where it is read.
+            if (screen is Screen.Entries || screen is Screen.DbStats) {
                 IconButton(
                     onClick = {
                         state.sync.clearError()

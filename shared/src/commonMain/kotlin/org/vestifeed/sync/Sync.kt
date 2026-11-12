@@ -1,5 +1,7 @@
 package org.vestifeed.sync
 
+import kotlin.time.Duration
+import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +30,14 @@ class Sync(
      */
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
+
+    /**
+     * How long the most recent successful sync took, or null before the first
+     * one. Kept in memory: it describes this session's last run, like the sync
+     * stats screen's other live values, rather than a persisted figure.
+     */
+    private val _lastDuration = MutableStateFlow<Duration?>(null)
+    val lastDuration: StateFlow<Duration?> = _lastDuration.asStateFlow()
 
     /**
      * `true` while the global unread entries screen is the foreground screen.
@@ -76,6 +86,8 @@ class Sync(
         _running.update { true }
         _lastError.value = null
 
+        val started = TimeSource.Monotonic.markNow()
+
         try {
             // The whole sync (network plus blocking SQLite writes) runs off the
             // caller's dispatcher: launched from the UI it used to freeze the
@@ -84,6 +96,7 @@ class Sync(
                 val conf = db.conf.select()
                 backend(db, userAgent).sync(initial = conf.minifluxIncrementalSyncTimestamp == null)
             }
+            _lastDuration.value = started.elapsedNow()
         } catch (t: Throwable) {
             _lastError.value = t.message ?: t.toString()
         } finally {

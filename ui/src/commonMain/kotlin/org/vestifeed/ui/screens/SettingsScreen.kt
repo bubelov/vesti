@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.Screen
 import org.vestifeed.ui.i18n.SupportedLanguages
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
@@ -55,6 +56,8 @@ import org.vestifeed.ui.resources.backend
 import org.vestifeed.ui.resources.cards
 import org.vestifeed.ui.resources.check_for_updates
 import org.vestifeed.ui.resources.crop_feed_images
+import org.vestifeed.ui.resources.data
+import org.vestifeed.ui.resources.database_statistics
 import org.vestifeed.ui.resources.entry_layout
 import org.vestifeed.ui.resources.fetch_news_in_background
 import org.vestifeed.ui.resources.fetch_news_on_startup
@@ -207,6 +210,14 @@ fun SettingsScreen(state: AppState) {
                         value = it,
                     )
                 }
+            }
+
+            SettingsSection(stringResource(Res.string.data)) {
+                SettingAction(
+                    glyph = MaterialSymbols.Dns,
+                    label = stringResource(Res.string.database_statistics),
+                    onClick = { state.navigate(Screen.DbStats) },
+                )
             }
 
             // Only hosts that can install their own updates (Android nightlies)

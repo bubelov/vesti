@@ -11,6 +11,8 @@ import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.FeedTagTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.table.TagTable
+import org.vestifeed.dbstats.DbStats
+import org.vestifeed.dbstats.DbStatsReader
 
 class Database(driver: SQLiteDriver, val path: String) {
 
@@ -193,4 +195,11 @@ class Database(driver: SQLiteDriver, val path: String) {
     fun close() {
         connection?.close()
     }
+
+    /**
+     * Reads the database stats shown by the settings screen. It is a plain
+     * read, but every statement goes through the connection lock, so calling
+     * it from a background dispatcher cannot interleave with a running sync.
+     */
+    suspend fun readStats(): DbStats = DbStatsReader(conn).read()
 }

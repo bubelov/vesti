@@ -30,6 +30,9 @@ sealed interface Screen {
     data object Podcasts : Screen
 
     data object Settings : Screen
+
+    /** Read-only database and sync diagnostics, opened from Settings. */
+    data object DbStats : Screen
 }
 
 /** The entries-tab variants, mirroring the old `EntriesFilter`. */
