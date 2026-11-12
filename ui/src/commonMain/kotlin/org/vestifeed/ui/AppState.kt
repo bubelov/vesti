@@ -315,6 +315,10 @@ class AppState(
                 if (!running) {
                     refreshUnreadCount()
                     refreshHasPodcasts()
+                    // Sync writes the wall-clock timestamps and the cursor
+                    // directly to the database, so pull the row back into the
+                    // Compose state once the run finishes.
+                    conf = withDb { db.conf.select() }
                 }
             }
         }

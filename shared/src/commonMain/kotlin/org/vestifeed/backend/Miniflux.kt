@@ -27,6 +27,7 @@ import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.json.asJsonArray
 import org.vestifeed.json.asJsonObject
+import org.vestifeed.json.asLong
 import org.vestifeed.json.booleanOrNull
 import org.vestifeed.json.getAsJsonArray
 import org.vestifeed.json.longOrNull
@@ -190,6 +191,53 @@ open class Miniflux(
 
     override suspend fun pushPendingChanges() {
         MinifluxSync(this, db).pushPendingChanges()
+    }
+
+    /**
+     * Reconciles the local entry cache with the server's current ID list.
+     *
+     * Two scans are unioned: offset pagination can shift when the server
+     * prunes or adds an entry between requests, and a union only ever keeps
+     * more IDs, so a live entry missed by one scan is still protected by the
+     * other. A server without the `/v1/entries/ids` endpoint (Miniflux <
+     * 2.3.2) simply reports a supported attempt without pruning.
+     */
+    override suspend fun pruneDeletedEntries(): Boolean {
+        val first = getEntryIds() ?: return true
+        val second = getEntryIds() ?: return true
+        db.pruneEntriesNotIn(first + second)
+        return true
+    }
+
+    /**
+     * Fetches every entry ID the server currently has, or null when the
+     * endpoint is unavailable. Pages overlap by [ID_PAGE_OVERLAP] so a page
+     * shifted by a concurrent deletion cannot hide an entry.
+     */
+    open suspend fun getEntryIds(): Set<Long>? {
+        val ids = mutableSetOf<Long>()
+        var offset = 0L
+        while (true) {
+            val url = URLBuilder(baseUrl).apply {
+                appendPathSegments("entries", "ids")
+                parameters.append("limit", ID_PAGE_SIZE.toString())
+                parameters.append("offset", offset.toString())
+            }.build()
+            val res = client.get(url)
+            if (res.status.value == 404) return null
+            if (!res.status.isSuccess()) {
+                throw IOException("unexpected response code ${res.status.value}")
+            }
+            val payload = parseJsonObject(res.bodyAsText())
+            // A 200 without the expected field is not a reliable "no entries"
+            // answer; treat it as unsupported rather than pruning everything.
+            val page = payload.getAsJsonArray("entry_ids") ?: return null
+            page.forEach { ids.add(it.asLong) }
+            val total = payload.longOrNull("total") ?: 0L
+            if (page.size < ID_PAGE_SIZE.toInt() || (total > 0 && ids.size >= total)) break
+            offset += ID_PAGE_SIZE - ID_PAGE_OVERLAP
+        }
+        return ids
     }
 
     open suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
@@ -536,5 +584,13 @@ open class Miniflux(
          * the web UI and the Miniflux app, not this client.
          */
         const val MAX_PAGE_SIZE = 1000L
+
+        /**
+         * The maximum page size of `/v1/entries/ids` (the API rejects larger
+         * values), and how many IDs consecutive pages share so a page shift
+         * caused by a concurrent deletion cannot skip a live entry.
+         */
+        const val ID_PAGE_SIZE = 10_000L
+        const val ID_PAGE_OVERLAP = 1_000L
     }
 }

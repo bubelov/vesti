@@ -35,6 +35,15 @@ sealed class Backend(protected val db: Database) {
      * no-op.
      */
     open suspend fun pushPendingChanges() {}
+
+    /**
+     * Removes local entries that no longer exist on the server. Returns true
+     * when the backend owns the entry catalog and the attempt was applicable
+     * (even if the server is too old to expose the ID list), so the caller can
+     * record the attempt and not retry on every sync. Backends that keep their
+     * state locally return false.
+     */
+    open suspend fun pruneDeletedEntries(): Boolean = false
 }
 
 suspend fun backend(db: Database, userAgent: String = ""): Backend {

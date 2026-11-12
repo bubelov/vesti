@@ -18,6 +18,9 @@ class Database(driver: SQLiteDriver, val path: String) {
 
     companion object {
         const val NAME = "vesti.db"
+
+        /** Comfortably below SQLite's usual 999 bound-variable limit. */
+        private const val DELETE_CHUNK_SIZE = 500
     }
 
     private val driver = driver
@@ -82,8 +85,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
-            conn.execSQL("PRAGMA user_version=13;")
-            version = 13
+            conn.execSQL("PRAGMA user_version=14;")
+            version = 14
         }
 
         if (version == 1) {
@@ -178,6 +181,17 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("PRAGMA user_version=13;")
             version = 13
         }
+
+        if (version == 13) {
+            // Wall-clock timestamps for the diagnostics screen and for
+            // scheduling the deleted-entry reconcile. The existing
+            // minifluxIncrementalSyncTimestamp is a server change cursor, not
+            // a sync time, so it cannot serve either purpose.
+            conn.execSQL("ALTER TABLE conf ADD COLUMN last_sync_at TEXT;")
+            conn.execSQL("ALTER TABLE conf ADD COLUMN last_prune_at TEXT;")
+            conn.execSQL("PRAGMA user_version=14;")
+            version = 14
+        }
     }
 
     /**
@@ -202,4 +216,50 @@ class Database(driver: SQLiteDriver, val path: String) {
      * it from a background dispatcher cannot interleave with a running sync.
      */
     suspend fun readStats(): DbStats = DbStatsReader(conn).read()
+
+    /**
+     * Deletes local entries that no longer exist on the server, along with
+     * their links. Only numeric entry IDs are considered: Miniflux uses numeric
+     * IDs, while embedded entries use URLs and must never be pruned by a
+     * Miniflux reconcile.
+     *
+     * The server ID set is the union of two scans in the caller, so a page
+     * shift during a scan can only make the prune more conservative (an entry
+     * that disappeared from one page but is still live appears in the other).
+     * Returns the number of deleted entries.
+     */
+    suspend fun pruneEntriesNotIn(serverIds: Set<Long>): Int {
+        // An empty set means the scan failed or the account has no entries;
+        // never interpret that as "delete everything".
+        if (serverIds.isEmpty()) return 0
+
+        return withTransaction(conn) {
+            val stale = mutableListOf<String>()
+            conn.prepare("SELECT id FROM entry;").use { stmt ->
+                while (stmt.step()) {
+                    val id = stmt.getText(0)
+                    val numericId = id.toLongOrNull() ?: continue
+                    if (numericId !in serverIds) stale.add(id)
+                }
+            }
+
+            if (stale.isEmpty()) return@withTransaction 0
+
+            stale.chunked(DELETE_CHUNK_SIZE).forEach { chunk ->
+                val placeholders = chunk.joinToString(",") { "?" }
+
+                // Links reference entries, so they must go first.
+                conn.prepare("DELETE FROM link WHERE entry_id IN ($placeholders);").use { stmt ->
+                    chunk.forEachIndexed { index, id -> stmt.bindText(index + 1, id) }
+                    stmt.step()
+                }
+                conn.prepare("DELETE FROM entry WHERE id IN ($placeholders);").use { stmt ->
+                    chunk.forEachIndexed { index, id -> stmt.bindText(index + 1, id) }
+                    stmt.step()
+                }
+            }
+
+            stale.size
+        }
+    }
 }

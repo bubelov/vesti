@@ -9,10 +9,13 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
+import org.vestifeed.db.entry
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
@@ -405,6 +408,96 @@ class MinifluxTest {
             assertTrue("expected the read status, got: $body", body.contains("\"status\":\"read\""))
             assertTrue("expected entry 42, got: $body", body.contains("42"))
             assertTrue(db.entry.selectByReadSynced(false).isEmpty())
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
+    fun pruneDeletedEntries_removesLocalEntriesMissingOnServer() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            // Two scans are unioned, so the server is asked twice.
+            repeat(2) {
+                server.enqueue(
+                    MockResponse.Builder()
+                        .code(200)
+                        .setHeader("Content-Type", "application/json")
+                        .body("""{"total":2,"entry_ids":[1,2]}""")
+                        .build()
+                )
+            }
+
+            db.entry.insertOrReplace(
+                listOf(
+                    entry().copy(id = "1"),
+                    entry().copy(id = "2"),
+                    entry().copy(id = "3"),
+                )
+            )
+            db.link.insertForEntry(
+                "3",
+                listOf(
+                    LinkTable.Link(
+                        id = null,
+                        feedId = null,
+                        entryId = "3",
+                        href = "https://example.com/3",
+                        rel = AtomLinkRel.Alternate,
+                        type = "text/html",
+                        hreflang = null,
+                        title = null,
+                        length = null,
+                        extEnclosureDownloadProgress = null,
+                        extCacheUri = null,
+                    )
+                ),
+            )
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            assertTrue(api.pruneDeletedEntries())
+
+            assertNotNull(db.entry.selectById("1"))
+            assertNotNull(db.entry.selectById("2"))
+            assertNull(db.entry.selectById("3"))
+            assertTrue(db.link.selectByEntryId("3").isEmpty())
+            assertEquals(2, server.requestCount)
+
+            val request = server.takeRequest()
+            assertEquals("GET", request.method)
+            assertTrue(request.target, request.target.startsWith("/v1/entries/ids?"))
+            assertTrue(request.target, request.target.contains("limit=10000"))
+            assertTrue(request.target, request.target.contains("offset=0"))
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
+    fun pruneDeletedEntries_unsupportedServerIsANoOp() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            // Miniflux < 2.3.2 has no /v1/entries/ids endpoint.
+            server.enqueue(MockResponse.Builder().code(404).build())
+
+            db.entry.insertOrReplace(listOf(entry().copy(id = "1")))
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            // The attempt still counts as done so the caller records it and
+            // does not retry on every sync.
+            assertTrue(api.pruneDeletedEntries())
+            assertNotNull(db.entry.selectById("1"))
+            assertEquals(1, server.requestCount)
         } finally {
             server.close()
         }

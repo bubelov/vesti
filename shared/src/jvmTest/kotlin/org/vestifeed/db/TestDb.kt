@@ -129,3 +129,30 @@ const val CONF_SCHEMA_V12 = """
         entries_view TEXT NOT NULL DEFAULT 'cards'
     ) STRICT;
 """
+
+/**
+ * Schema of the `conf` table at v13 — the v12 shape plus the `language` column.
+ * Used by the v13→v14 migration test, which adds the sync timestamps.
+ */
+const val CONF_SCHEMA_V13 = """
+    CREATE TABLE conf (
+        backend TEXT,
+        miniflux_url TEXT,
+        miniflux_token TEXT,
+        minifluxIncrementalSyncTimestamp TEXT,
+        show_preview_images INTEGER NOT NULL,
+        crop_preview_images INTEGER NOT NULL,
+        sync_on_startup INTEGER NOT NULL,
+        sync_in_background INTEGER NOT NULL,
+        background_sync_interval_millis INTEGER NOT NULL,
+        use_built_in_browser INTEGER NOT NULL,
+        show_preview_text INTEGER NOT NULL,
+        entry_body_font_size INTEGER NOT NULL,
+        show_author_name INTEGER NOT NULL DEFAULT 0,
+        use_built_in_audio_player INTEGER NOT NULL DEFAULT 0,
+        show_tags_tab INTEGER NOT NULL DEFAULT 0,
+        show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
+        entries_view TEXT NOT NULL DEFAULT 'cards',
+        language TEXT
+    ) STRICT;
+"""

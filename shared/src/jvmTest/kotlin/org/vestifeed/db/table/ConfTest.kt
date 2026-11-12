@@ -36,6 +36,8 @@ class ConfTest {
         assertTrue(statement.contains("use_built_in_audio_player INTEGER NOT NULL"))
         assertTrue(statement.contains("show_tags_tab INTEGER NOT NULL"))
         assertTrue(statement.contains("show_podcasts_tab INTEGER NOT NULL"))
+        assertTrue(statement.contains("last_sync_at TEXT"))
+        assertTrue(statement.contains("last_prune_at TEXT"))
     }
 
     @Test
@@ -57,6 +59,8 @@ class ConfTest {
         assertFalse(defaultConf.showTagsTab)
         assertTrue(defaultConf.showPodcastsTab)
         assertEquals(ConfTable.EntriesView.Cards, defaultConf.entriesView)
+        assertNull(defaultConf.lastSyncAt)
+        assertNull(defaultConf.lastPruneAt)
     }
 
     @Test
@@ -89,6 +93,8 @@ class ConfTest {
         assertEquals(conf.showTagsTab, result.showTagsTab)
         assertEquals(conf.showPodcastsTab, result.showPodcastsTab)
         assertEquals(conf.entriesView, result.entriesView)
+        assertEquals(conf.lastSyncAt, result.lastSyncAt)
+        assertEquals(conf.lastPruneAt, result.lastPruneAt)
     }
 
     @Test
@@ -213,6 +219,8 @@ class ConfTest {
         showTagsTab: Boolean = false,
         showPodcastsTab: Boolean = false,
         entriesView: ConfTable.EntriesView = ConfTable.EntriesView.List,
+        lastSyncAt: String? = "2026-11-12T05:00:00Z",
+        lastPruneAt: String? = "2026-11-12T05:01:00Z",
     ) = ConfTable.Conf(
         backend = backend,
         minifluxUrl = minifluxUrl,
@@ -231,5 +239,7 @@ class ConfTest {
         showTagsTab = showTagsTab,
         showPodcastsTab = showPodcastsTab,
         entriesView = entriesView,
+        lastSyncAt = lastSyncAt,
+        lastPruneAt = lastPruneAt,
     )
 }

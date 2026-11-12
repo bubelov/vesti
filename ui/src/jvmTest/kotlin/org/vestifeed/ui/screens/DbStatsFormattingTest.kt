@@ -35,20 +35,20 @@ class DbStatsFormattingTest {
     }
 
     @Test
-    fun formatLastSync_rendersTheCursorInTheGivenZone() {
+    fun formatTimestamp_rendersInTheGivenZone() {
         assertEquals(
             "Oct 31, 2026 09:14",
-            formatLastSync("2026-10-31T09:14:00Z", TimeZone.UTC),
+            formatTimestamp("2026-10-31T09:14:00Z", TimeZone.UTC),
         )
         assertEquals(
             "Oct 31, 2026 12:14",
-            formatLastSync("2026-10-31T09:14:00Z", TimeZone.of("Europe/Moscow")),
+            formatTimestamp("2026-10-31T09:14:00Z", TimeZone.of("Europe/Moscow")),
         )
     }
 
     @Test
-    fun formatLastSync_returnsNullForAnUnparseableCursor() {
-        assertNull(formatLastSync("not a timestamp", TimeZone.UTC))
+    fun formatTimestamp_returnsNullForAnUnparseableValue() {
+        assertNull(formatTimestamp("not a timestamp", TimeZone.UTC))
     }
 
     @Test

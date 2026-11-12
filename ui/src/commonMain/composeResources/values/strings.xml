@@ -168,6 +168,8 @@
     <string name="schema_version">Schema version</string>
     <string name="state">State</string>
     <string name="last_sync">Last sync</string>
+    <string name="sync_cursor">Sync cursor</string>
+    <string name="last_prune">Last prune</string>
     <string name="duration">Duration</string>
     <string name="never">Never</string>
     <string name="idle">Idle</string>

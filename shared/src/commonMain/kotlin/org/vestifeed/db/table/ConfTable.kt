@@ -29,7 +29,9 @@ class ConfTable(private val conn: SQLiteConnection) {
                 show_tags_tab INTEGER NOT NULL DEFAULT 0,
                 show_podcasts_tab INTEGER NOT NULL DEFAULT 0,
                 entries_view TEXT NOT NULL DEFAULT 'cards',
-                language TEXT
+                language TEXT,
+                last_sync_at TEXT,
+                last_prune_at TEXT
             ) STRICT;
         """
 
@@ -52,6 +54,8 @@ class ConfTable(private val conn: SQLiteConnection) {
             showPodcastsTab = true,
             entriesView = EntriesView.Cards,
             language = null,
+            lastSyncAt = null,
+            lastPruneAt = null,
         )
     }
 
@@ -113,6 +117,15 @@ class ConfTable(private val conn: SQLiteConnection) {
         // or null to follow the system locale. The default String? keeps
         // callers that predate this field source-compatible.
         val language: String? = null,
+        // Wall-clock instant of the last successful sync, or null before the
+        // first one. Unlike minifluxIncrementalSyncTimestamp (a server-side
+        // changed_at cursor that may not move at all when nothing changed),
+        // this is refreshed after every completed sync.
+        val lastSyncAt: String? = null,
+        // Wall-clock instant of the last deleted-entry reconcile with the
+        // server, or null when it has never run. Used to schedule the prune at
+        // most once a day.
+        val lastPruneAt: String? = null,
     )
 
     fun SQLiteStatement.toConf(): Conf = Conf(
@@ -134,13 +147,15 @@ class ConfTable(private val conn: SQLiteConnection) {
         showPodcastsTab = getInt(15) == 1,
         entriesView = getEntriesView(16),
         language = getTextOrNull(17),
+        lastSyncAt = getTextOrNull(18),
+        lastPruneAt = getTextOrNull(19),
     )
 
     suspend fun insert(conf: Conf) {
         conn.prepare(
             """
-            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT OR REPLACE INTO conf (backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language, last_sync_at, last_prune_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
         ).use { stmt ->
             stmt.bindTextOrNull(1, conf.backend?.name?.lowercase())
@@ -161,6 +176,8 @@ class ConfTable(private val conn: SQLiteConnection) {
             stmt.bindInt(16, if (conf.showPodcastsTab) 1 else 0)
             stmt.bindText(17, conf.entriesView.name.lowercase())
             stmt.bindTextOrNull(18, conf.language)
+            stmt.bindTextOrNull(19, conf.lastSyncAt)
+            stmt.bindTextOrNull(20, conf.lastPruneAt)
             stmt.step()
         }
     }
@@ -168,7 +185,7 @@ class ConfTable(private val conn: SQLiteConnection) {
     suspend fun select(): Conf {
         conn.prepare(
             """
-            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language
+            SELECT backend, miniflux_url, miniflux_token, minifluxIncrementalSyncTimestamp, show_preview_images, crop_preview_images, sync_on_startup, sync_in_background, background_sync_interval_millis, use_built_in_browser, show_preview_text, entry_body_font_size, show_author_name, use_built_in_audio_player, show_tags_tab, show_podcasts_tab, entries_view, language, last_sync_at, last_prune_at
             FROM conf
             """
         ).use { stmt ->

@@ -31,6 +31,7 @@ import org.vestifeed.ui.resources.error
 import org.vestifeed.ui.resources.failed
 import org.vestifeed.ui.resources.file
 import org.vestifeed.ui.resources.idle
+import org.vestifeed.ui.resources.last_prune
 import org.vestifeed.ui.resources.last_sync
 import org.vestifeed.ui.resources.miniflux
 import org.vestifeed.ui.resources.never
@@ -43,6 +44,7 @@ import org.vestifeed.ui.resources.server
 import org.vestifeed.ui.resources.size
 import org.vestifeed.ui.resources.state
 import org.vestifeed.ui.resources.sync
+import org.vestifeed.ui.resources.sync_cursor
 import org.vestifeed.ui.resources.syncing
 import org.vestifeed.ui.resources.tables
 import org.vestifeed.ui.resources.unread
@@ -135,15 +137,23 @@ private fun statsSections(
                         add(StatsEntry(label = stringResource(Res.string.server), value = it))
                     }
                     add(syncState)
+                    add(
+                        StatsEntry(
+                            label = stringResource(Res.string.last_sync),
+                            value = conf.lastSyncAt
+                                ?.let { formatTimestamp(it) ?: it }
+                                ?: stringResource(Res.string.never),
+                        ),
+                    )
                     // The incremental cursor and pending counters only exist
                     // for a Miniflux account; the embedded backend keeps its
-                    // state locally, where "never" would be misleading.
+                    // state locally.
                     if (conf.backend == ConfTable.Backend.Miniflux) {
                         add(
                             StatsEntry(
-                                label = stringResource(Res.string.last_sync),
+                                label = stringResource(Res.string.sync_cursor),
                                 value = conf.minifluxIncrementalSyncTimestamp
-                                    ?.let { formatLastSync(it) ?: it }
+                                    ?.let { formatTimestamp(it) ?: it }
                                     ?: stringResource(Res.string.never),
                             ),
                         )
@@ -159,6 +169,14 @@ private fun statsSections(
                         )
                     }
                     if (conf.backend == ConfTable.Backend.Miniflux) {
+                        add(
+                            StatsEntry(
+                                label = stringResource(Res.string.last_prune),
+                                value = conf.lastPruneAt
+                                    ?.let { formatTimestamp(it) ?: it }
+                                    ?: stringResource(Res.string.never),
+                            ),
+                        )
                         pendingChanges?.let {
                             add(
                                 StatsEntry(
@@ -294,8 +312,8 @@ internal fun formatSyncDuration(duration: Duration): String {
     return "${seconds / 60}m ${seconds % 60}s"
 }
 
-/** Renders the sync cursor as a local date and time, e.g. `Oct 31, 2026 09:14`. */
-internal fun formatLastSync(
+/** Renders a timestamp as a local date and time, e.g. `Oct 31, 2026 09:14`. */
+internal fun formatTimestamp(
     raw: String,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ): String? {

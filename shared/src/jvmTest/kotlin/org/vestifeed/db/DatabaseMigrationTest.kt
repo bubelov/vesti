@@ -655,6 +655,36 @@ class DatabaseMigrationTest {
         assertEquals("ru", db.conf.select().language)
     }
 
+    @Test
+    fun migrate_v13ToV14_addsSyncAndPruneTimestamps() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(CONF_SCHEMA_V13)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL("PRAGMA user_version=13;")
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        // Both new columns land empty; the first successful sync fills them.
+        assertNull(db.conf.select().lastSyncAt)
+        assertNull(db.conf.select().lastPruneAt)
+
+        db.conf.update {
+            it.copy(
+                lastSyncAt = "2026-11-12T05:00:00Z",
+                lastPruneAt = "2026-11-12T05:01:00Z",
+            )
+        }
+        assertEquals("2026-11-12T05:00:00Z", db.conf.select().lastSyncAt)
+        assertEquals("2026-11-12T05:01:00Z", db.conf.select().lastPruneAt)
+    }
+
     /**
      * Inserts an entry with the v9–v11 column set, which still includes the OG
      * dimension columns. Raw SQL because the current [EntryTable] no longer
