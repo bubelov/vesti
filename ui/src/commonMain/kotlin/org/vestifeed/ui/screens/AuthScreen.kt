@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.ConfTable
+import org.vestifeed.sync.SyncReason
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
@@ -316,7 +317,7 @@ private fun AuthForm(
                     }
                     state.navigateRoot(state.defaultTab())
                     // Pull the first batch of entries/feeds.
-                    state.sync.runInBackground()
+                    state.sync.runInBackground(SyncReason.Startup)
                 } catch (t: Throwable) {
                     form.serverError = t.message ?: t.toString()
                 } finally {

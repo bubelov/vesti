@@ -73,6 +73,7 @@ import org.vestifeed.ui.resources.tag_feed_count
 import org.vestifeed.ui.resources.tags
 import org.vestifeed.ui.resources.unread
 import org.vestifeed.ui.resources.unread_n
+import org.vestifeed.sync.SyncReason
 import org.vestifeed.ui.screens.AuthScreen
 import org.vestifeed.ui.screens.CuratedCollectionScreen
 import org.vestifeed.ui.screens.CuratedCollectionsScreen
@@ -239,7 +240,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
                 IconButton(
                     onClick = {
                         state.sync.clearError()
-                        state.sync.runInBackground()
+                        state.sync.runInBackground(SyncReason.User)
                     },
                     enabled = !running,
                 ) {

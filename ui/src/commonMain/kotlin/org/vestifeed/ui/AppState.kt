@@ -16,6 +16,7 @@ import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.platform.ioDispatcher
 import org.vestifeed.sync.Sync
+import org.vestifeed.sync.SyncReason
 import org.vestifeed.ui.curated.loadCuratedCatalog
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.allow_vesti_to_install_updates
@@ -326,7 +327,7 @@ class AppState(
         // up so the lists do not open on a stale database. Nothing to sync
         // against until a backend is configured (the auth screen is showing).
         if (conf.backend != null && conf.syncOnStartup) {
-            sync.runInBackground()
+            sync.runInBackground(SyncReason.Startup)
         }
         // Ask the update channel whether a newer nightly has been rolled out.
         // It is a no-op on hosts with no channel.

@@ -32,7 +32,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -104,6 +106,7 @@ import org.vestifeed.ui.resources.sync_failed
 import org.vestifeed.ui.resources.syncing_your_feeds
 import org.vestifeed.ui.resources.syncing_your_feeds_description
 import org.vestifeed.ui.resources.you_have_no_feeds
+import org.vestifeed.sync.SyncReason
 
 /** The reading width of the list, centered on wide (desktop) windows. */
 private val ContentWidth = 760.dp
@@ -168,6 +171,12 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
 
     val running by state.sync.running.collectAsState()
     val lastError by state.sync.lastError.collectAsState()
+    val lastRun by state.sync.lastRun.collectAsState()
+
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+    var scrollToTopPending by remember { mutableStateOf(false) }
+    var handledRunId by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(screen.list, state.conf, refreshKey) {
         loading = true
@@ -192,6 +201,18 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
         wasRunning = running
     }
 
+    // A user-requested sync always returns to the top so the newly fetched
+    // entries are visible. A startup sync does so only when it actually added
+    // entries; otherwise the reader keeps their position.
+    LaunchedEffect(lastRun) {
+        val run = lastRun ?: return@LaunchedEffect
+        if (run.id == handledRunId) return@LaunchedEffect
+        handledRunId = run.id
+        if (shouldScrollToTopFor(run.reason, run.newEntries)) {
+            scrollToTopPending = true
+        }
+    }
+
     // The OG fetch runs in the background with no callback, so poll the count
     // of entries whose preview image landed since this screen opened and
     // reload when it grows. Without this, images downloaded after the initial
@@ -213,6 +234,25 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
     }
 
     val entriesView = state.conf.entriesView
+
+    // Wait for the post-sync reload to land before scrolling: when the list was
+    // empty, the new rows do not exist yet. A request for an empty list is
+    // cleared rather than left to fire on an unrelated later reload.
+    ScrollToTopEffect(
+        pending = scrollToTopPending && !loading && rows.isNotEmpty(),
+        onHandled = { scrollToTopPending = false },
+    ) {
+        if (entriesView == ConfTable.EntriesView.Cards) {
+            gridState.animateScrollToItem(0)
+        } else {
+            listState.animateScrollToItem(0)
+        }
+    }
+    LaunchedEffect(scrollToTopPending, loading) {
+        if (scrollToTopPending && !loading && rows.isEmpty()) {
+            scrollToTopPending = false
+        }
+    }
 
     // While the first sync is still filling an empty database, the Unread list
     // is legitimately empty. Show that a sync is under way rather than the
@@ -295,7 +335,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             isRefreshing = running && !awaitingSync,
             onRefresh = {
                 state.sync.clearError()
-                state.sync.runInBackground()
+                state.sync.runInBackground(SyncReason.User)
             },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
@@ -326,6 +366,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
 
                     entriesView == ConfTable.EntriesView.Cards -> LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = GridMinCellWidth),
+                        state = gridState,
                         modifier = Modifier.widthIn(max = GridMaxWidth).fillMaxHeight(),
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -354,6 +395,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                     }
 
                     else -> LazyColumn(
+                        state = listState,
                         modifier = Modifier.widthIn(max = ContentWidth).fillMaxHeight(),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -383,6 +425,34 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             }
         }
     }
+}
+
+/**
+ * Scrolls to the first item once [pending] becomes true, then calls
+ * [onHandled]. The list/grid choice lives in the caller, so this part can be
+ * exercised by a UI test.
+ */
+@Composable
+internal fun ScrollToTopEffect(
+    pending: Boolean,
+    onHandled: () -> Unit,
+    scroll: suspend () -> Unit,
+) {
+    LaunchedEffect(pending) {
+        if (!pending) return@LaunchedEffect
+        scroll()
+        onHandled()
+    }
+}
+
+/**
+ * Whether a completed sync should return the list to the top. A user-requested
+ * sync always does; a startup sync only when it brought new entries.
+ */
+internal fun shouldScrollToTopFor(reason: SyncReason, newEntries: Long): Boolean = when (reason) {
+    SyncReason.User -> true
+    SyncReason.Startup -> newEntries > 0
+    SyncReason.Background -> false
 }
 
 /**
