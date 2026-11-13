@@ -346,23 +346,29 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 val swipesEnabled = maxWidth < SwipeMaxWidth
 
                 when {
-                    awaitingSync -> SyncingUnreadState()
+                    awaitingSync -> EmptyPullableContainer { SyncingUnreadState() }
 
-                    loading && rows.isEmpty() -> CircularProgressIndicator()
+                    loading && rows.isEmpty() -> EmptyPullableContainer {
+                        CircularProgressIndicator()
+                    }
 
                     rows.isEmpty() && screen.list is EntriesList.Unread && feedCount == 0 ->
-                        EmptyUnreadState(
-                            onAddFeed = {
-                                state.navigateRoot(Screen.Feeds)
-                                state.addFeedDialogVisible = true
-                            },
-                            onBrowseCurated = { state.navigateRoot(Screen.CuratedFeeds) },
-                        )
+                        EmptyPullableContainer {
+                            EmptyUnreadState(
+                                onAddFeed = {
+                                    state.navigateRoot(Screen.Feeds)
+                                    state.addFeedDialogVisible = true
+                                },
+                                onBrowseCurated = { state.navigateRoot(Screen.CuratedFeeds) },
+                            )
+                        }
 
-                    rows.isEmpty() -> Text(
-                        text = stringResource(screen.list.emptyMessage(feedCount)),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    rows.isEmpty() -> EmptyPullableContainer {
+                        Text(
+                            text = stringResource(screen.list.emptyMessage(feedCount)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     entriesView == ConfTable.EntriesView.Cards -> LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = GridMinCellWidth),
@@ -477,6 +483,31 @@ private fun RefreshableEntriesList(
         )
     } else {
         Box(modifier = modifier, content = content)
+    }
+}
+
+/**
+ * Centres an empty/loading state in a one-item [LazyColumn].
+ *
+ * Pull-to-refresh listens for nested scroll events, and a plain [Box] does not
+ * emit them, so an empty list would ignore the pull gesture entirely. A lazy
+ * list with one full-size item participates in the gesture even though there is
+ * nothing to scroll, which is what makes "pull to fetch overnight news" work
+ * from the empty state.
+ */
+@Composable
+internal fun EmptyPullableContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    LazyColumn(modifier = modifier.fillMaxSize()) {
+        item {
+            Box(
+                modifier = Modifier.fillParentMaxSize(),
+                contentAlignment = Alignment.Center,
+                content = content,
+            )
+        }
     }
 }
 
