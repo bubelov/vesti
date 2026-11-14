@@ -29,10 +29,12 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.ui.AppState
@@ -68,6 +71,7 @@ import org.vestifeed.ui.resources.media
 import org.vestifeed.ui.resources.miniflux_url
 import org.vestifeed.ui.resources.not_available_on_this_platform
 import org.vestifeed.ui.resources.not_configured
+import org.vestifeed.ui.resources.reader_text_size
 import org.vestifeed.ui.resources.reading
 import org.vestifeed.ui.resources.show_author_name
 import org.vestifeed.ui.resources.show_feed_images
@@ -140,6 +144,10 @@ fun SettingsScreen(state: AppState) {
                     label = stringResource(Res.string.show_author_name),
                     checked = state.conf.showAuthorName,
                 ) { state.updateConf { conf -> conf.copy(showAuthorName = it) } }
+                SettingDivider()
+                TextSizeSetting(size = state.conf.entryBodyFontSize) { size ->
+                    state.updateConf { conf -> conf.copy(entryBodyFontSize = size) }
+                }
             }
 
             SettingsSection(stringResource(Res.string.media)) {
@@ -329,6 +337,53 @@ private fun LayoutSetting(
                 },
             ) { Text(stringResource(Res.string.list)) }
         }
+    }
+}
+
+/** Range and granularity of the reader's body text size, in sp. */
+private const val MinBodyTextSize = 12
+private const val MaxBodyTextSize = 24
+private const val BodyTextSizeStep = 2
+
+/**
+ * The reader's body text size. A slider rather than a stepper: the useful range
+ * is small and every value in it is reasonable, so a continuous control is
+ * faster to use than repeated taps.
+ */
+@Composable
+private fun TextSizeSetting(size: Int, onChange: (Int) -> Unit) {
+    // While dragging, the value only lives here: writing every intermediate
+    // step would issue a database write per frame.
+    var pending by remember(size) { mutableFloatStateOf(size.toFloat()) }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MaterialSymbol(
+                glyph = MaterialSymbols.MenuBook,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = stringResource(Res.string.reader_text_size),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "${pending.roundToInt()} sp",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = pending,
+            onValueChange = { pending = it },
+            onValueChangeFinished = { onChange(pending.roundToInt()) },
+            valueRange = MinBodyTextSize.toFloat()..MaxBodyTextSize.toFloat(),
+            // One stop per step between the ends.
+            steps = (MaxBodyTextSize - MinBodyTextSize) / BodyTextSizeStep - 1,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

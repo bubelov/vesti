@@ -42,6 +42,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.parser.AtomLinkRel
@@ -159,6 +160,14 @@ fun EntryScreen(state: AppState, entryId: String) {
         textDecoration = TextDecoration.Underline,
     )
 
+    // The reader's body text size is configurable; the line height keeps the
+    // theme's 1.5 ratio so paragraphs do not crowd together as the text grows.
+    val bodyFontSize = state.conf.entryBodyFontSize
+    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontSize = bodyFontSize.sp,
+        lineHeight = (bodyFontSize * 1.5f).sp,
+    )
+
     // Scroll the current match into view. Each paragraph's layout and its
     // root-relative top let us land on the right position in the scroll content.
     LaunchedEffect(globalMatches, currentMatch) {
@@ -258,7 +267,7 @@ fun EntryScreen(state: AppState, entryId: String) {
                                     )
                                     Text(
                                         text = annotated,
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = bodyStyle,
                                         onTextLayout = { textLayouts[blockIndex] = it },
                                         modifier = Modifier.onGloballyPositioned {
                                             textTops[blockIndex] = it.positionInRoot().y

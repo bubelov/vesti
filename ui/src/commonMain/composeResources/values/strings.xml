@@ -48,6 +48,7 @@
     <string name="tag_has_no_unread_entries">No entries in this tag</string>
     <string name="show_preview_text">Show preview text</string>
     <string name="show_author_name">Show author name</string>
+    <string name="reader_text_size">Text size</string>
     <string name="podcasts">Podcasts</string>
     <string name="show_podcasts_tab">Show Podcasts tab</string>
     <string name="you_have_no_podcasts">You have no podcasts</string>
