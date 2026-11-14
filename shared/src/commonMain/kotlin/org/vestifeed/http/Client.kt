@@ -8,8 +8,8 @@ import io.ktor.client.plugins.UserAgent
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.isSuccess
-import okio.IOException
 import org.vestifeed.auth.AuthEvents
+import org.vestifeed.backend.MinifluxHttpException
 import org.vestifeed.backend.MinifluxUnauthenticatedException
 import org.vestifeed.json.parseJsonObject
 import org.vestifeed.json.stringOrNull
@@ -24,11 +24,15 @@ import org.vestifeed.json.stringOrNull
  * - non-2xx responses run through a response validator (the old
  *   `errorInterceptor`): a 401 reports [AuthEvents.reportInvalidated] and throws
  *   [MinifluxUnauthenticatedException]; any other non-2xx reads the body and
- *   throws an [IOException] carrying the server's `error_message` when present.
+ *   throws a [MinifluxHttpException] carrying the server's `error_message` when
+ *   present. The status code stays available on the exception so a caller can
+ *   react to a specific one (for example the 400 that Miniflux < 2.3.2 returns
+ *   for an update carrying no `status`).
  *
  * [expectSuccess] is disabled so the validator - not Ktor's default - decides
- * what counts as an error, and callers can still inspect status codes they care
- * about (for example the `201` from feed creation).
+ * what counts as an error, and callers can handle the status codes they care
+ * about through [MinifluxHttpException] (for example the `201` from feed
+ * creation).
  */
 @Suppress("UNUSED_PARAMETER")
 fun vestiHttpClient(
@@ -66,7 +70,11 @@ fun vestiHttpClient(
                 parseJsonObject(body).stringOrNull("error_message") ?: fallback
             }.getOrDefault(fallback)
 
-            throw IOException(message)
+            throw MinifluxHttpException(
+                statusCode = response.status.value,
+                url = url,
+                message = message,
+            )
         }
     }
 }

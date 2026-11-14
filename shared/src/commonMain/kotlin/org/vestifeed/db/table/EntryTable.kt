@@ -571,20 +571,35 @@ class EntryTable(private val conn: SQLiteConnection) {
         }
     }
 
-    suspend fun updateReadSynced(extReadSynced: Boolean, id: String) {
-        conn.prepare("UPDATE entry SET ext_read_synced = ? WHERE id = ?;").use { stmt ->
-            stmt.bindInt(1, if (extReadSynced) 1 else 0)
-            stmt.bindText(2, id)
-            stmt.step()
-        }
+    /**
+     * Marks [id]'s read state as delivered to the server, but only while the
+     * row still holds the [extRead] value that was pushed. If an entry action
+     * flips the state while the request is in flight, the row stays pending so
+     * the next push sends the new value; without this check that newer value
+     * would be marked as already synced and the following pull would revert
+     * it to the server's older state.
+     */
+    suspend fun markReadSyncedIfUnchanged(id: String, extRead: Boolean) {
+        conn.prepare("UPDATE entry SET ext_read_synced = 1 WHERE id = ? AND ext_read = ?;")
+            .use { stmt ->
+                stmt.bindText(1, id)
+                stmt.bindInt(2, if (extRead) 1 else 0)
+                stmt.step()
+            }
     }
 
-    suspend fun updateBookmarkedSynced(extBookmarkedSynced: Boolean, id: String) {
-        conn.prepare("UPDATE entry SET ext_bookmarked_synced = ? WHERE id = ?;").use { stmt ->
-            stmt.bindInt(1, if (extBookmarkedSynced) 1 else 0)
-            stmt.bindText(2, id)
-            stmt.step()
-        }
+    /**
+     * Marks [id]'s bookmark state as delivered to the server, but only while
+     * the row still holds the [extBookmarked] value that was pushed. See
+     * [markReadSyncedIfUnchanged] for why the check matters.
+     */
+    suspend fun markBookmarkedSyncedIfUnchanged(id: String, extBookmarked: Boolean) {
+        conn.prepare("UPDATE entry SET ext_bookmarked_synced = 1 WHERE id = ? AND ext_bookmarked = ?;")
+            .use { stmt ->
+                stmt.bindText(1, id)
+                stmt.bindInt(2, if (extBookmarked) 1 else 0)
+                stmt.step()
+            }
     }
 
     suspend fun deleteByFeedId(feedId: String) {

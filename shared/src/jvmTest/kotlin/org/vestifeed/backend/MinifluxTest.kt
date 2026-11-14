@@ -11,11 +11,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
 import org.vestifeed.db.entry
+import org.vestifeed.db.entryWithoutContent
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
@@ -773,6 +775,258 @@ class MinifluxTest {
             server.close()
         }
     }
+
+    @Test
+    fun markEntriesAsBookmarkedSendsTheAbsoluteStateInOneRequest() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            server.enqueue(MockResponse.Builder().code(204).build())
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            api.markEntriesAsBookmarked(
+                entries = listOf(
+                    entryWithoutContent().copy(id = "42"),
+                    entryWithoutContent().copy(id = "43"),
+                ),
+                bookmarked = true,
+            )
+
+            assertEquals(1, server.requestCount)
+            val request = server.takeRequest()
+            assertEquals("PUT", request.method)
+            assertEquals("/v1/entries", request.target)
+            val body = request.body?.utf8().orEmpty()
+            assertTrue("expected an absolute starred state, got: $body", body.contains("\"starred\":true"))
+            assertTrue("expected entry 42, got: $body", body.contains("42"))
+            assertTrue("expected entry 43, got: $body", body.contains("43"))
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
+    fun markEntriesAsBookmarkedSendsFalseWhenUnbookmarking() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            server.enqueue(MockResponse.Builder().code(204).build())
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            api.markEntriesAsBookmarked(
+                entries = listOf(entryWithoutContent().copy(id = "42")),
+                bookmarked = false,
+            )
+
+            val body = server.takeRequest().body?.utf8().orEmpty()
+            assertTrue("expected an absolute unstarred state, got: $body", body.contains("\"starred\":false"))
+        } finally {
+            server.close()
+        }
+    }
+
+    /**
+     * Miniflux < 2.3.2 rejects the `starred` field carried by a bulk update
+     * (it validates that a `status` is present). The fallback toggles only the
+     * entries whose server state actually differs, so a retried push cannot
+     * flip back an entry an earlier attempt already updated.
+     */
+    @Test
+    fun markEntriesAsBookmarkedFallsBackToTogglingOnOldServers() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            // The bulk update is rejected by the old server.
+            server.enqueue(MockResponse.Builder().code(400).build())
+            // Entry 42 is not starred yet: read it, then toggle it.
+            server.enqueue(jsonResponse("""{"id":42,"starred":false}"""))
+            server.enqueue(MockResponse.Builder().code(204).build())
+            // Entry 43 is already starred: it must not be toggled.
+            server.enqueue(jsonResponse("""{"id":43,"starred":true}"""))
+
+            val api = Miniflux(
+                client = minifluxHttpClient(token = "token"),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            api.markEntriesAsBookmarked(
+                entries = listOf(
+                    entryWithoutContent().copy(id = "42"),
+                    entryWithoutContent().copy(id = "43"),
+                ),
+                bookmarked = true,
+            )
+
+            assertEquals(4, server.requestCount)
+
+            val bulk = server.takeRequest()
+            assertEquals("PUT", bulk.method)
+            assertEquals("/v1/entries", bulk.target)
+
+            val read42 = server.takeRequest()
+            assertEquals("GET", read42.method)
+            assertEquals("/v1/entries/42", read42.target)
+
+            val toggle42 = server.takeRequest()
+            assertEquals("PUT", toggle42.method)
+            assertEquals("/v1/entries/42/bookmark", toggle42.target)
+
+            val read43 = server.takeRequest()
+            assertEquals("GET", read43.method)
+            assertEquals("/v1/entries/43", read43.target)
+        } finally {
+            server.close()
+        }
+    }
+
+    /**
+     * A legacy-server push is retried wholesale after a partial failure (the
+     * local flags are only cleared once the whole loop succeeds). The retry
+     * must not toggle again an entry the first attempt already updated, or the
+     * bookmark flips back off on the server.
+     */
+    @Test
+    fun markEntriesAsBookmarkedFallbackRetryDoesNotToggleTwice() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            // Attempt 1: bulk update rejected, entry 42 toggled, entry 43
+            // fails, so the push as a whole throws and stays pending.
+            server.enqueue(MockResponse.Builder().code(400).build())
+            server.enqueue(jsonResponse("""{"id":42,"starred":false}"""))
+            server.enqueue(MockResponse.Builder().code(204).build())
+            server.enqueue(MockResponse.Builder().code(500).build())
+
+            // Attempt 2: entry 42 now reports the desired state and must be
+            // left alone; entry 43 still needs its toggle.
+            server.enqueue(MockResponse.Builder().code(400).build())
+            server.enqueue(jsonResponse("""{"id":42,"starred":true}"""))
+            server.enqueue(jsonResponse("""{"id":43,"starred":false}"""))
+            server.enqueue(MockResponse.Builder().code(204).build())
+
+            val api = Miniflux(
+                client = minifluxHttpClient(token = "token"),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+            val entries = listOf(
+                entryWithoutContent().copy(id = "42"),
+                entryWithoutContent().copy(id = "43"),
+            )
+
+            assertThrows(java.io.IOException::class.java) {
+                runBlocking { api.markEntriesAsBookmarked(entries, bookmarked = true) }
+            }
+            api.markEntriesAsBookmarked(entries, bookmarked = true)
+
+            val requests = (1..8).map { server.takeRequest() }
+            val toggles = requests.filter { it.target.endsWith("/bookmark") }
+
+            assertEquals(
+                "only one toggle per entry across both attempts",
+                listOf("/v1/entries/42/bookmark", "/v1/entries/43/bookmark"),
+                toggles.map { it.target },
+            )
+        } finally {
+            server.close()
+        }
+    }
+
+    /**
+     * The incremental pull has no status filter, so Miniflux also returns
+     * entries whose status is "removed". They must not resurface in the
+     * Unread tab, which only excludes read and bookmarked rows.
+     */
+    @Test
+    fun removedEntriesAreParsedAsRead() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            server.enqueue(
+                jsonResponse(
+                    """
+                    {
+                      "total": 3,
+                      "entries": [
+                        ${entryJson(id = 1, status = "unread")},
+                        ${entryJson(id = 2, status = "read")},
+                        ${entryJson(id = 3, status = "removed")}
+                      ]
+                    }
+                    """.trimIndent()
+                )
+            )
+
+            val api = Miniflux(
+                client = HttpClient(CIO),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            val entries = api.getEntriesChangedAfter(
+                changedAfter = Instant.parse("2024-01-01T00:00:00Z"),
+                limit = 100,
+            )
+
+            assertEquals(listOf(false, true, true), entries.map { it.first.extRead })
+        } finally {
+            server.close()
+        }
+    }
+
+    /**
+     * The production client turns a 404 into [MinifluxHttpException] before the
+     * caller sees the response, so [Miniflux.getEntryIds] has to catch it for
+     * servers without the `/v1/entries/ids` endpoint.
+     */
+    @Test
+    fun pruneDeletedEntriesTreatsA404FromTheAuthClientAsUnsupported() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            server.enqueue(MockResponse.Builder().code(404).build())
+
+            val api = Miniflux(
+                client = minifluxHttpClient(token = "token"),
+                baseUrl = server.url("/v1/").toString().toUrl(),
+                db = db,
+            )
+
+            assertTrue(api.pruneDeletedEntries())
+            assertEquals(1, server.requestCount)
+        } finally {
+            server.close()
+        }
+    }
+
+    private fun jsonResponse(body: String) = MockResponse.Builder()
+        .code(200)
+        .setHeader("Content-Type", "application/json")
+        .body(body)
+        .build()
+
+    private fun entryJson(id: Long, status: String) = """
+        {
+          "id": $id,
+          "feed_id": 1,
+          "status": "$status",
+          "title": "entry $id",
+          "url": "",
+          "comments_url": "",
+          "published_at": "2024-01-01T00:00:00Z",
+          "created_at": "2024-01-01T00:00:00Z",
+          "changed_at": "2024-01-01T00:00:00Z",
+          "content": "",
+          "author": "",
+          "starred": false,
+          "enclosures": null
+        }
+    """.trimIndent()
 
     private fun unreadPayload(total: Long, ids: List<Long>): String {
         val entries = ids.joinToString(",") { id ->

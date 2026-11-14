@@ -214,6 +214,71 @@ class EntryTest {
         assertEquals(0L, db.entry.selectCount())
     }
 
+    /**
+     * A push only marks an entry as delivered when the row still carries the
+     * value that was sent. When the user flips it while the request is in
+     * flight, the stale response must leave the row pending so the next push
+     * sends the newer value (otherwise the following pull would revert it).
+     */
+    @Test
+    fun entryQueries_markReadSyncedIfUnchanged_keepsAChangedRowPending() = runBlocking<Unit> {
+        val entry = createEntry(extRead = false, extReadSynced = false)
+        db.entry.insertOrReplace(listOf(entry))
+
+        // The user reads the entry while the "unread" request is in flight.
+        db.entry.updateReadAndReadSynced(entry.id, extRead = true, extReadSynced = false)
+        // The in-flight push only knows about the old "unread" value.
+        db.entry.markReadSyncedIfUnchanged(entry.id, extRead = false)
+
+        val result = db.entry.selectById(entry.id)!!
+        assertTrue(result.extRead)
+        assertEquals(false, result.extReadSynced)
+        assertEquals(listOf(entry.id), db.entry.selectByReadSynced(false).map { it.id })
+    }
+
+    @Test
+    fun entryQueries_markReadSyncedIfUnchanged_marksMatchingRow() = runBlocking<Unit> {
+        val entry = createEntry(extRead = true, extReadSynced = false)
+        db.entry.insertOrReplace(listOf(entry))
+
+        db.entry.markReadSyncedIfUnchanged(entry.id, extRead = true)
+
+        val result = db.entry.selectById(entry.id)!!
+        assertTrue(result.extRead)
+        assertTrue(result.extReadSynced)
+    }
+
+    @Test
+    fun entryQueries_markBookmarkedSyncedIfUnchanged_keepsAChangedRowPending() = runBlocking<Unit> {
+        val entry = createEntry(extBookmarked = false, extBookmarkedSynced = false)
+        db.entry.insertOrReplace(listOf(entry))
+
+        // The user bookmarks the entry while the request is in flight.
+        db.entry.updateBookmarkedAndBookmarkedSynced(
+            entry.id,
+            extBookmarked = true,
+            extBookmarkedSynced = false,
+        )
+        db.entry.markBookmarkedSyncedIfUnchanged(entry.id, extBookmarked = false)
+
+        val result = db.entry.selectById(entry.id)!!
+        assertTrue(result.extBookmarked)
+        assertEquals(false, result.extBookmarkedSynced)
+        assertEquals(listOf(entry.id), db.entry.selectByBookmarkedSynced(false).map { it.id })
+    }
+
+    @Test
+    fun entryQueries_markBookmarkedSyncedIfUnchanged_marksMatchingRow() = runBlocking<Unit> {
+        val entry = createEntry(extBookmarked = true, extBookmarkedSynced = false)
+        db.entry.insertOrReplace(listOf(entry))
+
+        db.entry.markBookmarkedSyncedIfUnchanged(entry.id, extBookmarked = true)
+
+        val result = db.entry.selectById(entry.id)!!
+        assertTrue(result.extBookmarked)
+        assertTrue(result.extBookmarkedSynced)
+    }
+
     private fun createEntry(
         id: String = UUID.randomUUID().toString(),
         feedId: String = UUID.randomUUID().toString(),

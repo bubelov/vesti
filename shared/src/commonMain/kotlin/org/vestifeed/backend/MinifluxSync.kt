@@ -3,6 +3,7 @@ package org.vestifeed.backend
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.sync.withLock
 import org.vestifeed.db.Database
 import org.vestifeed.db.table.TagTable
 import org.vestifeed.util.toInstant
@@ -131,8 +132,16 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
      * A single entry action only needs this — one request for the read entries
      * (plus one per bookmarked entry) — instead of re-fetching every feed,
      * category and changed entry like [syncEntries] does.
+     *
+     * Runs under [Database.pendingPushMutex] so a full sync's push and an entry
+     * action's `Sync.pushInBackground` cannot put two requests for the same
+     * entry in flight: the one that arrives last must carry the newer state.
      */
     suspend fun pushPendingChanges() {
+        db.pendingPushMutex.withLock { pushPendingChangesLocked() }
+    }
+
+    private suspend fun pushPendingChangesLocked() {
         val unsyncedEntries = db.entry.selectByReadSynced(false)
         val unsyncedReadEntries = unsyncedEntries.filter { it.extRead }
         val unsyncedUnreadEntries = unsyncedEntries.filter { !it.extRead }
@@ -145,7 +154,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
             db.transaction {
                 unsyncedReadEntries.forEach {
-                    db.entry.updateReadSynced(true, it.id)
+                    db.entry.markReadSyncedIfUnchanged(it.id, extRead = true)
                 }
             }
         }
@@ -158,7 +167,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
             db.transaction {
                 unsyncedUnreadEntries.forEach {
-                    db.entry.updateReadSynced(true, it.id)
+                    db.entry.markReadSyncedIfUnchanged(it.id, extRead = false)
                 }
             }
         }
@@ -177,7 +186,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
             db.transaction {
                 notSyncedBookmarkedEntries.forEach {
-                    db.entry.updateBookmarkedSynced(true, it.id)
+                    db.entry.markBookmarkedSyncedIfUnchanged(it.id, extBookmarked = true)
                 }
             }
         }
@@ -190,7 +199,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
             db.transaction {
                 notSyncedNotBookmarkedEntries.forEach {
-                    db.entry.updateBookmarkedSynced(true, it.id)
+                    db.entry.markBookmarkedSyncedIfUnchanged(it.id, extBookmarked = false)
                 }
             }
         }

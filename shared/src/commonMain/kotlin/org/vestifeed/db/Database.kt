@@ -47,6 +47,16 @@ class Database(driver: SQLiteDriver, val path: String) {
     private val connectMutex = Mutex()
 
     /**
+     * Serializes pushes of pending read/bookmark changes. A full sync pushes
+     * them from `MinifluxSync`, while an entry action pushes them from its own
+     * coroutine (`Sync.pushInBackground`); without this lock the two requests
+     * can reach the server out of order and an older state can win. The lock
+     * lives on the database so every backend instance built for this database
+     * shares it.
+     */
+    internal val pendingPushMutex = Mutex()
+
+    /**
      * Opens the connection and prepares the schema. It is a separate step from
      * construction because opening and migrating are suspending on the web
      * target.

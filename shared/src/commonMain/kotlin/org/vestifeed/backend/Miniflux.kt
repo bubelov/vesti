@@ -223,7 +223,14 @@ open class Miniflux(
                 parameters.append("limit", ID_PAGE_SIZE.toString())
                 parameters.append("offset", offset.toString())
             }.build()
-            val res = client.get(url)
+            val res = try {
+                client.get(url)
+            } catch (e: MinifluxHttpException) {
+                // With the production client the response validator throws on
+                // any non-2xx, so the status is only visible on the exception.
+                if (e.statusCode == 404) return null
+                throw e
+            }
             if (res.status.value == 404) return null
             if (!res.status.isSuccess()) {
                 throw IOException("unexpected response code ${res.status.value}")
@@ -336,17 +343,90 @@ open class Miniflux(
         }
     }
 
+    /**
+     * Sets the starred state of [entries] to [bookmarked].
+     *
+     * Prefers the bulk entries update with an absolute `starred` value. Unlike
+     * the legacy per-entry endpoint, which toggles whatever the server
+     * currently has, this is idempotent: a retry, or a duplicate push that
+     * slipped past the push lock, cannot flip the state back.
+     *
+     * Miniflux < 2.3.2 rejects the `starred` field with HTTP 400. Those
+     * servers fall back to the toggle endpoint, guarded by a read of the
+     * current state so a retry does not toggle an entry that an earlier
+     * attempt already updated.
+     */
     open suspend fun markEntriesAsBookmarked(
         entries: List<EntryTable.EntryWithoutContent>,
         bookmarked: Boolean,
     ) {
-        // https://miniflux.app/docs/api.html#endpoint-update-entry
+        if (entries.isEmpty()) return
+
+        if (setEntriesStarred(entries.map { it.id }, bookmarked)) return
+
+        // Legacy path: toggle, but only when the server disagrees with us.
         entries.forEach { entry ->
-            val rawRes = client.put(endpoint("entries", entry.id, "bookmark"))
-            if (!rawRes.status.isSuccess()) {
-                throw IOException("http request failed with response code ${rawRes.status.value}")
+            if (currentStarred(entry.id) == bookmarked) return@forEach
+            val res = try {
+                client.put(endpoint("entries", entry.id, "bookmark"))
+            } catch (e: MinifluxHttpException) {
+                // The entry is gone; there is nothing left to update.
+                if (e.statusCode == 404) return@forEach
+                throw e
+            }
+            if (res.status.value == 404) return@forEach
+            if (!res.status.isSuccess()) {
+                throw IOException("http request failed with response code ${res.status.value}")
             }
         }
+    }
+
+    /**
+     * Applies [starred] to [entriesIds] with the bulk endpoint. Returns false
+     * when the server does not understand the `starred` field, which is how
+     * Miniflux < 2.3.2 answers: it validates that a `status` is present and
+     * rejects the request with HTTP 400.
+     */
+    private suspend fun setEntriesStarred(
+        entriesIds: List<String>,
+        starred: Boolean,
+    ): Boolean {
+        val args = buildJsonObject {
+            put(
+                "entry_ids",
+                buildJsonArray { entriesIds.forEach { add(JsonPrimitive(it.toLong())) } },
+            )
+            put("starred", JsonPrimitive(starred))
+        }
+        val res = try {
+            client.put(endpoint("entries")) {
+                contentType(ContentType.Application.Json)
+                setBody(args.toString())
+            }
+        } catch (e: MinifluxHttpException) {
+            if (e.statusCode == 400) return false
+            throw e
+        }
+        if (res.status.value == 400) return false
+        if (!res.status.isSuccess() || res.status.value != 204) {
+            throw IOException("unexpected response code ${res.status.value}")
+        }
+        return true
+    }
+
+    /** The server's current starred state for [entryId], or null when unknown. */
+    private suspend fun currentStarred(entryId: String): Boolean? {
+        val res = try {
+            client.get(endpoint("entries", entryId))
+        } catch (e: MinifluxHttpException) {
+            // A removed entry cannot be updated; a toggle attempt is skipped.
+            if (e.statusCode == 404) return null
+            throw e
+        }
+        if (!res.status.isSuccess()) return null
+        return runCatching {
+            parseJsonObject(res.bodyAsText()).booleanOrNull("starred")
+        }.getOrNull()
     }
 
     open suspend fun getCategories(): List<MinifluxCategory> {
@@ -466,7 +546,12 @@ open class Miniflux(
                 published = published_at.toInstant(),
                 updated = changed_at.toInstant(),
                 authorName = author,
-                extRead = status == "read",
+                // Miniflux has a third entry status, "removed", and the
+                // unfiltered /v1/entries listing returns those rows too. A
+                // removed entry is not an article waiting to be read; mapping
+                // anything other than "unread" to read keeps it out of the
+                // Unread tab (it still shows in a feed's list and in Saved).
+                extRead = status != "unread",
                 extReadSynced = true,
                 extBookmarked = starred,
                 extBookmarkedSynced = true,
