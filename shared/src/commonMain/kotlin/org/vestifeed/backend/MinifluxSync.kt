@@ -8,13 +8,35 @@ import org.vestifeed.db.Database
 import org.vestifeed.db.table.TagTable
 import org.vestifeed.util.toInstant
 
+/**
+ * The Miniflux sync algorithm: pulls feeds, categories and entries into the
+ * local cache, and pushes local read/bookmark changes back.
+ *
+ * It works against [MinifluxApi] rather than a concrete transport, so the whole
+ * algorithm can be driven by a fake in tests without a server, and the row
+ * mapping it applies is [MinifluxMapping]'s.
+ */
 @OptIn(ExperimentalUuidApi::class)
-internal class MinifluxSync(private val api: Miniflux, private val db: Database) {
+internal class MinifluxSync(private val api: MinifluxApi, private val db: Database) {
 
-    suspend fun syncFeeds() {
-        val freshFeedPairs = api.getFeedsWithLinks()
+    /**
+     * A full sync, in the order the pieces depend on each other: feeds first
+     * (categories need the feeds' category ids), then categories, then entries.
+     *
+     * The feeds are fetched once and handed to [syncCategories] instead of
+     * being requested again there.
+     */
+    suspend fun sync(initial: Boolean) {
+        val feeds = syncFeeds()
+        syncCategories(feeds)
+        syncEntries(initial)
+    }
+
+    /** Reconciles the local feed rows and their links. Returns the server's feeds. */
+    private suspend fun syncFeeds(): List<MinifluxFeed> {
+        val freshFeeds = api.getFeeds()
         val cachedFeeds = db.feed.selectAll()
-        val freshFeedIds = freshFeedPairs.map { it.feed.id.toLong() }
+        val freshFeedIds = freshFeeds.map { it.id }
         val cachedFeedIds = cachedFeeds.map { it.id.toLong() }
         val deletedOnServerIds = cachedFeedIds.filterNot { freshFeedIds.contains(it) }
         deletedOnServerIds.forEach {
@@ -22,60 +44,66 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
             db.feedTag.deleteByFeedId(it.toString())
             db.feed.deleteById(it.toString())
         }
-        for (fresh in freshFeedPairs) {
-            val feed = fresh.feed
-            val freshLinks = fresh.links
-            val cached = cachedFeedIds.contains(feed.id.toLong())
-            if (cached) {
-                val cachedFeed = cachedFeeds.find { it.id == feed.id }!!
-                db.feed.insertOrReplace(
-                    feed.copy(
-                        extOpenEntriesInBrowser = cachedFeed.extOpenEntriesInBrowser,
-                        extBlockedWords = cachedFeed.extBlockedWords,
-                        extShowPreviewImages = cachedFeed.extShowPreviewImages,
-                    )
-                )
-                val cachedLinks = db.link.selectByFeedId(cachedFeed.id)
-                val linksDeletedOnServer =
-                    cachedLinks.filter { c -> freshLinks.none { f -> c.href == f.href && c.type == f.type } }
-                linksDeletedOnServer.forEach { db.link.deleteById(it.id!!) }
-                for (freshLink in freshLinks) {
-                    val cachedLink =
-                        cachedLinks.find { it.href == freshLink.href && it.type == freshLink.type }
-                    if (cachedLink == null) {
-                        db.link.insertForFeed(feed.id, listOf(freshLink))
-                    } else {
-                        db.link.insertForFeed(
-                            feed.id, listOf(
-                                freshLink.copy(
-                                    extEnclosureDownloadProgress = cachedLink.extEnclosureDownloadProgress,
-                                    extCacheUri = cachedLink.extCacheUri,
-                                )
-                            )
-                        )
-                    }
-                }
-            } else {
+        for (fresh in freshFeeds) {
+            val feed = MinifluxMapping.toFeed(fresh)
+            val freshLinks = MinifluxMapping.toFeedLinks(fresh)
+            val cachedFeed = cachedFeeds.find { it.id == feed.id }
+            if (cachedFeed == null) {
                 db.feed.insertOrReplace(feed)
                 db.link.insertForFeed(feed.id, freshLinks)
+                continue
+            }
+            // The per-feed display overrides are the user's; the server does
+            // not know about them, so they survive a pull.
+            db.feed.insertOrReplace(
+                feed.copy(
+                    extOpenEntriesInBrowser = cachedFeed.extOpenEntriesInBrowser,
+                    extBlockedWords = cachedFeed.extBlockedWords,
+                    extShowPreviewImages = cachedFeed.extShowPreviewImages,
+                ),
+            )
+            val cachedLinks = db.link.selectByFeedId(cachedFeed.id)
+            val linksDeletedOnServer =
+                cachedLinks.filter { c -> freshLinks.none { f -> c.href == f.href && c.type == f.type } }
+            linksDeletedOnServer.forEach { db.link.deleteById(it.id!!) }
+            for (freshLink in freshLinks) {
+                val cachedLink =
+                    cachedLinks.find { it.href == freshLink.href && it.type == freshLink.type }
+                if (cachedLink == null) {
+                    db.link.insertForFeed(feed.id, listOf(freshLink))
+                } else {
+                    // Carries the playback state (download progress, cached
+                    // file) across a metadata refresh.
+                    db.link.insertForFeed(
+                        feed.id,
+                        listOf(
+                            freshLink.copy(
+                                extEnclosureDownloadProgress = cachedLink.extEnclosureDownloadProgress,
+                                extCacheUri = cachedLink.extCacheUri,
+                            ),
+                        ),
+                    )
+                }
             }
         }
+        return freshFeeds
     }
 
     /**
      * Reconcile remote Miniflux categories into the local [TagTable] /
-     * [org.vestifeed.db.table.FeedTagTable]. Runs after [syncFeeds] so we
-     * already know which feeds exist locally. Remote categories are stored
-     * with `ext_source = 'miniflux'` and `ext_miniflux_id` set; locally-created
-     * tags from an Embedded session are kept around untouched (their source is
-     * `embedded`) because the Miniflux API has no concept of "extra" tags
-     * per feed.
+     * [org.vestifeed.db.table.FeedTagTable]. Runs after [syncFeeds], whose result
+     * it takes so the feed list is not requested twice.
+     *
+     * Remote categories are stored with `ext_source = 'miniflux'` and
+     * `ext_miniflux_id` set; locally-created tags from an Embedded session are
+     * kept (their source is `embedded`) because the Miniflux API has no concept
+     * of "extra" tags per feed.
      *
      * If a category disappears upstream, the local [TagTable] row is removed
      * and the corresponding [org.vestifeed.db.table.FeedTagTable] rows go with
      * it (CASCADE).
      */
-    suspend fun syncCategories() {
+    private suspend fun syncCategories(freshFeeds: List<MinifluxFeed>) {
         val freshCategories = api.getCategories()
         val freshCategoryIds = freshCategories.map { it.id }
         val cachedTags = db.tag.selectAll()
@@ -108,21 +136,20 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
             }
         }
 
-        val freshFeedPairs = api.getFeedsWithLinks()
         val allTags = db.tag.selectAll()
         val byMinifluxId = allTags
             .filter { it.extSource == TagTable.Source.Miniflux }
             .associateBy { it.extMinifluxId }
-        val freshFeedIds = freshFeedPairs.map { it.feed.id }
+        val freshFeedIds = freshFeeds.map { it.id.toString() }
 
         db.transaction {
             for (feedId in freshFeedIds) {
                 db.feedTag.deleteByFeedId(feedId)
             }
-            for (fresh in freshFeedPairs) {
+            for (fresh in freshFeeds) {
                 val categoryId = fresh.categoryId ?: continue
                 val tag = byMinifluxId[categoryId] ?: continue
-                db.feedTag.insert(feedId = fresh.feed.id, tagId = tag.id)
+                db.feedTag.insert(feedId = fresh.id.toString(), tagId = tag.id)
             }
         }
     }
@@ -148,7 +175,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
         if (unsyncedReadEntries.isNotEmpty()) {
             api.markEntriesAsRead(
-                entriesIds = unsyncedReadEntries.map { it.id },
+                entryIds = unsyncedReadEntries.map { it.id },
                 read = true,
             )
 
@@ -161,7 +188,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
         if (unsyncedUnreadEntries.isNotEmpty()) {
             api.markEntriesAsRead(
-                entriesIds = unsyncedUnreadEntries.map { it.id },
+                entryIds = unsyncedUnreadEntries.map { it.id },
                 read = false,
             )
 
@@ -180,7 +207,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
         if (notSyncedBookmarkedEntries.isNotEmpty()) {
             api.markEntriesAsBookmarked(
-                entries = notSyncedBookmarkedEntries,
+                entryIds = notSyncedBookmarkedEntries.map { it.id },
                 bookmarked = true,
             )
 
@@ -193,7 +220,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
 
         if (notSyncedNotBookmarkedEntries.isNotEmpty()) {
             api.markEntriesAsBookmarked(
-                entries = notSyncedNotBookmarkedEntries,
+                entryIds = notSyncedNotBookmarkedEntries.map { it.id },
                 bookmarked = false,
             )
 
@@ -205,7 +232,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
         }
     }
 
-    suspend fun syncEntries(initial: Boolean) {
+    private suspend fun syncEntries(initial: Boolean) {
         if (initial) {
             val startedAt = Clock.System.now().toString()
             syncStarredEntries()
@@ -223,7 +250,8 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
                 if (currentBatch.isEmpty()) {
                     break
                 }
-                val newChangedAfter = currentBatch.maxOf { it.first.updated }
+                val rows = currentBatch.map(MinifluxMapping::toEntry)
+                val newChangedAfter = rows.maxOf { it.first.updated }
                 if (newChangedAfter.epochSeconds == changedAfter.epochSeconds) {
                     // Every returned entry's `changed_at` falls inside the same
                     // second as the cursor. Miniflux's `changed_after` is
@@ -240,7 +268,7 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
                     continue
                 }
                 db.transaction {
-                    currentBatch.forEach {
+                    rows.forEach {
                         db.entry.insertOrReplace(listOf(it.first))
                         db.link.insertForEntry(it.first.id, it.second)
                     }
@@ -259,8 +287,8 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
         }
     }
 
-    suspend fun syncUnreadEntries() {
-        val freshEntries = api.getUnreadEntries()
+    private suspend fun syncUnreadEntries() {
+        val freshEntries = api.getUnreadEntries().map(MinifluxMapping::toEntry)
         db.transaction {
             freshEntries.forEach {
                 db.entry.insertOrReplace(listOf(it.first))
@@ -269,8 +297,8 @@ internal class MinifluxSync(private val api: Miniflux, private val db: Database)
         }
     }
 
-    suspend fun syncStarredEntries() {
-        val freshEntries = api.getStarredEntries()
+    private suspend fun syncStarredEntries() {
+        val freshEntries = api.getStarredEntries().map(MinifluxMapping::toEntry)
         db.transaction {
             freshEntries.forEach {
                 db.entry.insertOrReplace(listOf(it.first))

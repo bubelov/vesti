@@ -8,7 +8,7 @@ import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.util.toUrl
 
-sealed class Backend(protected val db: Database) {
+abstract class Backend(protected val db: Database) {
     data class AddFeedResult(
         val feed: FeedTable.Feed,
         val feedLinks: List<LinkTable.Link>,
@@ -54,8 +54,11 @@ suspend fun backend(db: Database, userAgent: String = ""): Backend {
                 Embedded(db, userAgent)
             } else {
                 Miniflux(
-                    client = minifluxHttpClient(token = conf.minifluxToken, userAgent = userAgent),
-                    baseUrl = "${conf.minifluxUrl}/v1/".toUrl(),
+                    api = MinifluxHttpApi(
+                        client = minifluxHttpClient(token = conf.minifluxToken, userAgent = userAgent),
+                        // The API root; every endpoint path below it.
+                        baseUrl = "${conf.minifluxUrl}/v1/".toUrl(),
+                    ),
                     db = db,
                 )
             }

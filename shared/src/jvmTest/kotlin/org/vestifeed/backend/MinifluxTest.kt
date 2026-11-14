@@ -1,31 +1,27 @@
 package org.vestifeed.backend
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.http.Url
 import kotlin.time.Instant
 import kotlinx.coroutines.runBlocking
-import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
 import org.vestifeed.db.entry
-import org.vestifeed.db.entryWithoutContent
-import org.vestifeed.db.table.EntryTable
-import org.vestifeed.db.table.FeedTable
-import org.vestifeed.db.table.LinkTable
+import org.vestifeed.db.table.ConfTable
+import org.vestifeed.db.table.TagTable
 import org.vestifeed.db.testDb
-import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.util.toUrl
 
+/**
+ * The backend and sync layer: what a sync does to the local database, driven by
+ * a [FakeMinifluxApi]. The HTTP side is covered by [MinifluxHttpApiTest] and the
+ * DTO-to-row mapping by [MinifluxMappingTest].
+ */
 class MinifluxTest {
+
     private lateinit var db: Database
 
     @Before
@@ -34,259 +30,138 @@ class MinifluxTest {
     }
 
     @Test
-    fun syncFeeds() = runBlocking {
-        val freshFeed = FeedTable.Feed(
-            id = "1",
-            title = "feed 1",
-            extOpenEntriesInBrowser = false,
-            extBlockedWords = "",
-            extShowPreviewImages = null,
-        )
-        val freshLinks = listOf(
-            LinkTable.Link(
-                id = null,
-                feedId = "1",
-                entryId = null,
-                href = "https://bubelov.com/index.xml",
-                rel = AtomLinkRel.Self,
-                type = null,
-                hreflang = null,
-                title = null,
-                length = null,
-                extEnclosureDownloadProgress = null,
-                extCacheUri = null,
-            ),
-            LinkTable.Link(
-                id = null,
-                feedId = "1",
-                entryId = null,
-                href = "https://bubelov.com/",
-                rel = AtomLinkRel.Alternate,
-                type = "text/html",
-                hreflang = null,
-                title = null,
-                length = null,
-                extEnclosureDownloadProgress = null,
-                extCacheUri = null,
-            ),
-        )
-        val api = object : Miniflux(
-            client = HttpClient(CIO),
-            baseUrl = "http://localhost".toUrl(),
-            db = db,
-        ) {
-            override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
-                throw NotImplementedError()
+    fun syncFeedsStoresFeedsAndTheirLinks() = runBlocking {
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds() = listOf(
+                MinifluxFeed(
+                    id = 1,
+                    title = "feed 1",
+                    feedUrl = "https://bubelov.com/index.xml",
+                    siteUrl = "https://bubelov.com/",
+                    categoryId = null,
+                ),
+            )
 
-            override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun deleteFeed(feedId: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun getFeedsWithLinks(): List<Miniflux.FreshFeed> =
-                listOf(Miniflux.FreshFeed(feed = freshFeed, links = freshLinks, categoryId = null))
-
-            override suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getEntriesChangedAfter(
-                changedAfter: Instant,
-                limit: Long,
-            ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> = emptyList()
-
-            override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) = Unit
-
-            override suspend fun markEntriesAsBookmarked(
-                entries: List<EntryTable.EntryWithoutContent>,
-                bookmarked: Boolean,
-            ) = Unit
-
-            override suspend fun getCategories(): List<Miniflux.MinifluxCategory> =
-                emptyList()
-
-            override suspend fun createCategory(title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun updateCategory(id: Long, title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun deleteCategory(id: Long): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun moveFeedToCategory(feedId: String, categoryId: Long) = Unit
+            override suspend fun getCategories() = emptyList<MinifluxCategory>()
+            override suspend fun getUnreadEntries() = emptyList<MinifluxEntry>()
+            override suspend fun getStarredEntries() = emptyList<MinifluxEntry>()
         }
-        api.sync(initial = true)
-        val cacheFeeds = db.feed.selectAll()
-        val cacheFeed1 = cacheFeeds.first()
-        assert(cacheFeed1.id == freshFeed.id)
-        assert(cacheFeed1.title == freshFeed.title)
-        val cacheFeed1Links = db.link.selectByFeedId(freshFeed.id)
-        assert(cacheFeed1Links.size == 2)
-        assert(cacheFeed1Links.singleOrNull { it.href == freshLinks[0].href } != null)
-        assert(cacheFeed1Links.singleOrNull { it.href == freshLinks[1].href } != null)
-        api.sync(initial = true)
-        val cacheFeed1Links2 = db.link.selectByFeedId(freshFeed.id)
-        assert(cacheFeed1Links2.size == 2)
-        assert(cacheFeed1Links2.singleOrNull { it.href == freshLinks[0].href } != null)
-        assert(cacheFeed1Links2.singleOrNull { it.href == freshLinks[1].href } != null)
+
+        val backend = Miniflux(api, db)
+        backend.sync(initial = true)
+
+        val cached = db.feed.selectAll().single()
+        assertEquals("1", cached.id)
+        assertEquals("feed 1", cached.title)
+
+        val links = db.link.selectByFeedId("1")
+        assertEquals(2, links.size)
+        assertNotNull(links.singleOrNull { it.href == "https://bubelov.com/index.xml" })
+        assertNotNull(links.singleOrNull { it.href == "https://bubelov.com/" })
+
+        // A second sync refreshes the same links instead of duplicating them.
+        backend.sync(initial = true)
+        assertEquals(2, db.link.selectByFeedId("1").size)
+    }
+
+    /**
+     * The feed list used to be fetched twice per sync (once for the feeds, once
+     * by the category reconcile). One request is enough: the reconcile reuses
+     * what the feed sync already pulled.
+     */
+    @Test
+    fun syncRequestsTheFeedListOnlyOnce() = runBlocking {
+        var feedRequests = 0
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds(): List<MinifluxFeed> {
+                feedRequests++
+                return listOf(
+                    MinifluxFeed(
+                        id = 1,
+                        title = "feed 1",
+                        feedUrl = "https://example.com/feed.xml",
+                        siteUrl = "https://example.com/",
+                        categoryId = 42L,
+                    ),
+                )
+            }
+
+            override suspend fun getCategories() =
+                listOf(MinifluxCategory(id = 42L, title = "Tech"))
+
+            override suspend fun getUnreadEntries() = emptyList<MinifluxEntry>()
+            override suspend fun getStarredEntries() = emptyList<MinifluxEntry>()
+        }
+
+        Miniflux(api, db).sync(initial = true)
+
+        assertEquals(1, feedRequests)
     }
 
     @Test
     fun syncCategories_createsTagsAndAssociatesFeeds() = runBlocking {
-        val freshFeed = FeedTable.Feed(
-            id = "1",
-            title = "feed 1",
-            extOpenEntriesInBrowser = false,
-            extBlockedWords = "",
-            extShowPreviewImages = null,
-        )
-        val freshLinks = emptyList<LinkTable.Link>()
-        val api = object : Miniflux(
-            client = HttpClient(CIO),
-            baseUrl = "http://localhost".toUrl(),
-            db = db,
-        ) {
-            override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
-                throw NotImplementedError()
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds() = listOf(
+                MinifluxFeed(
+                    id = 1,
+                    title = "feed 1",
+                    feedUrl = "https://example.com/feed.xml",
+                    siteUrl = "https://example.com/",
+                    categoryId = 42L,
+                ),
+            )
 
-            override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
-                Result.success(Unit)
+            override suspend fun getCategories() = listOf(
+                MinifluxCategory(id = 42L, title = "Tech"),
+                MinifluxCategory(id = 99L, title = "News"),
+            )
 
-            override suspend fun deleteFeed(feedId: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun getFeedsWithLinks(): List<Miniflux.FreshFeed> =
-                listOf(Miniflux.FreshFeed(feed = freshFeed, links = freshLinks, categoryId = 42L))
-
-            override suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getEntriesChangedAfter(
-                changedAfter: Instant,
-                limit: Long,
-            ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> = emptyList()
-
-            override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) = Unit
-
-            override suspend fun markEntriesAsBookmarked(
-                entries: List<EntryTable.EntryWithoutContent>,
-                bookmarked: Boolean,
-            ) = Unit
-
-            override suspend fun getCategories(): List<Miniflux.MinifluxCategory> =
-                listOf(
-                    Miniflux.MinifluxCategory(id = 42L, title = "Tech"),
-                    Miniflux.MinifluxCategory(id = 99L, title = "News"),
-                )
-
-            override suspend fun createCategory(title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun updateCategory(id: Long, title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun deleteCategory(id: Long): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun moveFeedToCategory(feedId: String, categoryId: Long) = Unit
+            override suspend fun getUnreadEntries() = emptyList<MinifluxEntry>()
+            override suspend fun getStarredEntries() = emptyList<MinifluxEntry>()
         }
 
-        api.sync(initial = true)
+        Miniflux(api, db).sync(initial = true)
 
         val tags = db.tag.selectAll()
         assertEquals(2, tags.size)
         val tech = tags.single { it.extMinifluxId == 42L }
         assertEquals("Tech", tech.name)
-        assertEquals(org.vestifeed.db.table.TagTable.Source.Miniflux, tech.extSource)
+        assertEquals(TagTable.Source.Miniflux, tech.extSource)
 
-        // The tag id is a runtime-generated UUID. Verify the association by
-        // looking up the tag that points at category 42 and checking the
-        // feed_tag rows match.
-        val tagIds = db.feedTag.selectTagIdsByFeedId("1")
-        assertEquals(1, tagIds.size)
-        assertEquals(tech.id, tagIds.single())
+        // The tag id is a runtime-generated UUID, so the association is checked
+        // through the tag that points at category 42.
+        assertEquals(listOf(tech.id), db.feedTag.selectTagIdsByFeedId("1"))
     }
 
     @Test
     fun syncCategories_removesDeletedCategories() = runBlocking {
-        val freshFeed = FeedTable.Feed(
-            id = "1",
+        val freshFeed = MinifluxFeed(
+            id = 1,
             title = "feed 1",
-            extOpenEntriesInBrowser = false,
-            extBlockedWords = "",
-            extShowPreviewImages = null,
+            feedUrl = "https://example.com/feed.xml",
+            siteUrl = "https://example.com/",
+            categoryId = 42L,
         )
-        val remoteCategoriesFirstRun = listOf(
-            Miniflux.MinifluxCategory(id = 42L, title = "Tech"),
-            Miniflux.MinifluxCategory(id = 99L, title = "News"),
-        )
-        val remoteCategoriesSecondRun = listOf(
-            Miniflux.MinifluxCategory(id = 42L, title = "Tech"),
+        var currentCategories = listOf(
+            MinifluxCategory(id = 42L, title = "Tech"),
+            MinifluxCategory(id = 99L, title = "News"),
         )
 
-        var currentCategories = remoteCategoriesFirstRun
-        val api = object : Miniflux(
-            client = HttpClient(CIO),
-            baseUrl = "http://localhost".toUrl(),
-            db = db,
-        ) {
-            override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
-                throw NotImplementedError()
-
-            override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun deleteFeed(feedId: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun getFeedsWithLinks(): List<Miniflux.FreshFeed> =
-                listOf(Miniflux.FreshFeed(feed = freshFeed, links = emptyList(), categoryId = 42L))
-
-            override suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getEntriesChangedAfter(
-                changedAfter: Instant,
-                limit: Long,
-            ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> = emptyList()
-
-            override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) = Unit
-
-            override suspend fun markEntriesAsBookmarked(
-                entries: List<EntryTable.EntryWithoutContent>,
-                bookmarked: Boolean,
-            ) = Unit
-
-            override suspend fun getCategories(): List<Miniflux.MinifluxCategory> = currentCategories
-
-            override suspend fun createCategory(title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun updateCategory(id: Long, title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun deleteCategory(id: Long): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun moveFeedToCategory(feedId: String, categoryId: Long) = Unit
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds() = listOf(freshFeed)
+            override suspend fun getCategories() = currentCategories
+            override suspend fun getUnreadEntries() = emptyList<MinifluxEntry>()
+            override suspend fun getStarredEntries() = emptyList<MinifluxEntry>()
         }
+        val backend = Miniflux(api, db)
 
-        api.sync(initial = true)
+        backend.sync(initial = true)
         assertEquals(2, db.tag.selectAll().size)
 
-        // Pretend the user removed category 99 on the server.
-        currentCategories = remoteCategoriesSecondRun
-        api.sync(initial = true)
+        // The user removed category 99 on the server.
+        currentCategories = listOf(MinifluxCategory(id = 42L, title = "Tech"))
+        backend.sync(initial = true)
+
         assertEquals(1, db.tag.selectAll().size)
         assertEquals(42L, db.tag.selectAll().single().extMinifluxId)
     }
@@ -301,71 +176,30 @@ class MinifluxTest {
     @Test
     fun syncIncrementalStoresChangedEntriesAndAdvancesCursor() = runBlocking {
         db.conf.insert(
-            org.vestifeed.db.table.ConfTable.defaultConf().copy(
-                backend = org.vestifeed.db.table.ConfTable.Backend.Miniflux,
+            ConfTable.defaultConf().copy(
+                backend = ConfTable.Backend.Miniflux,
                 minifluxUrl = "http://localhost",
                 minifluxToken = "token",
                 minifluxIncrementalSyncTimestamp = "2024-01-01T00:00:00Z",
-            )
+            ),
         )
 
-        val changedEntry = org.vestifeed.db.entry().copy(
-            id = "42",
-            feedId = "1",
-            title = "changed",
-            published = Instant.parse("2024-01-02T00:00:00Z"),
-            updated = Instant.parse("2024-01-02T00:00:00Z"),
-        )
-
-        val api = object : Miniflux(
-            client = HttpClient(CIO),
-            baseUrl = "http://localhost".toUrl(),
-            db = db,
-        ) {
-            override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
-                throw NotImplementedError()
-
-            override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun deleteFeed(feedId: String): Result<Unit> =
-                Result.success(Unit)
-
-            override suspend fun getFeedsWithLinks(): List<Miniflux.FreshFeed> = emptyList()
-
-            override suspend fun getUnreadEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
-            override suspend fun getStarredEntries(): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                emptyList()
-
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds() = emptyList<MinifluxFeed>()
+            override suspend fun getCategories() = emptyList<MinifluxCategory>()
             override suspend fun getEntriesChangedAfter(
                 changedAfter: Instant,
                 limit: Long,
-            ): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> =
-                listOf(changedEntry to emptyList())
-
-            override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) = Unit
-
-            override suspend fun markEntriesAsBookmarked(
-                entries: List<EntryTable.EntryWithoutContent>,
-                bookmarked: Boolean,
-            ) = Unit
-
-            override suspend fun getCategories(): List<Miniflux.MinifluxCategory> = emptyList()
-
-            override suspend fun createCategory(title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun updateCategory(id: Long, title: String): Miniflux.MinifluxCategory =
-                throw NotImplementedError()
-
-            override suspend fun deleteCategory(id: Long): Result<Unit> = Result.success(Unit)
-
-            override suspend fun moveFeedToCategory(feedId: String, categoryId: Long) = Unit
+            ) = listOf(
+                minifluxEntry(
+                    id = 42,
+                    status = MinifluxEntryStatus.UNREAD,
+                    changedAt = Instant.parse("2024-01-02T00:00:00Z"),
+                ),
+            )
         }
 
-        api.sync(initial = false)
+        Miniflux(api, db).sync(initial = false)
 
         assertEquals("42", db.entry.selectById("42")?.id)
         assertEquals(
@@ -375,679 +209,121 @@ class MinifluxTest {
     }
 
     /**
-     * Marking an entry read should push just that change — one request to the
-     * entries endpoint — not a full sync that re-fetches feeds and categories.
+     * A push sends only the entries whose local state has not reached the
+     * server, with their absolute value — no feed or category re-fetch.
      */
     @Test
     fun pushPendingChangesSendsOnlyThePendingEntryUpdates() = runBlocking {
         db.entry.insertOrReplace(
             listOf(
-                org.vestifeed.db.entry().copy(
-                    id = "42",
-                    extRead = true,
-                    extReadSynced = false,
-                )
-            )
+                entry().copy(id = "42", extRead = true, extReadSynced = false),
+                entry().copy(id = "43", extRead = true, extReadSynced = true),
+            ),
         )
 
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(MockResponse.Builder().code(204).build())
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            api.pushPendingChanges()
-
-            assertEquals(1, server.requestCount)
-            val request = server.takeRequest()
-            assertEquals("PUT", request.method)
-            assertEquals("/v1/entries", request.target)
-            val body = request.body?.utf8().orEmpty()
-            assertTrue("expected the read status, got: $body", body.contains("\"status\":\"read\""))
-            assertTrue("expected entry 42, got: $body", body.contains("42"))
-            assertTrue(db.entry.selectByReadSynced(false).isEmpty())
-        } finally {
-            server.close()
+        val pushes = mutableListOf<Pair<List<String>, Boolean>>()
+        val api = object : FakeMinifluxApi() {
+            override suspend fun markEntriesAsRead(entryIds: List<String>, read: Boolean) {
+                pushes += entryIds to read
+            }
         }
+
+        Miniflux(api, db).pushPendingChanges()
+
+        assertEquals(listOf(listOf("42") to true), pushes)
+        assertTrue(db.entry.selectByReadSynced(false).isEmpty())
     }
 
     @Test
     fun pruneDeletedEntries_removesLocalEntriesMissingOnServer() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            // Two scans are unioned, so the server is asked twice.
-            repeat(2) {
-                server.enqueue(
-                    MockResponse.Builder()
-                        .code(200)
-                        .setHeader("Content-Type", "application/json")
-                        .body("""{"total":2,"entry_ids":[1,2]}""")
-                        .build()
-                )
+        db.entry.insertOrReplace(
+            listOf(entry().copy(id = "1"), entry().copy(id = "2"), entry().copy(id = "3")),
+        )
+
+        var scans = 0
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getEntryIds(): Set<Long> {
+                scans++
+                return setOf(1L, 2L)
             }
-
-            db.entry.insertOrReplace(
-                listOf(
-                    entry().copy(id = "1"),
-                    entry().copy(id = "2"),
-                    entry().copy(id = "3"),
-                )
-            )
-            db.link.insertForEntry(
-                "3",
-                listOf(
-                    LinkTable.Link(
-                        id = null,
-                        feedId = null,
-                        entryId = "3",
-                        href = "https://example.com/3",
-                        rel = AtomLinkRel.Alternate,
-                        type = "text/html",
-                        hreflang = null,
-                        title = null,
-                        length = null,
-                        extEnclosureDownloadProgress = null,
-                        extCacheUri = null,
-                    )
-                ),
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            assertTrue(api.pruneDeletedEntries())
-
-            assertNotNull(db.entry.selectById("1"))
-            assertNotNull(db.entry.selectById("2"))
-            assertNull(db.entry.selectById("3"))
-            assertTrue(db.link.selectByEntryId("3").isEmpty())
-            assertEquals(2, server.requestCount)
-
-            val request = server.takeRequest()
-            assertEquals("GET", request.method)
-            assertTrue(request.target, request.target.startsWith("/v1/entries/ids?"))
-            assertTrue(request.target, request.target.contains("limit=10000"))
-            assertTrue(request.target, request.target.contains("offset=0"))
-        } finally {
-            server.close()
         }
+
+        assertTrue(Miniflux(api, db).pruneDeletedEntries())
+
+        assertNotNull(db.entry.selectById("1"))
+        assertNotNull(db.entry.selectById("2"))
+        assertNull(db.entry.selectById("3"))
+        // Two scans are unioned so a page shift cannot hide a live entry.
+        assertEquals(2, scans)
     }
 
     @Test
     fun pruneDeletedEntries_unsupportedServerIsANoOp() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
+        db.entry.insertOrReplace(listOf(entry().copy(id = "1")))
+
+        val api = object : FakeMinifluxApi() {
             // Miniflux < 2.3.2 has no /v1/entries/ids endpoint.
-            server.enqueue(MockResponse.Builder().code(404).build())
-
-            db.entry.insertOrReplace(listOf(entry().copy(id = "1")))
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            // The attempt still counts as done so the caller records it and
-            // does not retry on every sync.
-            assertTrue(api.pruneDeletedEntries())
-            assertNotNull(db.entry.selectById("1"))
-            assertEquals(1, server.requestCount)
-        } finally {
-            server.close()
+            override suspend fun getEntryIds(): Set<Long>? = null
         }
+
+        // The attempt still counts as done, so the caller records it and does
+        // not retry on every sync.
+        assertTrue(Miniflux(api, db).pruneDeletedEntries())
+        assertNotNull(db.entry.selectById("1"))
     }
 
     @Test
-    fun addFeedSendsCategoryIdWhenProvided() {
-        val server = MockWebServer().apply { start() }
-        try {
-            // POST /v1/feeds -> 201 with feed_id
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(201)
-                    .setHeader("Content-Type", "application/json")
-                    .body("""{"feed_id": 42}""")
-                    .build()
-            )
-            // GET /v1/feeds/42 -> 200 with the feed metadata
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(
-                        """
-                        {
-                          "id": 42,
-                          "title": "Test Feed",
-                          "feed_url": "https://example.com/feed.xml",
-                          "site_url": "https://example.com/",
-                          "category": null
-                        }
-                        """.trimIndent()
-                    )
-                    .build()
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            runBlocking { api.addFeed("https://example.com/feed.xml".toUrl(), categoryId = 7L) }
-
-            val createRequest = server.takeRequest()
-            assertEquals("POST", createRequest.method)
-            assertEquals("/v1/feeds", createRequest.target)
-            val body = createRequest.body?.utf8().orEmpty()
-            assertTrue(
-                "Expected request body to include category_id, got: $body",
-                body.contains("\"category_id\":7"),
-            )
-            assertTrue(
-                "Expected request body to include feed_url, got: $body",
-                body.contains("\"feed_url\":\"https://example.com/feed.xml\""),
-            )
-        } finally {
-            server.close()
+    fun deleteFeedReportsFailureWithoutThrowing() = runBlocking {
+        val api = object : FakeMinifluxApi() {
+            override suspend fun deleteFeed(feedId: String) = throw java.io.IOException("boom")
         }
+
+        val result = Miniflux(api, db).deleteFeed("1")
+
+        assertTrue(result.isFailure)
     }
 
     @Test
-    fun addFeedOmitsCategoryIdWhenNull() {
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(201)
-                    .setHeader("Content-Type", "application/json")
-                    .body("""{"feed_id": 42}""")
-                    .build()
+    fun addFeedStoresNothingAndReturnsTheMappedFeed() = runBlocking {
+        val api = object : FakeMinifluxApi() {
+            override suspend fun addFeed(feedUrl: String, categoryId: Long?) = MinifluxFeed(
+                id = 7,
+                title = "New feed",
+                feedUrl = feedUrl,
+                siteUrl = "https://example.com/",
+                categoryId = categoryId,
             )
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(
-                        """
-                        {
-                          "id": 42,
-                          "title": "Test Feed",
-                          "feed_url": "https://example.com/feed.xml",
-                          "site_url": "https://example.com/",
-                          "category": null
-                        }
-                        """.trimIndent()
-                    )
-                    .build()
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            runBlocking { api.addFeed("https://example.com/feed.xml".toUrl(), categoryId = null) }
-
-            val createRequest = server.takeRequest()
-            assertEquals("POST", createRequest.method)
-            assertEquals("/v1/feeds", createRequest.target)
-            val body = createRequest.body?.utf8().orEmpty()
-            assertFalse(
-                "Expected request body to omit category_id when null, got: $body",
-                body.contains("category_id"),
-            )
-            assertTrue(
-                "Expected request body to include feed_url, got: $body",
-                body.contains("\"feed_url\":\"https://example.com/feed.xml\""),
-            )
-        } finally {
-            server.close()
         }
-    }
 
-    @Test
-    fun findOrCreateCategoryReturnsExistingWhenPresent() {
-        val server = MockWebServer().apply { start() }
-        try {
-            // GET /v1/categories -> 200 with one matching category
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(
-                        """
-                        [
-                          {"id": 42, "title": "Tech"},
-                          {"id": 99, "title": "OPML Import 2026-08-18"}
-                        ]
-                        """.trimIndent()
-                    )
-                    .build()
-            )
-            // createCategory should NOT be called. If it is, MockWebServer will
-            // fail the test when it has no more queued responses.
+        val result = Miniflux(api, db).addFeed("https://example.com/feed.xml".toUrl(), null)
 
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            val result = runBlocking { api.findOrCreateCategory("OPML Import 2026-08-18") }
-
-            assertEquals(Miniflux.MinifluxCategory(id = 99L, title = "OPML Import 2026-08-18"), result)
-            assertEquals(1, server.requestCount)
-            val listRequest = server.takeRequest()
-            assertEquals("GET", listRequest.method)
-            assertEquals("/v1/categories", listRequest.target)
-        } finally {
-            server.close()
-        }
-    }
-
-    @Test
-    fun findOrCreateCategoryCreatesWhenAbsent() {
-        val server = MockWebServer().apply { start() }
-        try {
-            // GET /v1/categories -> 200 with no matching category
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body("""[{"id": 42, "title": "Tech"}]""")
-                    .build()
-            )
-            // POST /v1/categories -> 201 with the new category
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(201)
-                    .setHeader("Content-Type", "application/json")
-                    .body("""{"id": 7, "title": "OPML Import 2026-08-18"}""")
-                    .build()
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            val result = runBlocking { api.findOrCreateCategory("OPML Import 2026-08-18") }
-
-            assertEquals(Miniflux.MinifluxCategory(id = 7L, title = "OPML Import 2026-08-18"), result)
-            val listRequest = server.takeRequest()
-            assertEquals("GET", listRequest.method)
-            assertEquals("/v1/categories", listRequest.target)
-            val createRequest = server.takeRequest()
-            assertEquals("POST", createRequest.method)
-            assertEquals("/v1/categories", createRequest.target)
-            val body = createRequest.body?.utf8().orEmpty()
-            assertTrue(
-                "Expected POST body to include the requested title, got: $body",
-                body.contains("\"title\":\"OPML Import 2026-08-18\""),
-            )
-        } finally {
-            server.close()
-        }
-    }
-
-    @Test
-    fun getUnreadEntriesPaginatesWhenTotalExceedsPageSize() {
-        val server = MockWebServer().apply { start() }
-        try {
-            // First page: 1000 entries, total reported as 3439.
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(unreadPayload(total = 3439L, ids = (1L..1000L).toList()))
-                    .build()
-            )
-            // Second page: 1000 entries.
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(unreadPayload(total = 3439L, ids = (1001L..2000L).toList()))
-                    .build()
-            )
-            // Third page: 1000 entries.
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(unreadPayload(total = 3439L, ids = (2001L..3000L).toList()))
-                    .build()
-            )
-            // Final page: 439 entries — short page tells us we are done.
-            server.enqueue(
-                MockResponse.Builder()
-                    .code(200)
-                    .setHeader("Content-Type", "application/json")
-                    .body(unreadPayload(total = 3439L, ids = (3001L..3439L).toList()))
-                    .build()
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            val entries = runBlocking { api.getUnreadEntries() }
-
-            assertEquals(3439, entries.size)
-            assertEquals("1", entries.first().first.id)
-            assertEquals("3439", entries.last().first.id)
-            assertEquals(4, server.requestCount)
-
-            val firstPath = server.takeRequest().target
-            assertTrue(
-                "Expected first page to ask for offset=0 limit=1000, got: $firstPath",
-                firstPath.contains("offset=0") && firstPath.contains("limit=1000"),
-            )
-            val secondPath = server.takeRequest().target
-            assertTrue(
-                "Expected second page to ask for offset=1000 limit=1000, got: $secondPath",
-                secondPath.contains("offset=1000") && secondPath.contains("limit=1000"),
-            )
-            val thirdPath = server.takeRequest().target
-            assertTrue(
-                "Expected third page to ask for offset=2000 limit=1000, got: $thirdPath",
-                thirdPath.contains("offset=2000") && thirdPath.contains("limit=1000"),
-            )
-            val fourthPath = server.takeRequest().target
-            assertTrue(
-                "Expected fourth page to ask for offset=3000 limit=1000, got: $fourthPath",
-                fourthPath.contains("offset=3000") && fourthPath.contains("limit=1000"),
-            )
-        } finally {
-            server.close()
-        }
-    }
-
-    @Test
-    fun markEntriesAsBookmarkedSendsTheAbsoluteStateInOneRequest() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(MockResponse.Builder().code(204).build())
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            api.markEntriesAsBookmarked(
-                entries = listOf(
-                    entryWithoutContent().copy(id = "42"),
-                    entryWithoutContent().copy(id = "43"),
-                ),
-                bookmarked = true,
-            )
-
-            assertEquals(1, server.requestCount)
-            val request = server.takeRequest()
-            assertEquals("PUT", request.method)
-            assertEquals("/v1/entries", request.target)
-            val body = request.body?.utf8().orEmpty()
-            assertTrue("expected an absolute starred state, got: $body", body.contains("\"starred\":true"))
-            assertTrue("expected entry 42, got: $body", body.contains("42"))
-            assertTrue("expected entry 43, got: $body", body.contains("43"))
-        } finally {
-            server.close()
-        }
-    }
-
-    @Test
-    fun markEntriesAsBookmarkedSendsFalseWhenUnbookmarking() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(MockResponse.Builder().code(204).build())
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            api.markEntriesAsBookmarked(
-                entries = listOf(entryWithoutContent().copy(id = "42")),
-                bookmarked = false,
-            )
-
-            val body = server.takeRequest().body?.utf8().orEmpty()
-            assertTrue("expected an absolute unstarred state, got: $body", body.contains("\"starred\":false"))
-        } finally {
-            server.close()
-        }
-    }
-
-    /**
-     * Miniflux < 2.3.2 rejects the `starred` field carried by a bulk update
-     * (it validates that a `status` is present). The fallback toggles only the
-     * entries whose server state actually differs, so a retried push cannot
-     * flip back an entry an earlier attempt already updated.
-     */
-    @Test
-    fun markEntriesAsBookmarkedFallsBackToTogglingOnOldServers() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            // The bulk update is rejected by the old server.
-            server.enqueue(MockResponse.Builder().code(400).build())
-            // Entry 42 is not starred yet: read it, then toggle it.
-            server.enqueue(jsonResponse("""{"id":42,"starred":false}"""))
-            server.enqueue(MockResponse.Builder().code(204).build())
-            // Entry 43 is already starred: it must not be toggled.
-            server.enqueue(jsonResponse("""{"id":43,"starred":true}"""))
-
-            val api = Miniflux(
-                client = minifluxHttpClient(token = "token"),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            api.markEntriesAsBookmarked(
-                entries = listOf(
-                    entryWithoutContent().copy(id = "42"),
-                    entryWithoutContent().copy(id = "43"),
-                ),
-                bookmarked = true,
-            )
-
-            assertEquals(4, server.requestCount)
-
-            val bulk = server.takeRequest()
-            assertEquals("PUT", bulk.method)
-            assertEquals("/v1/entries", bulk.target)
-
-            val read42 = server.takeRequest()
-            assertEquals("GET", read42.method)
-            assertEquals("/v1/entries/42", read42.target)
-
-            val toggle42 = server.takeRequest()
-            assertEquals("PUT", toggle42.method)
-            assertEquals("/v1/entries/42/bookmark", toggle42.target)
-
-            val read43 = server.takeRequest()
-            assertEquals("GET", read43.method)
-            assertEquals("/v1/entries/43", read43.target)
-        } finally {
-            server.close()
-        }
-    }
-
-    /**
-     * A legacy-server push is retried wholesale after a partial failure (the
-     * local flags are only cleared once the whole loop succeeds). The retry
-     * must not toggle again an entry the first attempt already updated, or the
-     * bookmark flips back off on the server.
-     */
-    @Test
-    fun markEntriesAsBookmarkedFallbackRetryDoesNotToggleTwice() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            // Attempt 1: bulk update rejected, entry 42 toggled, entry 43
-            // fails, so the push as a whole throws and stays pending.
-            server.enqueue(MockResponse.Builder().code(400).build())
-            server.enqueue(jsonResponse("""{"id":42,"starred":false}"""))
-            server.enqueue(MockResponse.Builder().code(204).build())
-            server.enqueue(MockResponse.Builder().code(500).build())
-
-            // Attempt 2: entry 42 now reports the desired state and must be
-            // left alone; entry 43 still needs its toggle.
-            server.enqueue(MockResponse.Builder().code(400).build())
-            server.enqueue(jsonResponse("""{"id":42,"starred":true}"""))
-            server.enqueue(jsonResponse("""{"id":43,"starred":false}"""))
-            server.enqueue(MockResponse.Builder().code(204).build())
-
-            val api = Miniflux(
-                client = minifluxHttpClient(token = "token"),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-            val entries = listOf(
-                entryWithoutContent().copy(id = "42"),
-                entryWithoutContent().copy(id = "43"),
-            )
-
-            assertThrows(java.io.IOException::class.java) {
-                runBlocking { api.markEntriesAsBookmarked(entries, bookmarked = true) }
-            }
-            api.markEntriesAsBookmarked(entries, bookmarked = true)
-
-            val requests = (1..8).map { server.takeRequest() }
-            val toggles = requests.filter { it.target.endsWith("/bookmark") }
-
-            assertEquals(
-                "only one toggle per entry across both attempts",
-                listOf("/v1/entries/42/bookmark", "/v1/entries/43/bookmark"),
-                toggles.map { it.target },
-            )
-        } finally {
-            server.close()
-        }
-    }
-
-    /**
-     * The incremental pull has no status filter, so Miniflux also returns
-     * entries whose status is "removed". They must not resurface in the
-     * Unread tab, which only excludes read and bookmarked rows.
-     */
-    @Test
-    fun removedEntriesAreParsedAsRead() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(
-                jsonResponse(
-                    """
-                    {
-                      "total": 3,
-                      "entries": [
-                        ${entryJson(id = 1, status = "unread")},
-                        ${entryJson(id = 2, status = "read")},
-                        ${entryJson(id = 3, status = "removed")}
-                      ]
-                    }
-                    """.trimIndent()
-                )
-            )
-
-            val api = Miniflux(
-                client = HttpClient(CIO),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            val entries = api.getEntriesChangedAfter(
-                changedAfter = Instant.parse("2024-01-01T00:00:00Z"),
-                limit = 100,
-            )
-
-            assertEquals(listOf(false, true, true), entries.map { it.first.extRead })
-        } finally {
-            server.close()
-        }
-    }
-
-    /**
-     * The production client turns a 404 into [MinifluxHttpException] before the
-     * caller sees the response, so [Miniflux.getEntryIds] has to catch it for
-     * servers without the `/v1/entries/ids` endpoint.
-     */
-    @Test
-    fun pruneDeletedEntriesTreatsA404FromTheAuthClientAsUnsupported() = runBlocking {
-        val server = MockWebServer().apply { start() }
-        try {
-            server.enqueue(MockResponse.Builder().code(404).build())
-
-            val api = Miniflux(
-                client = minifluxHttpClient(token = "token"),
-                baseUrl = server.url("/v1/").toString().toUrl(),
-                db = db,
-            )
-
-            assertTrue(api.pruneDeletedEntries())
-            assertEquals(1, server.requestCount)
-        } finally {
-            server.close()
-        }
-    }
-
-    private fun jsonResponse(body: String) = MockResponse.Builder()
-        .code(200)
-        .setHeader("Content-Type", "application/json")
-        .body(body)
-        .build()
-
-    private fun entryJson(id: Long, status: String) = """
-        {
-          "id": $id,
-          "feed_id": 1,
-          "status": "$status",
-          "title": "entry $id",
-          "url": "",
-          "comments_url": "",
-          "published_at": "2024-01-01T00:00:00Z",
-          "created_at": "2024-01-01T00:00:00Z",
-          "changed_at": "2024-01-01T00:00:00Z",
-          "content": "",
-          "author": "",
-          "starred": false,
-          "enclosures": null
-        }
-    """.trimIndent()
-
-    private fun unreadPayload(total: Long, ids: List<Long>): String {
-        val entries = ids.joinToString(",") { id ->
-            """
-            {
-              "id": $id,
-              "feed_id": 1,
-              "status": "unread",
-              "title": "entry $id",
-              "url": "",
-              "comments_url": "",
-              "published_at": "2024-01-01T00:00:00Z",
-              "created_at": "2024-01-01T00:00:00Z",
-              "changed_at": "2024-01-01T00:00:00Z",
-              "content": "",
-              "author": "",
-              "starred": false,
-              "enclosures": null
-            }
-            """.trimIndent()
-        }
-        return """{"total": $total, "entries": [$entries]}"""
+        assertEquals("7", result.feed.id)
+        assertEquals("New feed", result.feed.title)
+        assertEquals(
+            listOf("https://example.com/feed.xml", "https://example.com/"),
+            result.feedLinks.map { it.href },
+        )
+        assertTrue("addFeed does not persist; the caller does", db.feed.selectAll().isEmpty())
     }
 }
+
+/** An entry DTO with everything the mapping needs, for backend-level tests. */
+internal fun minifluxEntry(
+    id: Long,
+    status: MinifluxEntryStatus = MinifluxEntryStatus.UNREAD,
+    publishedAt: Instant = Instant.parse("2024-01-01T00:00:00Z"),
+    changedAt: Instant = publishedAt,
+) = MinifluxEntry(
+    id = id,
+    feedId = 1,
+    status = status,
+    title = "entry $id",
+    url = "",
+    commentsUrl = "",
+    publishedAt = publishedAt,
+    changedAt = changedAt,
+    content = "",
+    author = "",
+    starred = false,
+    enclosures = emptyList(),
+)

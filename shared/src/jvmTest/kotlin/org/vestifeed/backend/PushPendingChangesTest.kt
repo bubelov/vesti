@@ -1,8 +1,5 @@
 package org.vestifeed.backend
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.http.Url
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -13,9 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.vestifeed.db.Database
 import org.vestifeed.db.entry
-import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.testDb
-import org.vestifeed.util.toUrl
 
 /**
  * The push side of sync: a full sync and an entry action both flush pending
@@ -25,40 +20,25 @@ import org.vestifeed.util.toUrl
 class PushPendingChangesTest {
 
     /**
-     * A Miniflux with no network: the push tests only need the two update
-     * primitives and a way to pause inside them.
+     * A Miniflux API that records pushes and can pause inside one. Only the two
+     * update primitives are stubbed; anything else would fail loudly.
      */
-    private class FakeMiniflux(db: Database) : Miniflux(
-        client = HttpClient(CIO),
-        baseUrl = "http://localhost/v1/".toUrl(),
-        db = db,
-    ) {
+    private class RecordingMinifluxApi : FakeMinifluxApi() {
         val readPushes = mutableListOf<Pair<List<String>, Boolean>>()
         val bookmarkPushes = mutableListOf<Pair<List<String>, Boolean>>()
         var readCalls = 0
         var onRead: (suspend (List<String>, Boolean) -> Unit)? = null
-        var onBookmark: (suspend (List<EntryTable.EntryWithoutContent>, Boolean) -> Unit)? = null
+        var onBookmark: (suspend (List<String>, Boolean) -> Unit)? = null
 
-        override suspend fun addFeed(url: Url, categoryId: Long?): Backend.AddFeedResult =
-            throw NotImplementedError()
-
-        override suspend fun updateFeedTitle(feedId: String, newTitle: String): Result<Unit> =
-            Result.success(Unit)
-
-        override suspend fun deleteFeed(feedId: String): Result<Unit> = Result.success(Unit)
-
-        override suspend fun markEntriesAsRead(entriesIds: List<String>, read: Boolean) {
+        override suspend fun markEntriesAsRead(entryIds: List<String>, read: Boolean) {
             readCalls++
-            onRead?.invoke(entriesIds, read)
-            readPushes += entriesIds to read
+            onRead?.invoke(entryIds, read)
+            readPushes += entryIds to read
         }
 
-        override suspend fun markEntriesAsBookmarked(
-            entries: List<EntryTable.EntryWithoutContent>,
-            bookmarked: Boolean,
-        ) {
-            onBookmark?.invoke(entries, bookmarked)
-            bookmarkPushes += entries.map { it.id } to bookmarked
+        override suspend fun markEntriesAsBookmarked(entryIds: List<String>, bookmarked: Boolean) {
+            onBookmark?.invoke(entryIds, bookmarked)
+            bookmarkPushes += entryIds to bookmarked
         }
     }
 
@@ -73,7 +53,7 @@ class PushPendingChangesTest {
         db.entry.insertOrReplace(
             listOf(entry().copy(id = "1", extRead = true, extReadSynced = false))
         )
-        val api = FakeMiniflux(db)
+        val api = RecordingMinifluxApi()
 
         val firstStarted = CompletableDeferred<Unit>()
         val releaseFirst = CompletableDeferred<Unit>()
@@ -84,12 +64,12 @@ class PushPendingChangesTest {
             }
         }
 
-        val first = launch(Dispatchers.IO) { api.pushPendingChanges() }
+        val first = launch(Dispatchers.IO) { Miniflux(api, db).pushPendingChanges() }
         firstStarted.await()
 
         // Undispatched so it is known to have attempted the lock: it must be
         // parked there, with no API call made yet.
-        val second = launch(start = CoroutineStart.UNDISPATCHED) { api.pushPendingChanges() }
+        val second = launch(start = CoroutineStart.UNDISPATCHED) { Miniflux(api, db).pushPendingChanges() }
         assertEquals("the second push must wait for the first", 1, api.readCalls)
 
         releaseFirst.complete(Unit)
@@ -112,7 +92,7 @@ class PushPendingChangesTest {
         db.entry.insertOrReplace(
             listOf(entry().copy(id = "1", extRead = false, extReadSynced = false))
         )
-        val api = FakeMiniflux(db)
+        val api = RecordingMinifluxApi()
 
         var flipped = false
         api.onRead = { _, read ->
@@ -122,13 +102,13 @@ class PushPendingChangesTest {
             }
         }
 
-        api.pushPendingChanges()
+        Miniflux(api, db).pushPendingChanges()
 
         val pending = db.entry.selectByReadSynced(false)
         assertEquals(1, pending.size)
         assertTrue("the newer read must not be marked delivered", pending.single().extRead)
 
-        api.pushPendingChanges()
+        Miniflux(api, db).pushPendingChanges()
 
         assertEquals(0, db.entry.selectByReadSynced(false).size)
         assertEquals(true, api.readPushes.last().second)
@@ -141,7 +121,7 @@ class PushPendingChangesTest {
         db.entry.insertOrReplace(
             listOf(entry().copy(id = "1", extBookmarked = false, extBookmarkedSynced = false))
         )
-        val api = FakeMiniflux(db)
+        val api = RecordingMinifluxApi()
 
         var flipped = false
         api.onBookmark = { _, bookmarked ->
@@ -155,13 +135,13 @@ class PushPendingChangesTest {
             }
         }
 
-        api.pushPendingChanges()
+        Miniflux(api, db).pushPendingChanges()
 
         val pending = db.entry.selectByBookmarkedSynced(false)
         assertEquals(1, pending.size)
         assertTrue("the newer bookmark must not be marked delivered", pending.single().extBookmarked)
 
-        api.pushPendingChanges()
+        Miniflux(api, db).pushPendingChanges()
 
         assertEquals(0, db.entry.selectByBookmarkedSynced(false).size)
         assertEquals(true, api.bookmarkPushes.last().second)
@@ -184,9 +164,9 @@ class PushPendingChangesTest {
                 entry().copy(id = "unsaved", extBookmarked = false, extBookmarkedSynced = false),
             )
         )
-        val api = FakeMiniflux(db)
+        val api = RecordingMinifluxApi()
 
-        api.pushPendingChanges()
+        Miniflux(api, db).pushPendingChanges()
 
         assertEquals(
             setOf(listOf("read") to true, listOf("unread") to false),

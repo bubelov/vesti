@@ -15,19 +15,15 @@ import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.auth.AuthEvents
-import org.vestifeed.db.Database
-import org.vestifeed.db.testDb
 import org.vestifeed.util.toUrl
 
 class MinifluxUnauthenticatedTest {
 
     private lateinit var server: MockWebServer
-    private lateinit var db: Database
 
     @Before
     fun before() {
         server = MockWebServer().apply { start() }
-        db = testDb()
         AuthEvents.reset()
     }
 
@@ -41,10 +37,9 @@ class MinifluxUnauthenticatedTest {
     fun unauthorizedResponseThrowsAndSignalsEvent() {
         server.enqueue(MockResponse.Builder().code(401).build())
 
-        val api = Miniflux(
+        val api = MinifluxHttpApi(
             client = minifluxHttpClient(token = "expired"),
             baseUrl = server.url("/v1/").toString().toUrl(),
-            db = db,
         )
 
         val countBefore = AuthEvents.invalidationCount.value
@@ -58,10 +53,9 @@ class MinifluxUnauthenticatedTest {
     fun otherErrorCodesDoNotSignalAuthEvent() {
         server.enqueue(MockResponse.Builder().code(500).build())
 
-        val api = Miniflux(
+        val api = MinifluxHttpApi(
             client = minifluxHttpClient(token = "expired"),
             baseUrl = server.url("/v1/").toString().toUrl(),
-            db = db,
         )
 
         val countBefore = AuthEvents.invalidationCount.value
@@ -75,10 +69,9 @@ class MinifluxUnauthenticatedTest {
     fun subscriberReceivesInvalidationSignal() {
         server.enqueue(MockResponse.Builder().code(401).build())
 
-        val api = Miniflux(
+        val api = MinifluxHttpApi(
             client = minifluxHttpClient(token = "expired"),
             baseUrl = server.url("/v1/").toString().toUrl(),
-            db = db,
         )
 
         runBlocking {
@@ -100,10 +93,9 @@ class MinifluxUnauthenticatedTest {
     fun nonAuthErrorProducesNoSubscriberSignal() {
         server.enqueue(MockResponse.Builder().code(500).build())
 
-        val api = Miniflux(
+        val api = MinifluxHttpApi(
             client = minifluxHttpClient(token = "expired"),
             baseUrl = server.url("/v1/").toString().toUrl(),
-            db = db,
         )
 
         val received = runBlocking {
