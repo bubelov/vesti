@@ -6,9 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
+import org.vestifeed.auth.AuthEvents
 import org.vestifeed.backend.backend
 import org.vestifeed.curated.CuratedCatalog
 import org.vestifeed.db.Database
@@ -22,6 +24,7 @@ import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.allow_vesti_to_install_updates
 import org.vestifeed.ui.resources.could_not_check_for_updates
 import org.vestifeed.ui.resources.could_not_install_update
+import org.vestifeed.ui.resources.session_expired
 import org.vestifeed.ui.resources.you_are_up_to_date
 import org.vestifeed.ui.updates.UpdateInstallResult
 import org.vestifeed.ui.updates.UpdateService
@@ -58,6 +61,15 @@ class AppState(
 
     var conf by mutableStateOf(ConfTable.defaultConf())
         private set
+
+    /**
+     * Why the reader was sent back to the sign-in screen, shown by
+     * [org.vestifeed.ui.screens.AuthScreen] above the form. Set when the server
+     * rejects the stored token ([invalidateSession]) and cleared by the next
+     * sign-in attempt, so it describes this session's eviction rather than
+     * lingering as a permanent banner.
+     */
+    var authNotice by mutableStateOf<String?>(null)
 
     /**
      * The number of unread, unbookmarked entries — the size of the Unread list,
@@ -323,6 +335,13 @@ class AppState(
                 }
             }
         }
+        // A 401 anywhere in the HTTP layer means the stored token is no longer
+        // accepted. The HTTP client reports that through [AuthEvents] so the
+        // UI can return to the sign-in screen; without a collector here the
+        // signal would be dropped and syncs would keep failing silently.
+        scope.launch {
+            AuthEvents.invalidationCount.filter { it > 0 }.collect { invalidateSession() }
+        }
         // Honor "Sync on startup": pull from the backend as soon as the app is
         // up so the lists do not open on a stale database. Nothing to sync
         // against until a backend is configured (the auth screen is showing).
@@ -398,8 +417,37 @@ class AppState(
             conf = ConfTable.defaultConf()
             unreadCount = 0
             hasPodcasts = false
+            authNotice = null
             backStack.clear()
             screen = Screen.Auth
         }
+    }
+
+    /**
+     * Drops credentials the server has rejected and returns to the sign-in
+     * screen, explaining why. Unlike [logout] the cached feeds and entries are
+     * kept: only the credentials are invalid, and signing back in must not have
+     * to re-download the whole library.
+     *
+     * A 401 raised while the sign-in screen is already showing came from a
+     * rejected login attempt rather than from an established session, so there
+     * is nothing to tear down; [org.vestifeed.ui.screens.AuthScreen] shows that
+     * error itself.
+     */
+    private suspend fun invalidateSession() {
+        if (!connected || screen is Screen.Auth) {
+            AuthEvents.reset()
+            return
+        }
+        withDb {
+            db.conf.update { it.copy(minifluxUrl = null, minifluxToken = null) }
+        }
+        conf = withDb { db.conf.select() }
+        authNotice = getString(Res.string.session_expired)
+        backStack.clear()
+        screen = Screen.Auth
+        // Reset so the counter cannot replay this eviction to a later
+        // collector; the next 401 starts from a clean slate.
+        AuthEvents.reset()
     }
 }

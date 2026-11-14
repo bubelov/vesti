@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.vestifeed.auth.AuthEvents
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.sync.SyncReason
@@ -293,6 +294,9 @@ private fun AuthForm(
             else -> scope.launch {
                 form.busy = true
                 form.serverError = null
+                // The reader is acting on the eviction notice; drop it so a
+                // stale reason cannot outlive the next attempt.
+                state.authNotice = null
                 try {
                     if (miniflux) {
                         state.setConf {
@@ -316,6 +320,10 @@ private fun AuthForm(
                         }
                     }
                     state.navigateRoot(state.defaultTab())
+                    // A successful sign-in clears the invalidation counter so a
+                    // 401 from the attempt just completed cannot evict the
+                    // session it has only now established.
+                    AuthEvents.reset()
                     // Pull the first batch of entries/feeds.
                     state.sync.runInBackground(SyncReason.Startup)
                 } catch (t: Throwable) {
@@ -491,7 +499,7 @@ private fun AuthForm(
             )
         }
 
-        form.serverError?.let {
+        form.serverError?.let { error ->
             Spacer(Modifier.height(16.dp))
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
@@ -500,7 +508,27 @@ private fun AuthForm(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = it,
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
+        }
+
+        // Why the reader was evicted from a signed-in session, e.g. a token
+        // the server stopped accepting. Hidden once the form has its own error
+        // so a failed retry is the more prominent message.
+        val notice = state.authNotice
+        if (notice != null && form.serverError == null) {
+            Spacer(Modifier.height(16.dp))
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = notice,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(12.dp),
                 )

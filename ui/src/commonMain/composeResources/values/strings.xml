@@ -81,6 +81,7 @@
     <string name="could_not_install_update">Could not install the update</string>
     <string name="allow_vesti_to_install_updates">Allow Vesti to install updates, then tap Update again</string>
     <string name="sync_failed">Sync failed: %1$s</string>
+    <string name="session_expired">Your session expired. Sign in again.</string>
     <string name="empty_unread_description">Jump to the Feeds tab to add a feed by URL, or start with a few picks from the Awesome RSS Feeds collection.</string>
     <string name="add_feed_by_url">Add a feed by URL</string>
     <string name="syncing_your_feeds">Syncing your feeds…</string>
