@@ -422,6 +422,26 @@ class EntryQueriesTest {
         assertNull("A feed with no unread entries is omitted", counts[feed3.id])
     }
 
+    /**
+     * The OG fetcher reads just this column to append a log line: selecting the
+     * whole entry would pull the article body across for a few JSON objects.
+     * A missing entry must read as null so a log append cannot resurrect a row.
+     */
+    @Test
+    fun selectOgLog_readsOnlyTheLogColumn() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+        val logged = entry().copy(
+            feedId = feed.id,
+            contentText = "<p>an article body that is not needed here</p>",
+            extOpenGraphImageLog = """[{"message":"one"}]""",
+        )
+        db.entry.insertOrReplace(listOf(logged))
+
+        assertEquals("""[{"message":"one"}]""", db.entry.selectOgLog(logged.id))
+        assertNull(db.entry.selectOgLog("missing-entry"))
+    }
+
     @Test
     fun selectByFeedId_preservesNullExtShowPreviewImagesFromFeed() = runBlocking<Unit> {
         val followSettingsFeed = createFeed(title = "Follow settings", extShowPreviewImages = null)

@@ -594,6 +594,20 @@ class EntryTable(private val conn: SQLiteConnection) {
         }
     }
 
+    /**
+     * The OG-fetch log of one entry, or null when the entry is gone.
+     *
+     * Reads only this column: the fetcher appends several lines per entry, and
+     * selecting the whole row would drag `content_text` — the entire article
+     * body — across for a field that is a few JSON objects long.
+     */
+    suspend fun selectOgLog(id: String): String? {
+        conn.prepare("SELECT ext_og_log FROM entry WHERE id = ?;").use { stmt ->
+            stmt.bindText(1, id)
+            return if (stmt.step()) stmt.getText(0) else null
+        }
+    }
+
     suspend fun updateOgImage(
         extOgImageUrl: String,
         extOgImageFetchedAt: Instant,

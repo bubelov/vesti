@@ -119,17 +119,10 @@ class OgImageFetcher(
                 return false
             }
             response.bodyAsText()
+        } catch (c: CancellationException) {
+            throw c
         } catch (t: Throwable) {
-            val log = appendLog(candidate.id, "Transient failure fetching HTML (${t.message}); will retry")
-            val failures = OgImagePlanning.transientFailureCount(log)
-            if (OgImagePlanning.shouldAbandonAfterTransientFailures(failures)) {
-                appendLog(
-                    candidate.id,
-                    "Abandoning after $failures transient failures, marking as checked",
-                )
-                db.entry.updateOgImageChecked(true, candidate.id)
-            }
-            return false
+            return recordTransientFailure(candidate.id, "fetching HTML", t)
         }
 
         val imageUrl = try {
@@ -138,23 +131,13 @@ class OgImageFetcher(
                 .firstOrNull()
                 ?.attr("content")
                 .orEmpty()
+        } catch (c: CancellationException) {
+            throw c
         } catch (t: Throwable) {
             // A page the parser cannot handle must not escape and kill the
             // whole loop; count it like any other transient failure so a
             // deterministically broken page is eventually abandoned.
-            val log = appendLog(
-                candidate.id,
-                "Transient failure parsing HTML (${t.message}); will retry",
-            )
-            val failures = OgImagePlanning.transientFailureCount(log)
-            if (OgImagePlanning.shouldAbandonAfterTransientFailures(failures)) {
-                appendLog(
-                    candidate.id,
-                    "Abandoning after $failures transient failures, marking as checked",
-                )
-                db.entry.updateOgImageChecked(true, candidate.id)
-            }
-            return false
+            return recordTransientFailure(candidate.id, "parsing HTML", t)
         }
 
         if (imageUrl.isBlank()) {
@@ -173,9 +156,36 @@ class OgImageFetcher(
         return true
     }
 
+    /**
+     * Records a transient failure against [entryId] and gives up on the entry
+     * once it has failed too many times, so a page that will never yield an
+     * image stops being retried. Always returns false, so a `catch` block can
+     * `return recordTransientFailure(...)` and keep the "this entry produced no
+     * image" contract in one line.
+     */
+    private suspend fun recordTransientFailure(
+        entryId: String,
+        stage: String,
+        cause: Throwable,
+    ): Boolean {
+        val log = appendLog(entryId, "Transient failure $stage (${cause.message}); will retry")
+        val failures = OgImagePlanning.transientFailureCount(log)
+        if (OgImagePlanning.shouldAbandonAfterTransientFailures(failures)) {
+            appendLog(entryId, "Abandoning after $failures transient failures, marking as checked")
+            db.entry.updateOgImageChecked(true, entryId)
+        }
+        return false
+    }
+
+    /**
+     * Appends one line to the entry's fetch log and returns the new log. Reads
+     * only the log column: loading the whole entry would drag the article body
+     * across for a field that is a few JSON objects long, several times per
+     * entry.
+     */
     private suspend fun appendLog(entryId: String, message: String): String {
-        val entry = db.entry.selectById(entryId) ?: return ""
-        val updated = appendLogSync(entry.extOpenGraphImageLog, message)
+        val existing = db.entry.selectOgLog(entryId) ?: return ""
+        val updated = appendLogSync(existing, message)
         db.entry.updateOgLog(updated, entryId)
         return updated
     }
