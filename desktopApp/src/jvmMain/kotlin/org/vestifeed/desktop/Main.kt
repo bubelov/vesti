@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
@@ -69,7 +70,14 @@ private fun startUi() = application {
         // The same artwork as the Android launcher icon, so the window/taskbar
         // entry does not fall back to the Java runtime's default icon.
         icon = painterResource(Res.drawable.icon),
-        state = rememberWindowState(size = DpSize(1100.dp, 800.dp)),
+        // Open maximized: the window is the reading surface, and the previous
+        // default (1100x800) was cramped for the card grid on a large display.
+        // `size` stays as the size the window manager restores to when the
+        // reader un-maximizes it.
+        state = rememberWindowState(
+            size = DpSize(1100.dp, 800.dp),
+            placement = WindowPlacement.Maximized,
+        ),
     ) {
         // Runs once the first composition has been applied — the closest thing
         // to "a window is on screen" this side of the surface can see. It is
