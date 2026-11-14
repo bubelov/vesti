@@ -10,6 +10,7 @@
     <string name="server_url_hint">https://example.com</string>
     <string name="api_token">API Token</string>
     <string name="news_list_is_empty">News list is empty</string>
+    <string name="no_unread_entries">No unread entries</string>
     <string name="you_have_no_bookmarks">You have no bookmarks</string>
     <string name="downloading">Downloading</string>
     <string name="crop_feed_images">Crop preview images</string>

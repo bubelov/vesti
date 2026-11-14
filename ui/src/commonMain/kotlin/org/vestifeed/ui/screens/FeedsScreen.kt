@@ -84,6 +84,7 @@ import org.vestifeed.ui.resources.import_opml
 import org.vestifeed.ui.resources.import_opml_description
 import org.vestifeed.ui.resources.imported_feeds_count
 import org.vestifeed.ui.resources.no_feeds_yet
+import org.vestifeed.ui.resources.no_unread_entries
 import org.vestifeed.ui.resources.opml_xml
 import org.vestifeed.ui.resources.remove_feed
 import org.vestifeed.ui.resources.removed_feed
@@ -405,7 +406,7 @@ private fun AddFeedDialog(
 }
 
 @Composable
-private fun FeedRow(
+internal fun FeedRow(
     title: String,
     unread: Int,
     onOpen: () -> Unit,
@@ -421,7 +422,16 @@ private fun FeedRow(
             Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
-            Text(pluralStringResource(Res.plurals.unread_entry_count, unread, unread))
+            // The plural's own `zero` form is unreachable for English: CLDR gives
+            // it no `zero` category, so count 0 resolves to `other` and reads
+            // "0 unread entries". Pick the wording explicitly instead.
+            Text(
+                if (unread == 0) {
+                    stringResource(Res.string.no_unread_entries)
+                } else {
+                    pluralStringResource(Res.plurals.unread_entry_count, unread, unread)
+                },
+            )
         },
         trailingContent = {
             // Nudge right by 12dp so the icon lines up with the app bar's
