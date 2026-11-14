@@ -119,6 +119,9 @@ dependencies {
     // Material Components themes the host; Compose Material3 draws the UI.
     implementation(libs.material)
     implementation(libs.androidx.browser)
+    // The periodic background sync the "Fetch news in background" setting
+    // enables; see BackgroundSync.
+    implementation(libs.androidx.work)
 
     // Unit tests
     testImplementation(libs.junit)

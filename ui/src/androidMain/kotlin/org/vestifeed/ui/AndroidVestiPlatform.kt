@@ -34,6 +34,18 @@ class AndroidVestiPlatform(
     // Android opens links in an in-app Custom Tab when the setting is on.
     override val supportsBuiltInBrowser: Boolean = true
 
+    /**
+     * Installed by the Android host, which owns the WorkManager scheduler: the
+     * UI module must not depend on WorkManager, and the host is the only place
+     * that knows how to enqueue the work. Null leaves background sync inert,
+     * which is what a host without a scheduler would want anyway.
+     */
+    var backgroundSyncScheduler: ((enabled: Boolean, intervalMillis: Long) -> Unit)? = null
+
+    override fun applyBackgroundSync(enabled: Boolean, intervalMillis: Long) {
+        backgroundSyncScheduler?.invoke(enabled, intervalMillis)
+    }
+
     private var player: MediaPlayer? = null
 
     /**

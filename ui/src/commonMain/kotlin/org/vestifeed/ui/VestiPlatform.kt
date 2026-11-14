@@ -31,6 +31,16 @@ interface VestiPlatform {
     val supportsBackgroundSync: Boolean get() = true
 
     /**
+     * Tells the host whether periodic background sync is on, and how often it
+     * should run. A host with a scheduler (Android) installs or removes its
+     * periodic work; the others ignore it, and [supportsBackgroundSync] false
+     * is passed through as [enabled] = false so nothing is ever scheduled
+     * where it cannot run. Called once the configuration is loaded and again
+     * whenever the related settings change.
+     */
+    fun applyBackgroundSync(enabled: Boolean, intervalMillis: Long) {}
+
+    /**
      * Whether the host has an in-app browser to open links in (Android's
      * Custom Tab). False on desktop and the browser, whose [openUrl] always
      * hands links to the system browser / a new tab and ignores the flag, so

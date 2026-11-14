@@ -40,6 +40,9 @@ sqlite = "2.7.1"
 # Manages the shared activity and edge-to-edge setup
 # https://developer.android.com/jetpack/androidx/releases/activity
 androidx-activity = "1.13.0"
+# Periodic background sync (the Android host schedules it with WorkManager)
+# https://developer.android.com/jetpack/androidx/releases/work
+work = "2.11.2"
 # Enables embedded browser
 # https://developer.android.com/jetpack/androidx/releases/browser
 browser = "1.10.0"
@@ -93,6 +96,7 @@ androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sq
 # AndroidX
 androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activity" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity" }
+androidx-work = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Networking (test-only now)

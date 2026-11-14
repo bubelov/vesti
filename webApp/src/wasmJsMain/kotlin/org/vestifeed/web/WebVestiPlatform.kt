@@ -7,6 +7,10 @@ class WebVestiPlatform : VestiPlatform {
     // A browser has no touch pull gesture; refreshing happens from the app bar.
     override val supportsPullToRefresh: Boolean = false
 
+    // A browser tab cannot be woken while it is closed, so there is no periodic
+    // sync to schedule; the setting is shown disabled.
+    override val supportsBackgroundSync: Boolean = false
+
     // The browser host has no separate in-app browser; always open a new tab.
     override fun openUrl(url: String, useBuiltInBrowser: Boolean) {
         openUrlJs(url)

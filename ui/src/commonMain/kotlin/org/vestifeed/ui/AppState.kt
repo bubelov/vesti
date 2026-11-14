@@ -17,6 +17,7 @@ import org.vestifeed.db.Database
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.platform.ioDispatcher
+import org.vestifeed.sync.BackgroundSyncPolicy
 import org.vestifeed.sync.Sync
 import org.vestifeed.sync.SyncReason
 import org.vestifeed.ui.curated.loadCuratedCatalog
@@ -342,6 +343,9 @@ class AppState(
         scope.launch {
             AuthEvents.invalidationCount.filter { it > 0 }.collect { invalidateSession() }
         }
+        // Let the host install (or skip) its periodic background sync now that
+        // the configuration is known.
+        applyBackgroundSync()
         // Honor "Sync on startup": pull from the backend as soon as the app is
         // up so the lists do not open on a stale database. Nothing to sync
         // against until a backend is configured (the auth screen is showing).
@@ -369,9 +373,16 @@ class AppState(
 
     fun updateConf(block: (ConfTable.Conf) -> ConfTable.Conf) {
         scope.launch {
+            val before = conf
             conf = withDb {
                 db.conf.update(block)
                 db.conf.select()
+            }
+            if (before.syncInBackground != conf.syncInBackground ||
+                before.backgroundSyncIntervalMillis != conf.backgroundSyncIntervalMillis ||
+                before.backend != conf.backend
+            ) {
+                applyBackgroundSync()
             }
         }
     }
@@ -382,6 +393,18 @@ class AppState(
             db.conf.update(block)
             db.conf.select()
         }
+        applyBackgroundSync()
+    }
+
+    /**
+     * Hands the host the periodic-sync decision derived from [conf]. A host
+     * without a scheduler (desktop, browser) always receives `enabled = false`.
+     */
+    private fun applyBackgroundSync() {
+        platform.applyBackgroundSync(
+            enabled = platform.supportsBackgroundSync && BackgroundSyncPolicy.isEnabled(conf),
+            intervalMillis = conf.backgroundSyncIntervalMillis,
+        )
     }
 
     fun navigate(target: Screen) {
@@ -420,6 +443,7 @@ class AppState(
             authNotice = null
             backStack.clear()
             screen = Screen.Auth
+            applyBackgroundSync()
         }
     }
 
@@ -446,6 +470,13 @@ class AppState(
         authNotice = getString(Res.string.session_expired)
         backStack.clear()
         screen = Screen.Auth
+        // Cancel explicitly rather than deriving from conf: the backend is
+        // still Miniflux here, it just has no credentials, so the derived
+        // answer would leave work scheduled that can only fail.
+        platform.applyBackgroundSync(
+            enabled = false,
+            intervalMillis = conf.backgroundSyncIntervalMillis,
+        )
         // Reset so the counter cannot replay this eviction to a later
         // collector; the next 401 starts from a clean slate.
         AuthEvents.reset()
