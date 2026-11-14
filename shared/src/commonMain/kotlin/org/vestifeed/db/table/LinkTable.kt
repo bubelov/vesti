@@ -9,6 +9,7 @@ import org.vestifeed.db.bindTextOrNull
 import org.vestifeed.db.getTextOrNull
 import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.util.toInstant
+import org.vestifeed.util.toInstantOrNull
 
 class LinkTable(private val conn: SQLiteConnection) {
     companion object {
@@ -31,6 +32,27 @@ class LinkTable(private val conn: SQLiteConnection) {
                 UNIQUE(entry_id, href, rel),
                 CHECK ((feed_id IS NULL) <> (entry_id IS NULL))
             ) STRICT;
+        """
+
+        /**
+         * The projection every `Link` query returns, in exactly the order
+         * [toLink] reads it. Shared by every select so the rows cannot drift
+         * apart, and so only one place has to stay in step with [Link].
+         */
+        private const val COLUMNS = """
+            id,
+            feed_id,
+            entry_id,
+            ext_enclosure_download_progress,
+            ext_cache_uri,
+            ext_played,
+            ext_played_at,
+            href,
+            rel,
+            type,
+            hreflang,
+            title,
+            length
         """
     }
 
@@ -152,18 +174,7 @@ class LinkTable(private val conn: SQLiteConnection) {
     suspend fun selectByFeedId(feedId: String): List<Link> {
         conn.prepare(
             """
-            SELECT
-                id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link
             WHERE feed_id = ?;
             """
@@ -171,7 +182,7 @@ class LinkTable(private val conn: SQLiteConnection) {
             stmt.bindText(1, feedId)
             return buildList {
                 while (stmt.step()) {
-                    add(stmt.toLink(id = stmt.getLong(0), feedId = feedId, entryId = null))
+                    add(stmt.toLink())
                 }
             }
         }
@@ -180,18 +191,7 @@ class LinkTable(private val conn: SQLiteConnection) {
     suspend fun selectByEntryId(entryId: String): List<Link> {
         conn.prepare(
             """
-            SELECT
-                id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link
             WHERE entry_id = ?;
             """
@@ -199,7 +199,7 @@ class LinkTable(private val conn: SQLiteConnection) {
             stmt.bindText(1, entryId)
             return buildList {
                 while (stmt.step()) {
-                    add(stmt.toLink(id = stmt.getLong(0), feedId = null, entryId = entryId))
+                    add(stmt.toLink())
                 }
             }
         }
@@ -210,19 +210,7 @@ class LinkTable(private val conn: SQLiteConnection) {
         val placeholders = feedIds.joinToString(",") { "?" }
         conn.prepare(
             """
-            SELECT
-                id,
-                feed_id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link
             WHERE feed_id IN ($placeholders);
             """
@@ -233,43 +221,8 @@ class LinkTable(private val conn: SQLiteConnection) {
             val result = mutableMapOf<String, MutableList<Link>>()
             while (stmt.step()) {
                 val feedId = stmt.getText(1)
-                val link = stmt.toLink(id = stmt.getLong(0), feedId = feedId, entryId = null)
+                val link = stmt.toLink()
                 result.getOrPut(feedId) { mutableListOf() }.add(link)
-            }
-            return result
-        }
-    }
-
-    suspend fun selectAllByEntryId(entryIds: List<String>): Map<String, List<Link>> {
-        if (entryIds.isEmpty()) return emptyMap()
-        val placeholders = entryIds.joinToString(",") { "?" }
-        conn.prepare(
-            """
-            SELECT
-                id,
-                entry_id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
-            FROM link
-            WHERE entry_id IN ($placeholders);
-            """
-        ).use { stmt ->
-            entryIds.forEachIndexed { index, id ->
-                stmt.bindText(index + 1, id)
-            }
-            val result = mutableMapOf<String, MutableList<Link>>()
-            while (stmt.step()) {
-                val entryId = stmt.getText(1)
-                val link = stmt.toLink(id = stmt.getLong(0), feedId = null, entryId = entryId)
-                result.getOrPut(entryId) { mutableListOf() }.add(link)
             }
             return result
         }
@@ -360,32 +313,13 @@ class LinkTable(private val conn: SQLiteConnection) {
     suspend fun selectAll(): List<Link> {
         conn.prepare(
             """
-            SELECT
-                id,
-                feed_id,
-                entry_id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link;
             """
         ).use { stmt ->
             return buildList {
                 while (stmt.step()) {
-                    add(
-                        stmt.toLink(
-                            id = stmt.getLong(0),
-                            feedId = stmt.getTextOrNull(1),
-                            entryId = stmt.getTextOrNull(2)
-                        )
-                    )
+                    add(stmt.toLink())
                 }
             }
         }
@@ -463,20 +397,7 @@ class LinkTable(private val conn: SQLiteConnection) {
     suspend fun selectByEntryIdAndHref(entryId: String, href: String): Link? {
         conn.prepare(
             """
-            SELECT
-                id,
-                feed_id,
-                entry_id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link
             WHERE entry_id = ? AND href = ?;
             """
@@ -484,11 +405,7 @@ class LinkTable(private val conn: SQLiteConnection) {
             stmt.bindText(1, entryId)
             stmt.bindText(2, href)
             return if (stmt.step()) {
-                stmt.toLink(
-                    id = stmt.getLong(0),
-                    feedId = stmt.getTextOrNull(1),
-                    entryId = stmt.getTextOrNull(2)
-                )
+                stmt.toLink()
             } else {
                 null
             }
@@ -498,54 +415,41 @@ class LinkTable(private val conn: SQLiteConnection) {
     suspend fun selectById(id: Long): Link? {
         conn.prepare(
             """
-            SELECT
-                id,
-                feed_id,
-                entry_id,
-                ext_enclosure_download_progress,
-                ext_cache_uri,
-                ext_played,
-                ext_played_at,
-                href,
-                rel,
-                type,
-                hreflang,
-                title,
-                length
+            SELECT $COLUMNS
             FROM link
             WHERE id = ?;
             """
         ).use { stmt ->
             stmt.bindLong(1, id)
             return if (stmt.step()) {
-                stmt.toLink(
-                    id = stmt.getLong(0),
-                    feedId = stmt.getTextOrNull(1),
-                    entryId = stmt.getTextOrNull(2)
-                )
+                stmt.toLink()
             } else {
                 null
             }
         }
     }
 
-    private fun SQLiteStatement.toLink(id: Long, feedId: String?, entryId: String?): Link {
+    /**
+     * Maps one row of [COLUMNS], positionally. `feed_id` and `entry_id` are
+     * read from the row: the table's CHECK constraint guarantees exactly one
+     * of them is set, so a feed link and an entry link both map correctly
+     * without the caller passing the owner in.
+     */
+    private fun SQLiteStatement.toLink(): Link {
         return Link(
-            id = id,
-            feedId = feedId,
-            entryId = entryId,
-            href = getText(getColumnNames().indexOf("href")),
-            rel = stringToRel(getTextOrNull(getColumnNames().indexOf("rel"))),
-            type = getTextOrNull(getColumnNames().indexOf("type")),
-            hreflang = getTextOrNull(getColumnNames().indexOf("hreflang")),
-            title = getTextOrNull(getColumnNames().indexOf("title")),
-            length = getTextOrNull(getColumnNames().indexOf("length"))?.toLongOrNull(),
-            extEnclosureDownloadProgress = getTextOrNull(getColumnNames().indexOf("ext_enclosure_download_progress"))?.toDoubleOrNull(),
-            extCacheUri = getTextOrNull(getColumnNames().indexOf("ext_cache_uri")),
-            extPlayed = getInt(getColumnNames().indexOf("ext_played")) == 1,
-            extPlayedAt = getTextOrNull(getColumnNames().indexOf("ext_played_at"))?.let {
-                runCatching { it.toInstant() }.getOrNull()
-            },
+            id = getLong(0),
+            feedId = getTextOrNull(1),
+            entryId = getTextOrNull(2),
+            extEnclosureDownloadProgress = getTextOrNull(3)?.toDoubleOrNull(),
+            extCacheUri = getTextOrNull(4),
+            extPlayed = getInt(5) == 1,
+            extPlayedAt = getTextOrNull(6)?.toInstantOrNull(),
+            href = getText(7),
+            rel = stringToRel(getTextOrNull(8)),
+            type = getTextOrNull(9),
+            hreflang = getTextOrNull(10),
+            title = getTextOrNull(11),
+            length = getTextOrNull(12)?.toLongOrNull(),
         )
     }
 

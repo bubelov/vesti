@@ -17,7 +17,7 @@ import org.vestifeed.ui.resources.you_have_no_feeds
 suspend fun EntriesList.load(db: Database): List<EntryRowMappable> = when (this) {
     EntriesList.Unread -> db.entry.selectUnread()
     EntriesList.Bookmarked -> db.entry.selectBookmarked()
-    is EntriesList.BelongToFeed -> db.entry.selectByFeedId(feedId).filterNot { it.extRead }
+    is EntriesList.BelongToFeed -> db.entry.selectUnreadByFeedId(feedId)
     is EntriesList.BelongToTag -> {
         val feedIds = db.feedTag.selectFeedIdsByTagId(tagId)
         db.entry.selectUnreadByFeedIds(feedIds)

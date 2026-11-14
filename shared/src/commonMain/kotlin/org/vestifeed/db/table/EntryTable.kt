@@ -7,7 +7,9 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import org.vestifeed.db.bindTextOrNull
 import org.vestifeed.db.getBoolOrNull
+import org.vestifeed.db.getTextOrNull
 import org.vestifeed.util.toInstant
+import org.vestifeed.util.toInstantOrNull
 import kotlin.use
 
 class EntryTable(private val conn: SQLiteConnection) {
@@ -34,6 +36,27 @@ class EntryTable(private val conn: SQLiteConnection) {
                 ext_og_image_fetched_at TEXT NOT NULL DEFAULT '',
                 ext_og_log TEXT NOT NULL DEFAULT '[]'
             ) STRICT;
+        """
+
+        /**
+         * The projection every entries-list query returns, in exactly the order
+         * [statementToEntriesAdapterRow] reads it. The list queries (all,
+         * unread, bookmarked, one feed, one tag) share it so their rows cannot
+         * drift apart — and so only one place has to stay in step with
+         * [EntriesAdapterRow].
+         */
+        private const val LIST_COLUMNS = """
+            e.id, e.feed_id, e.ext_bookmarked, e.ext_og_image_url,
+            e.title,
+            f.title as feed_title, f.ext_show_preview_images,
+            e.published, e.summary, e.ext_read, f.ext_open_entries_in_browser,
+            e.author_name
+        """
+
+        /** The `FROM` clause matching [LIST_COLUMNS]. */
+        private const val LIST_FROM = """
+            FROM entry e
+            JOIN feed f ON f.id = e.feed_id
         """
     }
 
@@ -78,9 +101,7 @@ class EntryTable(private val conn: SQLiteConnection) {
             extCommentsUrl = this.getText(14),
             extOpenGraphImageChecked = this.getInt(15) == 1,
             extOpenGraphImageUrl = this.getText(16),
-            extOpenGraphImageFetchedAt = this.getTextOrNull(17)?.let {
-                runCatching { it.toInstant() }.getOrNull()
-            },
+            extOpenGraphImageFetchedAt = this.getTextOrNull(17)?.toInstantOrNull(),
             extOpenGraphImageLog = this.getText(18),
         )
     }
@@ -213,14 +234,38 @@ class EntryTable(private val conn: SQLiteConnection) {
     suspend fun selectByFeedId(feedId: String): List<EntriesAdapterRow> {
         conn.prepare(
             """
-            SELECT e.id, e.feed_id, e.ext_bookmarked, e.ext_og_image_url,
-                   e.title,
-                   f.title as feed_title, f.ext_show_preview_images,
-                   e.published, e.summary, e.ext_read, f.ext_open_entries_in_browser,
-                   e.author_name
-            FROM entry e
-            JOIN feed f ON f.id = e.feed_id
+            SELECT $LIST_COLUMNS
+            $LIST_FROM
             WHERE e.feed_id = ?
+            ORDER BY e.published DESC;
+            """
+        ).use { stmt ->
+            stmt.bindText(1, feedId)
+            return buildList {
+                while (stmt.step()) {
+                    add(statementToEntriesAdapterRow(stmt))
+                }
+            }
+        }
+    }
+
+    /**
+     * The unread entries of one feed. [selectByFeedId] returns every entry; the
+     * feed screen only ever shows what is still to be read, so the predicate is
+     * applied here instead of loading the read rows and dropping them in
+     * memory.
+     *
+     * Unlike the Unread tab ([selectUnread]), a bookmarked entry stays in its
+     * feed's list: bookmarking is how a reader keeps an article for later, not
+     * a way to hide it from the feed it came from.
+     */
+    suspend fun selectUnreadByFeedId(feedId: String): List<EntriesAdapterRow> {
+        conn.prepare(
+            """
+            SELECT $LIST_COLUMNS
+            $LIST_FROM
+            WHERE e.feed_id = ?
+              AND e.ext_read = 0
             ORDER BY e.published DESC;
             """
         ).use { stmt ->
@@ -245,13 +290,8 @@ class EntryTable(private val conn: SQLiteConnection) {
         val placeholders = feedIds.joinToString(",") { "?" }
         return conn.prepare(
             """
-            SELECT e.id, e.feed_id, e.ext_bookmarked, e.ext_og_image_url,
-                   e.title,
-                   f.title as feed_title, f.ext_show_preview_images,
-                   e.published, e.summary, e.ext_read, f.ext_open_entries_in_browser,
-                   e.author_name
-            FROM entry e
-            JOIN feed f ON f.id = e.feed_id
+            SELECT $LIST_COLUMNS
+            $LIST_FROM
             WHERE e.feed_id IN ($placeholders)
               AND e.ext_read = 0 AND e.ext_bookmarked = 0
             ORDER BY e.published DESC;
@@ -271,13 +311,8 @@ class EntryTable(private val conn: SQLiteConnection) {
     suspend fun selectUnread(): List<EntriesAdapterRow> {
         conn.prepare(
             """
-            SELECT e.id, e.feed_id, e.ext_bookmarked, e.ext_og_image_url,
-                   e.title,
-                   f.title as feed_title, f.ext_show_preview_images,
-                   e.published, e.summary, e.ext_read, f.ext_open_entries_in_browser,
-                   e.author_name
-            FROM entry e
-            JOIN feed f ON f.id = e.feed_id
+            SELECT $LIST_COLUMNS
+            $LIST_FROM
             WHERE e.ext_read = 0 AND e.ext_bookmarked = 0
             ORDER BY e.published DESC;
             """
@@ -285,6 +320,30 @@ class EntryTable(private val conn: SQLiteConnection) {
             return buildList {
                 while (stmt.step()) {
                     add(statementToEntriesAdapterRow(stmt))
+                }
+            }
+        }
+    }
+
+    /**
+     * Unread counts for every feed that has any, keyed by feed id. The feed
+     * list used to run one `selectByFeedId` per row and count in Kotlin, which
+     * loaded every entry of every feed (with its summary) just to discard it.
+     * Feeds with no unread entries are absent from the map; callers default to
+     * zero.
+     */
+    suspend fun selectUnreadCountsByFeedId(): Map<String, Int> {
+        conn.prepare(
+            """
+            SELECT feed_id, COUNT(*)
+            FROM entry
+            WHERE ext_read = 0
+            GROUP BY feed_id;
+            """
+        ).use { stmt ->
+            return buildMap {
+                while (stmt.step()) {
+                    put(stmt.getText(0), stmt.getInt(1))
                 }
             }
         }
@@ -345,13 +404,8 @@ class EntryTable(private val conn: SQLiteConnection) {
     suspend fun selectBookmarked(): List<EntriesAdapterRow> {
         conn.prepare(
             """
-            SELECT e.id, e.feed_id, e.ext_bookmarked, e.ext_og_image_url,
-                   e.title,
-                   f.title as feed_title, f.ext_show_preview_images,
-                   e.published, e.summary, e.ext_read, f.ext_open_entries_in_browser,
-                   e.author_name
-            FROM entry e
-            JOIN feed f ON f.id = e.feed_id
+            SELECT $LIST_COLUMNS
+            $LIST_FROM
             WHERE e.ext_bookmarked = 1
             ORDER BY e.published DESC;
             """
@@ -677,41 +731,25 @@ class EntryTable(private val conn: SQLiteConnection) {
         }
     }
 
-    private fun getColumnIndex(stmt: SQLiteStatement, name: String): Int {
-        return stmt.getColumnNames().indexOf(name)
-    }
-
-    private fun SQLiteStatement.getTextOrNull(index: Int): String? {
-        return if (isNull(index)) null else getText(index)
-    }
-
+    /**
+     * Maps one row of [LIST_COLUMNS], positionally. The index order below is
+     * the column order above; both are private to this file and only change
+     * together.
+     */
     private fun statementToEntriesAdapterRow(stmt: SQLiteStatement): EntriesAdapterRow {
         return EntriesAdapterRow(
-            id = stmt.getTextOrNull(getColumnIndex(stmt, "id")) ?: "",
-            feedId = stmt.getTextOrNull(getColumnIndex(stmt, "feed_id")) ?: "",
-            extBookmarked = stmt.getInt(getColumnIndex(stmt, "ext_bookmarked")) == 1,
-            extShowPreviewImages = stmt.getBoolOrNull(
-                getColumnIndex(
-                    stmt,
-                    "ext_show_preview_images"
-                )
-            ),
-            extOpenGraphImageUrl = stmt.getTextOrNull(getColumnIndex(stmt, "ext_og_image_url"))
-                ?: "",
-            title = stmt.getTextOrNull(getColumnIndex(stmt, "title")) ?: "",
-            feedTitle = stmt.getTextOrNull(getColumnIndex(stmt, "feed_title")) ?: "",
-            published = runCatching {
-                stmt.getTextOrNull(getColumnIndex(stmt, "published"))?.toInstant()
-            }.getOrNull() ?: Clock.System.now(),
-            authorName = stmt.getTextOrNull(getColumnIndex(stmt, "author_name")) ?: "",
-            summary = stmt.getTextOrNull(getColumnIndex(stmt, "summary")) ?: "",
-            extRead = stmt.getInt(getColumnIndex(stmt, "ext_read")) == 1,
-            extOpenEntriesInBrowser = stmt.getInt(
-                getColumnIndex(
-                    stmt,
-                    "ext_open_entries_in_browser"
-                )
-            ) == 1,
+            id = stmt.getText(0),
+            feedId = stmt.getText(1),
+            extBookmarked = stmt.getInt(2) == 1,
+            extOpenGraphImageUrl = stmt.getText(3),
+            title = stmt.getText(4),
+            feedTitle = stmt.getText(5),
+            extShowPreviewImages = stmt.getBoolOrNull(6),
+            published = stmt.getTextOrNull(7)?.toInstantOrNull() ?: Clock.System.now(),
+            summary = stmt.getTextOrNull(8) ?: "",
+            extRead = stmt.getInt(9) == 1,
+            extOpenEntriesInBrowser = stmt.getInt(10) == 1,
+            authorName = stmt.getText(11),
         )
     }
 
@@ -723,8 +761,7 @@ class EntryTable(private val conn: SQLiteConnection) {
             extOpenGraphImageUrl = stmt.getTextOrNull(2) ?: "",
             title = stmt.getTextOrNull(3) ?: "",
             feedTitle = stmt.getTextOrNull(4) ?: "",
-            published = runCatching { stmt.getTextOrNull(5)?.toInstant() }.getOrNull()
-                ?: Clock.System.now(),
+            published = stmt.getTextOrNull(5)?.toInstantOrNull() ?: Clock.System.now(),
             summary = stmt.getTextOrNull(6) ?: "",
             extRead = stmt.getInt(7) == 1,
             extOpenEntriesInBrowser = stmt.getInt(8) == 1,
@@ -738,10 +775,8 @@ class EntryTable(private val conn: SQLiteConnection) {
             id = stmt.getTextOrNull(1) ?: "",
             feedId = stmt.getTextOrNull(2) ?: "",
             title = stmt.getTextOrNull(3) ?: "",
-            published = runCatching { stmt.getTextOrNull(4)?.toInstant() }.getOrNull()
-                ?: Clock.System.now(),
-            updated = runCatching { stmt.getTextOrNull(5)?.toInstant() }.getOrNull()
-                ?: Clock.System.now(),
+            published = stmt.getTextOrNull(4)?.toInstantOrNull() ?: Clock.System.now(),
+            updated = stmt.getTextOrNull(5)?.toInstantOrNull() ?: Clock.System.now(),
             authorName = stmt.getTextOrNull(6) ?: "",
             extRead = stmt.getInt(7) == 1,
             extReadSynced = stmt.getInt(8) == 1,
@@ -750,9 +785,7 @@ class EntryTable(private val conn: SQLiteConnection) {
             extCommentsUrl = stmt.getTextOrNull(11) ?: "",
             extOpenGraphImageChecked = stmt.getInt(12) == 1,
             extOpenGraphImageUrl = stmt.getTextOrNull(13) ?: "",
-            extOpenGraphImageFetchedAt = stmt.getTextOrNull(14)?.let {
-                runCatching { it.toInstant() }.getOrNull()
-            },
+            extOpenGraphImageFetchedAt = stmt.getTextOrNull(14)?.toInstantOrNull(),
             extOpenGraphImageLog = stmt.getTextOrNull(15) ?: "[]",
         )
     }

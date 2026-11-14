@@ -7,6 +7,7 @@ import kotlin.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.vestifeed.db.table.EntryTable
 import org.vestifeed.db.table.FeedTable
@@ -367,6 +368,58 @@ class EntryQueriesTest {
 
         assertEquals(null, bookmarked.getValue("follow").extShowPreviewImages)
         assertEquals(false, bookmarked.getValue("hide").extShowPreviewImages)
+    }
+
+    /**
+     * The feed screen shows what is still to be read, but a bookmarked entry
+     * must stay in its feed's list: bookmarking is how a reader keeps an
+     * article, not a way to hide it from the feed it came from. (The Unread tab
+     * differs: `selectUnread` drops bookmarked rows.)
+     */
+    @Test
+    fun selectUnreadByFeedId_keepsBookmarkedAndDropsRead() = runBlocking<Unit> {
+        val feed1 = createFeed(title = "Feed 1")
+        val feed2 = createFeed(title = "Feed 2")
+        db.feed.insertOrReplace(listOf(feed1, feed2))
+
+        val entries = listOf(
+            entry().copy(feedId = feed1.id, title = "unread", extRead = false),
+            entry().copy(feedId = feed1.id, title = "read", extRead = true),
+            entry().copy(feedId = feed1.id, title = "bookmarked unread", extBookmarked = true),
+            entry().copy(feedId = feed2.id, title = "other feed"),
+        )
+        db.entry.insertOrReplace(entries)
+
+        val titles = db.entry.selectUnreadByFeedId(feed1.id).map { it.title }.toSet()
+
+        assertEquals(setOf("unread", "bookmarked unread"), titles)
+    }
+
+    @Test
+    fun selectUnreadCountsByFeedId_countsUnreadPerFeedAndOmitsZeroes() = runBlocking<Unit> {
+        val feed1 = createFeed(title = "Feed 1")
+        val feed2 = createFeed(title = "Feed 2")
+        val feed3 = createFeed(title = "Feed 3")
+        db.feed.insertOrReplace(listOf(feed1, feed2, feed3))
+
+        db.entry.insertOrReplace(
+            listOf(
+                entry().copy(feedId = feed1.id, extRead = false),
+                entry().copy(feedId = feed1.id, extRead = false),
+                // Bookmarked-but-unread still counts: the per-feed badge counts
+                // unread entries, exactly as selectByFeedId used to.
+                entry().copy(feedId = feed1.id, extRead = false, extBookmarked = true),
+                entry().copy(feedId = feed1.id, extRead = true),
+                entry().copy(feedId = feed2.id, extRead = false),
+                entry().copy(feedId = feed3.id, extRead = true),
+            ),
+        )
+
+        val counts = db.entry.selectUnreadCountsByFeedId()
+
+        assertEquals(3, counts[feed1.id])
+        assertEquals(1, counts[feed2.id])
+        assertNull("A feed with no unread entries is omitted", counts[feed3.id])
     }
 
     @Test
