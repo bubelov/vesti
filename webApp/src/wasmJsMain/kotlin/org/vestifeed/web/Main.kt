@@ -23,7 +23,15 @@ fun main() {
 
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     scope.launch {
-        runCatching { OgImageFetcher(database, USER_AGENT).fetchAndWatch() }
+        runCatching {
+            OgImageFetcher(
+                database,
+                USER_AGENT,
+                // A hidden tab is the browser's background: preview images can
+                // wait until the reader comes back to it.
+                isForeground = { !isPageHidden() },
+            ).fetchAndWatch()
+        }
     }
 
     ComposeViewport {
@@ -34,6 +42,12 @@ fun main() {
         )
     }
 }
+
+/**
+ * Whether the tab is hidden. `Document.hidden` is not part of the DOM
+ * declarations this target compiles against, so it is read directly.
+ */
+private fun isPageHidden(): Boolean = js("document.hidden")
 
 /**
  * The AndroidX sqlite-web worker, vendored into the app's resources and bundled

@@ -18,8 +18,8 @@ class App : Application() {
 
     /**
      * The User-Agent every request introduces Vesti with. Kept here (rather
-     * than in the activity) so the background OpenGraph fetcher, which starts
-     * before any activity exists, sends the same string as the UI's requests.
+     * than in the activity) so the preview fetcher and the background sync
+     * worker send the same string as the UI's requests.
      */
     internal val userAgent = "Vesti/${BuildConfig.VERSION_NAME} (Android)"
 
@@ -44,10 +44,32 @@ class App : Application() {
 
     internal val sync by lazy { Sync(scope, db, userAgent) }
 
-    private val ogFetcher by lazy { OgImageFetcher(db, userAgent) }
+    /**
+     * Whether the app is on screen, and the trigger that starts the preview
+     * fetcher the first time it is. A process that WorkManager starts for a
+     * background sync has no activity, so this keeps that process from
+     * downloading preview images in the background.
+     */
+    private val foreground = AppForeground(onFirstForeground = ::startOgImageFetcher)
+
+    private val ogFetcher by lazy {
+        OgImageFetcher(db, userAgent, isForeground = { foreground.isForeground })
+    }
+
+    private var ogFetcherStarted = false
 
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(foreground)
+    }
+
+    /**
+     * Starts the preview fetcher once the UI first comes to the foreground.
+     * Idempotent: a rotation or a second activity calls it again.
+     */
+    private fun startOgImageFetcher() {
+        if (ogFetcherStarted) return
+        ogFetcherStarted = true
         scope.launch {
             runCatching { ogFetcher.fetchAndWatch() }
         }

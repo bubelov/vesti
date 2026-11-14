@@ -8,6 +8,7 @@ import io.ktor.http.isSuccess
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -70,7 +71,12 @@ class OgImageFetcher(
 
     suspend fun runOnce() {
         when (OgImagePlanning.ogRunSkip(isOnline(), isForeground())) {
-            OgRunSkip.Offline, OgRunSkip.NotForeground -> delay(OFFLINE_INTERVAL)
+            OgRunSkip.Offline -> delay(OFFLINE_INTERVAL)
+            // Preview images are supplementary: a backgrounded app keeps the
+            // loop alive but stops spending network and battery on images
+            // nobody is looking at. The pause stays short enough to notice the
+            // reader coming back.
+            OgRunSkip.NotForeground -> delay(NOT_FOREGROUND_INTERVAL)
             OgRunSkip.No -> runOnceBody()
         }
     }
@@ -211,6 +217,13 @@ class OgImageFetcher(
         val GLOBAL_OFF_INTERVAL: Duration = 5.seconds
         val EMPTY_INTERVAL: Duration = 2.seconds
         val OFFLINE_INTERVAL: Duration = 5.seconds
+
+        /**
+         * How long to idle while the app is in the background. Long enough to
+         * keep the loop off the network and out of the battery, short enough
+         * that a returning reader sees new previews soon after.
+         */
+        val NOT_FOREGROUND_INTERVAL: Duration = 1.minutes
 
         /** Pause after an iteration that failed unexpectedly, before retrying. */
         val ERROR_INTERVAL: Duration = 5.seconds
