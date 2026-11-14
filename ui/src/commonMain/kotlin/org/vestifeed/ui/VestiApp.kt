@@ -280,11 +280,8 @@ private fun AppTopBar(state: AppState, screen: Screen) {
             if (screen is Screen.EntryDetail) {
                 IconButton(onClick = { state.toggleEntryBookmark(screen.entryId) }) {
                     MaterialSymbol(
-                        glyph = if (state.entryBookmarked) {
-                            MaterialSymbols.BookmarkCheck
-                        } else {
-                            MaterialSymbols.Bookmark
-                        },
+                        glyph = MaterialSymbols.Bookmark,
+                        filled = state.entryBookmarked,
                         contentDescription = if (state.entryBookmarked) {
                             stringResource(Res.string.remove_bookmark)
                         } else {

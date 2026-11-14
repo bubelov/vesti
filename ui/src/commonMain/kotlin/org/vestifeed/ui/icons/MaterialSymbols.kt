@@ -21,7 +21,6 @@ object MaterialSymbols {
     const val Bookmark = "\uE866"
     const val BookmarkAdd = "\uE598"
     const val BookmarkAdded = "\uE599"
-    const val BookmarkCheck = "\uF457"
     const val Close = "\uE14C"
     const val RssFeed = "\uE0E5"
     const val Settings = "\uE8B8"

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Density
 import org.jetbrains.compose.resources.Font
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.material_symbols
+import org.vestifeed.ui.resources.material_symbols_filled
 
 // Both schemes are a Material Theme Builder export seeded from #1F2D61 (navy),
 // with the full tonal palette swapped in for every role: primary, secondary,
@@ -107,6 +108,14 @@ private val DarkColors = darkColorScheme(
  */
 val LocalIconFont = staticCompositionLocalOf<FontFamily?> { null }
 
+/**
+ * The same icons with Material Symbols' `FILL` axis pinned to 1, i.e. their
+ * solid drawings. Compose Multiplatform does not expose font variation settings,
+ * so the filled variant has to be a separate font rather than an axis value.
+ * Only the glyphs that are actually used filled are in it.
+ */
+val LocalIconFontFilled = staticCompositionLocalOf<FontFamily?> { null }
+
 /** Whether the app is in dark mode; provided by [VestiTheme]. */
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
@@ -140,9 +149,11 @@ fun VestiTheme(
     content: @Composable () -> Unit,
 ) {
     val iconFont = FontFamily(Font(Res.font.material_symbols))
+    val iconFontFilled = FontFamily(Font(Res.font.material_symbols_filled))
 
     CompositionLocalProvider(
         LocalIconFont provides iconFont,
+        LocalIconFontFilled provides iconFontFilled,
         LocalDarkTheme provides darkTheme,
         LocalDensity provides (density ?: LocalDensity.current),
     ) {

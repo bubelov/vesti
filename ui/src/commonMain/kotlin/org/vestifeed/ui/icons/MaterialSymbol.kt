@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import org.vestifeed.ui.theme.LocalIconFont
+import org.vestifeed.ui.theme.LocalIconFontFilled
 
 /**
  * A Material Symbols icon, drawn with the typeface [LocalIconFont] (provided by
@@ -26,6 +27,11 @@ fun MaterialSymbol(
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
     size: TextUnit = 24.sp,
+    /**
+     * Draw the symbol's solid variant, when the bundled fonts carry one for this
+     * glyph (see [org.vestifeed.ui.theme.LocalIconFontFilled]).
+     */
+    filled: Boolean = false,
 ) {
     val semantics = if (contentDescription != null) {
         Modifier.semantics { this.contentDescription = contentDescription }
@@ -35,7 +41,7 @@ fun MaterialSymbol(
 
     Text(
         text = glyph,
-        fontFamily = LocalIconFont.current,
+        fontFamily = if (filled) LocalIconFontFilled.current else LocalIconFont.current,
         fontSize = size,
         color = tint,
         modifier = modifier.then(semantics),
