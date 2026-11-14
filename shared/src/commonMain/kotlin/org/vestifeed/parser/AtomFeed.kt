@@ -2,6 +2,7 @@ package org.vestifeed.parser
 
 import com.fleeksoft.ksoup.nodes.Document
 import com.fleeksoft.ksoup.nodes.Element
+import org.vestifeed.util.toInstantOrNull
 
 data class AtomFeed(
     val title: String,
@@ -97,11 +98,12 @@ data class AtomEntrySummary(
 fun atomFeed(document: Document): Result<AtomFeed> {
     val documentElement = document.children().first()!!
 
-    val title = documentElement.getElementsByTag("title").first()?.text()
+    // Only the feed's own direct children count: searching descendants would
+    // pick up the first entry's title or author as if they were the feed's.
+    val title = documentElement.childElements("title").firstOrNull()?.text()
         ?: return Result.failure(Exception("Channel has no title"))
 
-    val links = documentElement.children()
-        .filter { it.tagName() == "link" }
+    val links = documentElement.childElements("link")
         .map { element -> element.toAtomLink().getOrElse { return Result.failure(it) } }
 
     val entries = atomEntries(document).getOrElse {
@@ -118,36 +120,49 @@ fun atomFeed(document: Document): Result<AtomFeed> {
 }
 
 fun atomEntries(document: Document): Result<List<AtomEntry>> {
-    val feedId = document.getElementsByTag("id").first()?.text()
+    val feedElement = document.children().firstOrNull()
         ?: return Result.failure(Exception("Feed ID is missing"))
+    val feedId = feedElement.childElements("id").firstOrNull()?.text()
+        ?: return Result.failure(Exception("Feed ID is missing"))
+
+    // RFC 4287 §4.1.1: an entry may omit atom:author when the feed supplies
+    // one, so this is the fallback for every entry below.
+    val feedAuthorName = feedElement.childElements("author")
+        .firstOrNull()
+        ?.authorName()
+        .orEmpty()
 
     val entries = document.getElementsByTag("entry")
 
     val parsedEntries = entries.mapNotNull { entry ->
         // > atom:entry elements MUST contain exactly one atom:id element.
         // Source: https://tools.ietf.org/html/rfc4287
-        val id = entry.getElementsByTag("id").first()?.text() ?: return@mapNotNull null
+        val id = entry.childElements("id").firstOrNull()?.text() ?: return@mapNotNull null
 
         // > atom:entry elements MUST contain exactly one atom:title element.
         // Source: https://tools.ietf.org/html/rfc4287
         val title =
-            entry.getElementsByTag("title").first()?.text() ?: return@mapNotNull null
+            entry.childElements("title").firstOrNull()?.text() ?: return@mapNotNull null
+
+        val links = entry.childElements("link")
+            .map { element -> element.toAtomLink().getOrElse { return Result.failure(it) } }
 
         val content: AtomEntryContent
 
-        val contentElements = entry.getElementsByTag("content")
+        val contentElements = entry.childElements("content")
 
         when (contentElements.size) {
             0 -> {
-                /*
-                TODO
-
-                https://datatracker.ietf.org/doc/html/rfc4287#section-4.1.2
-
-                atom:entry elements that contain no child atom:content element
-                MUST contain at least one atom:link element with a rel attribute
-                value of "alternate"
-                 */
+                // > atom:entry elements that contain no child atom:content
+                // > element MUST contain at least one atom:link element with a
+                // > rel attribute value of "alternate".
+                // Source: https://datatracker.ietf.org/doc/html/rfc4287#section-4.1.2
+                //
+                // The link carries the body in that case and the reader follows
+                // it, so an empty content is correct here. An entry with neither
+                // content nor an alternate link has nothing to show, so it is
+                // dropped rather than listed as a blank article.
+                if (links.none { it.rel is AtomLinkRel.Alternate }) return@mapNotNull null
                 content = AtomEntryContent(
                     type = AtomEntryContentType.Text,
                     src = "",
@@ -156,7 +171,7 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
             }
 
             1 -> {
-                val element = contentElements.first()!!
+                val element = contentElements.first()
                 val rawContentType = element.attr("type").trim()
                 val src = element.attr("src").trim()
 
@@ -185,7 +200,7 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
 
         val summary: AtomEntrySummary?
 
-        val summaryElements = entry.getElementsByTag("summary")
+        val summaryElements = entry.childElements("summary")
 
         when (summaryElements.size) {
             0 -> {
@@ -193,11 +208,9 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
             }
 
             1 -> {
-                val element = summaryElements.first()!!
-                val rawContentType = element.attr("type").trim()
-
+                val element = summaryElements.first()
                 summary = AtomEntrySummary(
-                    type = rawContentType,
+                    type = element.attr("type").trim(),
                     text = element.text(),
                 )
             }
@@ -207,7 +220,7 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
             }
         }
 
-        val elementsWithUpdatedTag = entry.getElementsByTag("updated")
+        val elementsWithUpdatedTag = entry.childElements("updated")
 
         // > atom:entry elements MUST contain exactly one atom:updated element.
         // Source: https://tools.ietf.org/html/rfc4287
@@ -215,29 +228,42 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
             return Result.failure(Exception("atom:entry elements MUST contain exactly one atom:updated element"))
         }
 
-        val updated = elementsWithUpdatedTag.first()!!.text()
+        val updated = elementsWithUpdatedTag.first().text()
 
-        // > atom:entry elements MUST contain exactly one atom:updated element.
-        // Source: https://tools.ietf.org/html/rfc4287
-        val author = entry.getElementsByTag("author").first()
+        // RFC 4287 §4.2.9: atom:published is optional (at most one) and is the
+        // date the entry first appeared, which is what the lists sort by.
+        // Ordering by atom:updated instead makes a feed that touches an old
+        // post resurface it at the top, so the update time is only the fallback
+        // for entries that omit the element or carry an unparseable date.
+        val publishedElements = entry.childElements("published")
+        if (publishedElements.size > 1) {
+            return Result.failure(
+                Exception(
+                    "atom:entry elements MUST NOT contain more than one atom:published element",
+                ),
+            )
+        }
+        val published = publishedElements.firstOrNull()
+            ?.text()
+            ?.takeIf { it.isNotBlank() && it.toInstantOrNull() != null }
+            ?: updated
 
-        // TODO
-        // atom:entry elements MUST contain one or more atom:author elements, unless the atom:entry
-        // contains an atom:source element that contains an atom:author element or, in an Atom Feed
-        // Document, the atom:feed element contains an atom:author element itself.
-        // Source: https://tools.ietf.org/html/rfc4287
-        val authorName = author?.getElementsByTag("name")?.first()?.text() ?: ""
-
-        val linkElements = entry.getElementsByTag("link")
-
-        val links = linkElements
-            .map { element -> element.toAtomLink().getOrElse { return Result.failure(it) } }
+        // RFC 4287 §4.1.1: an entry inherits its author from atom:source or,
+        // failing that, from the feed document itself.
+        val authorName = entry.childElements("author").firstOrNull()?.authorName()
+            ?.takeIf { it.isNotBlank() }
+            ?: entry.childElements("source").firstOrNull()
+                ?.childElements("author")
+                ?.firstOrNull()
+                ?.authorName()
+                ?.takeIf { it.isNotBlank() }
+            ?: feedAuthorName
 
         AtomEntry(
             id = id,
             feedId = feedId,
             title = title,
-            published = updated, // TODO
+            published = published,
             updated = updated,
             authorName = authorName,
             content = content,
@@ -248,6 +274,14 @@ fun atomEntries(document: Document): Result<List<AtomEntry>> {
 
     return Result.success(parsedEntries)
 }
+
+/** This element's direct children named [tag], in document order. */
+private fun Element.childElements(tag: String): List<Element> =
+    children().filter { it.tagName() == tag }
+
+/** The `atom:name` of this `atom:author` element, or "" when it has none. */
+private fun Element.authorName(): String =
+    childElements("name").firstOrNull()?.text().orEmpty()
 
 private fun Element.toAtomLink(): Result<AtomLink> {
     val rel = when (attr("rel")) {
