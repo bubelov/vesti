@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A newer push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Every Gradle invocation configures all projects, and :shared and :ui
+      # apply the Android KMP plugin, so the SDK has to be present even for the
+      # JVM test tasks. :app is also compiled here, which needs it too.
+      - uses: android-actions/setup-android@v3
+
+      # Keep in step with the compileSdk in shared/build.gradle.kts and
+      # ui/build.gradle.kts (release 37, minor level 1) and the build-tools the
+      # Android Gradle Plugin expects.
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37.1" "build-tools;37.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests and Android compile
+        run: >
+          ./gradlew
+          :shared:jvmTest
+          :ui:jvmTest
+          :app:compileDebugKotlin
+          --stacktrace
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            shared/build/reports/tests/
+            ui/build/reports/tests/
