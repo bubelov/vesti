@@ -27,15 +27,23 @@ jobs:
           java-version: '17'
 
       # Every Gradle invocation configures all projects, and :shared and :ui
-      # apply the Android KMP plugin, so the SDK has to be present even for the
-      # JVM test tasks. :app is also compiled here, which needs it too.
-      - uses: android-actions/setup-android@v3
-
-      # Keep in step with the compileSdk in shared/build.gradle.kts and
-      # ui/build.gradle.kts (release 37, minor level 1) and the build-tools the
-      # Android Gradle Plugin expects.
+      # apply the Android KMP plugin, so the SDK has to resolve even for the JVM
+      # test tasks. :app is compiled here and needs it too.
+      #
+      # The SDK and cmdline-tools come with the runner image, so this installs
+      # the two packages this build declares rather than bootstrapping a
+      # toolchain with a third-party action.
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37.1" "build-tools;37.0.0"
+        run: |
+          sdkmanager="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager" ]; then
+            sdkmanager="$(command -v sdkmanager)"
+          fi
+          yes | "$sdkmanager" --licenses > /dev/null
+          # Keep in step with the compileSdk in shared/build.gradle.kts and
+          # ui/build.gradle.kts (release 37, minor level 1) and the build-tools
+          # the Android Gradle Plugin expects.
+          "$sdkmanager" --install "platforms;android-37.1" "build-tools;37.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
 
