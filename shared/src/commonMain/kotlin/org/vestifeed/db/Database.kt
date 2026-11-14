@@ -96,8 +96,9 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL(EntryTable.UNREAD_INDEX)
-            conn.execSQL("PRAGMA user_version=15;")
-            version = 15
+            conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
+            conn.execSQL("PRAGMA user_version=16;")
+            version = 16
         }
 
         if (version == 1) {
@@ -210,6 +211,15 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(EntryTable.UNREAD_INDEX)
             conn.execSQL("PRAGMA user_version=15;")
             version = 15
+        }
+
+        if (version == 15) {
+            // The entry lists filter on the two flags and sort by `published`;
+            // this index supplies the rows in order, so no temporary B-tree is
+            // built for the ORDER BY.
+            conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
+            conn.execSQL("PRAGMA user_version=16;")
+            version = 16
         }
     }
 

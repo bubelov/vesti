@@ -712,13 +712,43 @@ class DatabaseMigrationTest {
         assertEquals(1, countIndexes("index_entry_unread_by_feed"))
     }
 
+    /**
+     * v16 indexes the entry lists: they filter on the two flags and sort by
+     * `published`, so the index supplies the rows already ordered.
+     */
+    @Test
+    fun migrate_v15ToV16_addsTheUnreadListIndex() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            // v15's schema is exactly this, plus the unread-by-feed index.
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL("PRAGMA user_version=15;")
+        }
+
+        assertEquals(0, countIndexes("index_entry_unread_list"))
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        assertEquals(1, countIndexes("index_entry_unread_list"))
+        // The v15 index is still there.
+        assertEquals(1, countIndexes("index_entry_unread_by_feed"))
+    }
+
     @Test
     fun freshDatabase_createsTheUnreadIndex() = runBlocking<Unit> {
         val db = Database(BundledSQLiteDriver(), dbFile.absolutePath)
         db.connect()
 
         assertEquals(1, countIndexes("index_entry_unread_by_feed"))
-        assertEquals(15, db.readStats().version)
+        assertEquals(1, countIndexes("index_entry_unread_list"))
+        assertEquals(16, db.readStats().version)
     }
 
     /** How many indexes of [name] the database has, read through a fresh connection. */

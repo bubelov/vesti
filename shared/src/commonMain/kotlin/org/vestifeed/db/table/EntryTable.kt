@@ -52,6 +52,24 @@ class EntryTable(private val conn: SQLiteConnection) {
         """
 
         /**
+         * Index for the two entry lists, which sort every row they filter:
+         *
+         *   WHERE ext_bookmarked = 0 AND ext_read = 0 ORDER BY published DESC
+         *   WHERE ext_bookmarked = 1                  ORDER BY published DESC
+         *
+         * Both flags are equality predicates and `published` is the sort key, so
+         * the index serves the rows already in order - no temporary B-tree, and
+         * no scanning of the table for the ordering. `ext_bookmarked` leads
+         * because the Saved list constrains only that one.
+         *
+         * Instants are stored as ISO-8601 UTC text, so their lexicographic
+         * order is their chronological order.
+         */
+        const val UNREAD_LIST_INDEX = """
+            CREATE INDEX index_entry_unread_list ON entry(ext_bookmarked, ext_read, published);
+        """
+
+        /**
          * The projection every entries-list query returns, in exactly the order
          * [statementToEntriesAdapterRow] reads it. The list queries (all,
          * unread, bookmarked, one feed, one tag) share it so their rows cannot
