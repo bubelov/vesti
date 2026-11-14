@@ -54,11 +54,11 @@
     <string name="unread_n">Непрочитано (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Нема извора</item>
-        <item quantity="one">%d извор</item>
-        <item quantity="two">%d извора</item>
-        <item quantity="few">%d извора</item>
-        <item quantity="many">%d извора</item>
-        <item quantity="other">%d извора</item>
+        <item quantity="one">%1$d извор</item>
+        <item quantity="two">%1$d извора</item>
+        <item quantity="few">%1$d извора</item>
+        <item quantity="many">%1$d извора</item>
+        <item quantity="other">%1$d извора</item>
     </plurals>
 
     <string name="app_name">Вести</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Засновано на колекцији Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Прикажи извор колекције</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d непрочитаних записа</item>
-        <item quantity="one">%d непрочитан запис</item>
-        <item quantity="two">%d непрочитана записа</item>
-        <item quantity="few">%d непрочитана записа</item>
-        <item quantity="many">%d непрочитаних записа</item>
-        <item quantity="other">%d непрочитаних записа</item>
+        <item quantity="zero">%1$d непрочитаних записа</item>
+        <item quantity="one">%1$d непрочитан запис</item>
+        <item quantity="two">%1$d непрочитана записа</item>
+        <item quantity="few">%1$d непрочитана записа</item>
+        <item quantity="many">%1$d непрочитаних записа</item>
+        <item quantity="other">%1$d непрочитаних записа</item>
     </plurals>
 </resources>

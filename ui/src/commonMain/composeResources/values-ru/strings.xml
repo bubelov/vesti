@@ -54,11 +54,11 @@
     <string name="unread_n">Лента (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Лент нет</item>
-        <item quantity="one">%d лента</item>
-        <item quantity="two">%d ленты</item>
-        <item quantity="few">%d ленты</item>
-        <item quantity="many">%d лент</item>
-        <item quantity="other">%d ленты</item>
+        <item quantity="one">%1$d лента</item>
+        <item quantity="two">%1$d ленты</item>
+        <item quantity="few">%1$d ленты</item>
+        <item quantity="many">%1$d лент</item>
+        <item quantity="other">%1$d ленты</item>
     </plurals>
 
     <string name="app_name">Вести</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">На основе коллекции Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Посмотреть источник коллекции</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d непрочитанных записей</item>
-        <item quantity="one">%d непрочитанная запись</item>
-        <item quantity="two">%d непрочитанные записи</item>
-        <item quantity="few">%d непрочитанные записи</item>
-        <item quantity="many">%d непрочитанных записей</item>
-        <item quantity="other">%d непрочитанные записи</item>
+        <item quantity="zero">%1$d непрочитанных записей</item>
+        <item quantity="one">%1$d непрочитанная запись</item>
+        <item quantity="two">%1$d непрочитанные записи</item>
+        <item quantity="few">%1$d непрочитанные записи</item>
+        <item quantity="many">%1$d непрочитанных записей</item>
+        <item quantity="other">%1$d непрочитанные записи</item>
     </plurals>
 </resources>

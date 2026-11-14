@@ -54,11 +54,11 @@
     <string name="unread_n">Μη αναγνωσμένα (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Καμία ροή</item>
-        <item quantity="one">%d ροή</item>
-        <item quantity="two">%d ροές</item>
-        <item quantity="few">%d ροές</item>
-        <item quantity="many">%d ροές</item>
-        <item quantity="other">%d ροές</item>
+        <item quantity="one">%1$d ροή</item>
+        <item quantity="two">%1$d ροές</item>
+        <item quantity="few">%1$d ροές</item>
+        <item quantity="many">%1$d ροές</item>
+        <item quantity="other">%1$d ροές</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Βασίζεται στη συλλογή Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Προβολή πηγής συλλογής</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d μη αναγνωσμένες καταχωρίσεις</item>
-        <item quantity="one">%d μη αναγνωσμένη καταχώριση</item>
-        <item quantity="two">%d μη αναγνωσμένες καταχωρίσεις</item>
-        <item quantity="few">%d μη αναγνωσμένες καταχωρίσεις</item>
-        <item quantity="many">%d μη αναγνωσμένες καταχωρίσεις</item>
-        <item quantity="other">%d μη αναγνωσμένες καταχωρίσεις</item>
+        <item quantity="zero">%1$d μη αναγνωσμένες καταχωρίσεις</item>
+        <item quantity="one">%1$d μη αναγνωσμένη καταχώριση</item>
+        <item quantity="two">%1$d μη αναγνωσμένες καταχωρίσεις</item>
+        <item quantity="few">%1$d μη αναγνωσμένες καταχωρίσεις</item>
+        <item quantity="many">%1$d μη αναγνωσμένες καταχωρίσεις</item>
+        <item quantity="other">%1$d μη αναγνωσμένες καταχωρίσεις</item>
     </plurals>
 </resources>

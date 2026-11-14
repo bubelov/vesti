@@ -54,11 +54,11 @@
     <string name="unread_n">Chưa đọc (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Không có nguồn cấp</item>
-        <item quantity="one">%d nguồn cấp</item>
-        <item quantity="two">%d nguồn cấp</item>
-        <item quantity="few">%d nguồn cấp</item>
-        <item quantity="many">%d nguồn cấp</item>
-        <item quantity="other">%d nguồn cấp</item>
+        <item quantity="one">%1$d nguồn cấp</item>
+        <item quantity="two">%1$d nguồn cấp</item>
+        <item quantity="few">%1$d nguồn cấp</item>
+        <item quantity="many">%1$d nguồn cấp</item>
+        <item quantity="other">%1$d nguồn cấp</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Dựa trên bộ sưu tập Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Xem nguồn của bộ sưu tập</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d bài viết chưa đọc</item>
-        <item quantity="one">%d bài viết chưa đọc</item>
-        <item quantity="two">%d bài viết chưa đọc</item>
-        <item quantity="few">%d bài viết chưa đọc</item>
-        <item quantity="many">%d bài viết chưa đọc</item>
-        <item quantity="other">%d bài viết chưa đọc</item>
+        <item quantity="zero">%1$d bài viết chưa đọc</item>
+        <item quantity="one">%1$d bài viết chưa đọc</item>
+        <item quantity="two">%1$d bài viết chưa đọc</item>
+        <item quantity="few">%1$d bài viết chưa đọc</item>
+        <item quantity="many">%1$d bài viết chưa đọc</item>
+        <item quantity="other">%1$d bài viết chưa đọc</item>
     </plurals>
 </resources>

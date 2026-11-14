@@ -54,11 +54,11 @@
     <string name="unread_n">Ongelezen (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Geen feeds</item>
-        <item quantity="one">%d feed</item>
-        <item quantity="two">%d feeds</item>
-        <item quantity="few">%d feeds</item>
-        <item quantity="many">%d feeds</item>
-        <item quantity="other">%d feeds</item>
+        <item quantity="one">%1$d feed</item>
+        <item quantity="two">%1$d feeds</item>
+        <item quantity="few">%1$d feeds</item>
+        <item quantity="many">%1$d feeds</item>
+        <item quantity="other">%1$d feeds</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Gebaseerd op de Awesome RSS Feeds-collectie%1$s.</string>
     <string name="view_collection_source">De bron van de collectie bekijken</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d ongelezen berichten</item>
-        <item quantity="one">%d ongelezen bericht</item>
-        <item quantity="two">%d ongelezen berichten</item>
-        <item quantity="few">%d ongelezen berichten</item>
-        <item quantity="many">%d ongelezen berichten</item>
-        <item quantity="other">%d ongelezen berichten</item>
+        <item quantity="zero">%1$d ongelezen berichten</item>
+        <item quantity="one">%1$d ongelezen bericht</item>
+        <item quantity="two">%1$d ongelezen berichten</item>
+        <item quantity="few">%1$d ongelezen berichten</item>
+        <item quantity="many">%1$d ongelezen berichten</item>
+        <item quantity="other">%1$d ongelezen berichten</item>
     </plurals>
 </resources>

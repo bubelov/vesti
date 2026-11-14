@@ -54,11 +54,11 @@
     <string name="unread_n">읽지 않음 (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">피드 없음</item>
-        <item quantity="one">피드 %d개</item>
-        <item quantity="two">피드 %d개</item>
-        <item quantity="few">피드 %d개</item>
-        <item quantity="many">피드 %d개</item>
-        <item quantity="other">피드 %d개</item>
+        <item quantity="one">피드 %1$d개</item>
+        <item quantity="two">피드 %1$d개</item>
+        <item quantity="few">피드 %1$d개</item>
+        <item quantity="many">피드 %1$d개</item>
+        <item quantity="other">피드 %1$d개</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Awesome RSS Feeds 컬렉션 기반%1$s.</string>
     <string name="view_collection_source">컬렉션 출처 보기</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">읽지 않은 항목 %d개</item>
-        <item quantity="one">읽지 않은 항목 %d개</item>
-        <item quantity="two">읽지 않은 항목 %d개</item>
-        <item quantity="few">읽지 않은 항목 %d개</item>
-        <item quantity="many">읽지 않은 항목 %d개</item>
-        <item quantity="other">읽지 않은 항목 %d개</item>
+        <item quantity="zero">읽지 않은 항목 %1$d개</item>
+        <item quantity="one">읽지 않은 항목 %1$d개</item>
+        <item quantity="two">읽지 않은 항목 %1$d개</item>
+        <item quantity="few">읽지 않은 항목 %1$d개</item>
+        <item quantity="many">읽지 않은 항목 %1$d개</item>
+        <item quantity="other">읽지 않은 항목 %1$d개</item>
     </plurals>
 </resources>

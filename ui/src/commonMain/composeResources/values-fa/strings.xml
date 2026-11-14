@@ -54,11 +54,11 @@
     <string name="unread_n">خوانده‌نشده (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">هیچ خوراکی</item>
-        <item quantity="one">%d خوراک</item>
-        <item quantity="two">%d خوراک</item>
-        <item quantity="few">%d خوراک</item>
-        <item quantity="many">%d خوراک</item>
-        <item quantity="other">%d خوراک</item>
+        <item quantity="one">%1$d خوراک</item>
+        <item quantity="two">%1$d خوراک</item>
+        <item quantity="few">%1$d خوراک</item>
+        <item quantity="many">%1$d خوراک</item>
+        <item quantity="other">%1$d خوراک</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">بر پایه مجموعه Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">مشاهده منبع مجموعه</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d مطلب خوانده‌نشده</item>
-        <item quantity="one">%d مطلب خوانده‌نشده</item>
-        <item quantity="two">%d مطلب خوانده‌نشده</item>
-        <item quantity="few">%d مطلب خوانده‌نشده</item>
-        <item quantity="many">%d مطلب خوانده‌نشده</item>
-        <item quantity="other">%d مطلب خوانده‌نشده</item>
+        <item quantity="zero">%1$d مطلب خوانده‌نشده</item>
+        <item quantity="one">%1$d مطلب خوانده‌نشده</item>
+        <item quantity="two">%1$d مطلب خوانده‌نشده</item>
+        <item quantity="few">%1$d مطلب خوانده‌نشده</item>
+        <item quantity="many">%1$d مطلب خوانده‌نشده</item>
+        <item quantity="other">%1$d مطلب خوانده‌نشده</item>
     </plurals>
 </resources>

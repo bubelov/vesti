@@ -54,11 +54,11 @@
     <string name="unread_n">לא נקראו (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">אין פידים</item>
-        <item quantity="one">%d פיד</item>
-        <item quantity="two">%d פידים</item>
-        <item quantity="few">%d פידים</item>
-        <item quantity="many">%d פידים</item>
-        <item quantity="other">%d פידים</item>
+        <item quantity="one">%1$d פיד</item>
+        <item quantity="two">%1$d פידים</item>
+        <item quantity="few">%1$d פידים</item>
+        <item quantity="many">%1$d פידים</item>
+        <item quantity="other">%1$d פידים</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">מבוסס על אוסף Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">הצגת מקור האוסף</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d רשומות שלא נקראו</item>
-        <item quantity="one">%d רשומה שלא נקראה</item>
-        <item quantity="two">%d רשומות שלא נקראו</item>
-        <item quantity="few">%d רשומות שלא נקראו</item>
-        <item quantity="many">%d רשומות שלא נקראו</item>
-        <item quantity="other">%d רשומות שלא נקראו</item>
+        <item quantity="zero">%1$d רשומות שלא נקראו</item>
+        <item quantity="one">%1$d רשומה שלא נקראה</item>
+        <item quantity="two">%1$d רשומות שלא נקראו</item>
+        <item quantity="few">%1$d רשומות שלא נקראו</item>
+        <item quantity="many">%1$d רשומות שלא נקראו</item>
+        <item quantity="other">%1$d רשומות שלא נקראו</item>
     </plurals>
 </resources>

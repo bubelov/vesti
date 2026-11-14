@@ -54,11 +54,11 @@
     <string name="unread_n">Ungelesen (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Keine Feeds</item>
-        <item quantity="one">%d Feed</item>
-        <item quantity="two">%d Feeds</item>
-        <item quantity="few">%d Feeds</item>
-        <item quantity="many">%d Feeds</item>
-        <item quantity="other">%d Feeds</item>
+        <item quantity="one">%1$d Feed</item>
+        <item quantity="two">%1$d Feeds</item>
+        <item quantity="few">%1$d Feeds</item>
+        <item quantity="many">%1$d Feeds</item>
+        <item quantity="other">%1$d Feeds</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Basiert auf der Awesome-RSS-Feeds-Sammlung%1$s.</string>
     <string name="view_collection_source">Sammlungsquelle anzeigen</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d ungelesene Einträge</item>
-        <item quantity="one">%d ungelesener Eintrag</item>
-        <item quantity="two">%d ungelesene Einträge</item>
-        <item quantity="few">%d ungelesene Einträge</item>
-        <item quantity="many">%d ungelesene Einträge</item>
-        <item quantity="other">%d ungelesene Einträge</item>
+        <item quantity="zero">%1$d ungelesene Einträge</item>
+        <item quantity="one">%1$d ungelesener Eintrag</item>
+        <item quantity="two">%1$d ungelesene Einträge</item>
+        <item quantity="few">%1$d ungelesene Einträge</item>
+        <item quantity="many">%1$d ungelesene Einträge</item>
+        <item quantity="other">%1$d ungelesene Einträge</item>
     </plurals>
 </resources>

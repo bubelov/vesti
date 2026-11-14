@@ -55,11 +55,11 @@
     <string name="unread_n">Unread (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">No feeds</item>
-        <item quantity="one">%d feed</item>
-        <item quantity="two">%d feeds</item>
-        <item quantity="few">%d feeds</item>
-        <item quantity="many">%d feeds</item>
-        <item quantity="other">%d feeds</item>
+        <item quantity="one">%1$d feed</item>
+        <item quantity="two">%1$d feeds</item>
+        <item quantity="few">%1$d feeds</item>
+        <item quantity="many">%1$d feeds</item>
+        <item quantity="other">%1$d feeds</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -152,12 +152,12 @@
     <string name="based_on_awesome_rss_feeds">Based on the Awesome RSS Feeds collection%1$s.</string>
     <string name="view_collection_source">View the collection source</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d unread entries</item>
-        <item quantity="one">%d unread entry</item>
-        <item quantity="two">%d unread entries</item>
-        <item quantity="few">%d unread entries</item>
-        <item quantity="many">%d unread entries</item>
-        <item quantity="other">%d unread entries</item>
+        <item quantity="zero">%1$d unread entries</item>
+        <item quantity="one">%1$d unread entry</item>
+        <item quantity="two">%1$d unread entries</item>
+        <item quantity="few">%1$d unread entries</item>
+        <item quantity="many">%1$d unread entries</item>
+        <item quantity="other">%1$d unread entries</item>
     </plurals>
 
     <string name="database_statistics">Database statistics</string>

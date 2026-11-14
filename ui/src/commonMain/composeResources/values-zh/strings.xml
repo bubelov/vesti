@@ -54,11 +54,11 @@
     <string name="unread_n">未读 (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">无订阅源</item>
-        <item quantity="one">%d 个订阅源</item>
-        <item quantity="two">%d 个订阅源</item>
-        <item quantity="few">%d 个订阅源</item>
-        <item quantity="many">%d 个订阅源</item>
-        <item quantity="other">%d 个订阅源</item>
+        <item quantity="one">%1$d 个订阅源</item>
+        <item quantity="two">%1$d 个订阅源</item>
+        <item quantity="few">%1$d 个订阅源</item>
+        <item quantity="many">%1$d 个订阅源</item>
+        <item quantity="other">%1$d 个订阅源</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">基于 Awesome RSS Feeds 合集%1$s。</string>
     <string name="view_collection_source">查看合集来源</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d 篇未读文章</item>
-        <item quantity="one">%d 篇未读文章</item>
-        <item quantity="two">%d 篇未读文章</item>
-        <item quantity="few">%d 篇未读文章</item>
-        <item quantity="many">%d 篇未读文章</item>
-        <item quantity="other">%d 篇未读文章</item>
+        <item quantity="zero">%1$d 篇未读文章</item>
+        <item quantity="one">%1$d 篇未读文章</item>
+        <item quantity="two">%1$d 篇未读文章</item>
+        <item quantity="few">%1$d 篇未读文章</item>
+        <item quantity="many">%1$d 篇未读文章</item>
+        <item quantity="other">%1$d 篇未读文章</item>
     </plurals>
 </resources>

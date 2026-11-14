@@ -54,11 +54,11 @@
     <string name="unread_n">Ulest (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Ingen feeder</item>
-        <item quantity="one">%d feed</item>
-        <item quantity="two">%d feeder</item>
-        <item quantity="few">%d feeder</item>
-        <item quantity="many">%d feeder</item>
-        <item quantity="other">%d feeder</item>
+        <item quantity="one">%1$d feed</item>
+        <item quantity="two">%1$d feeder</item>
+        <item quantity="few">%1$d feeder</item>
+        <item quantity="many">%1$d feeder</item>
+        <item quantity="other">%1$d feeder</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Basert på Awesome RSS Feeds-samlingen%1$s.</string>
     <string name="view_collection_source">Se kilden til samlingen</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d uleste innlegg</item>
-        <item quantity="one">%d ulest innlegg</item>
-        <item quantity="two">%d uleste innlegg</item>
-        <item quantity="few">%d uleste innlegg</item>
-        <item quantity="many">%d uleste innlegg</item>
-        <item quantity="other">%d uleste innlegg</item>
+        <item quantity="zero">%1$d uleste innlegg</item>
+        <item quantity="one">%1$d ulest innlegg</item>
+        <item quantity="two">%1$d uleste innlegg</item>
+        <item quantity="few">%1$d uleste innlegg</item>
+        <item quantity="many">%1$d uleste innlegg</item>
+        <item quantity="other">%1$d uleste innlegg</item>
     </plurals>
 </resources>

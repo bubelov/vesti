@@ -54,11 +54,11 @@
     <string name="unread_n">Olästa (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Inga flöden</item>
-        <item quantity="one">%d flöde</item>
-        <item quantity="two">%d flöden</item>
-        <item quantity="few">%d flöden</item>
-        <item quantity="many">%d flöden</item>
-        <item quantity="other">%d flöden</item>
+        <item quantity="one">%1$d flöde</item>
+        <item quantity="two">%1$d flöden</item>
+        <item quantity="few">%1$d flöden</item>
+        <item quantity="many">%1$d flöden</item>
+        <item quantity="other">%1$d flöden</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Baserat på samlingen Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Visa samlingens källa</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d olästa inlägg</item>
-        <item quantity="one">%d oläst inlägg</item>
-        <item quantity="two">%d olästa inlägg</item>
-        <item quantity="few">%d olästa inlägg</item>
-        <item quantity="many">%d olästa inlägg</item>
-        <item quantity="other">%d olästa inlägg</item>
+        <item quantity="zero">%1$d olästa inlägg</item>
+        <item quantity="one">%1$d oläst inlägg</item>
+        <item quantity="two">%1$d olästa inlägg</item>
+        <item quantity="few">%1$d olästa inlägg</item>
+        <item quantity="many">%1$d olästa inlägg</item>
+        <item quantity="other">%1$d olästa inlägg</item>
     </plurals>
 </resources>

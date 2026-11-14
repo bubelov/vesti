@@ -54,11 +54,11 @@
     <string name="unread_n">Não lidas (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Nenhum feed</item>
-        <item quantity="one">%d feed</item>
-        <item quantity="two">%d feeds</item>
-        <item quantity="few">%d feeds</item>
-        <item quantity="many">%d feeds</item>
-        <item quantity="other">%d feeds</item>
+        <item quantity="one">%1$d feed</item>
+        <item quantity="two">%1$d feeds</item>
+        <item quantity="few">%1$d feeds</item>
+        <item quantity="many">%1$d feeds</item>
+        <item quantity="other">%1$d feeds</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Baseado na coleção Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Ver a fonte da coleção</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d itens não lidos</item>
-        <item quantity="one">%d item não lido</item>
-        <item quantity="two">%d itens não lidos</item>
-        <item quantity="few">%d itens não lidos</item>
-        <item quantity="many">%d itens não lidos</item>
-        <item quantity="other">%d itens não lidos</item>
+        <item quantity="zero">%1$d itens não lidos</item>
+        <item quantity="one">%1$d item não lido</item>
+        <item quantity="two">%1$d itens não lidos</item>
+        <item quantity="few">%1$d itens não lidos</item>
+        <item quantity="many">%1$d itens não lidos</item>
+        <item quantity="other">%1$d itens não lidos</item>
     </plurals>
 </resources>

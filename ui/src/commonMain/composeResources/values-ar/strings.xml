@@ -54,11 +54,11 @@
     <string name="unread_n">غير مقروء (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">لا توجد خلاصات</item>
-        <item quantity="one">%d خلاصة</item>
-        <item quantity="two">%d خلاصتان</item>
-        <item quantity="few">%d خلاصات</item>
-        <item quantity="many">%d خلاصة</item>
-        <item quantity="other">%d خلاصة</item>
+        <item quantity="one">%1$d خلاصة</item>
+        <item quantity="two">%1$d خلاصتان</item>
+        <item quantity="few">%1$d خلاصات</item>
+        <item quantity="many">%1$d خلاصة</item>
+        <item quantity="other">%1$d خلاصة</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">استنادًا إلى مجموعة Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">عرض مصدر المجموعة</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d عناصر غير مقروءة</item>
-        <item quantity="one">%d عنصر غير مقروء</item>
-        <item quantity="two">%d عنصران غير مقروءان</item>
-        <item quantity="few">%d عناصر غير مقروءة</item>
-        <item quantity="many">%d عنصرًا غير مقروء</item>
-        <item quantity="other">%d عنصر غير مقروء</item>
+        <item quantity="zero">%1$d عناصر غير مقروءة</item>
+        <item quantity="one">%1$d عنصر غير مقروء</item>
+        <item quantity="two">%1$d عنصران غير مقروءان</item>
+        <item quantity="few">%1$d عناصر غير مقروءة</item>
+        <item quantity="many">%1$d عنصرًا غير مقروء</item>
+        <item quantity="other">%1$d عنصر غير مقروء</item>
     </plurals>
 </resources>

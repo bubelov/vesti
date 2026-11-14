@@ -54,11 +54,11 @@
     <string name="unread_n">No llegits (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Cap font</item>
-        <item quantity="one">%d font</item>
-        <item quantity="two">%d fonts</item>
-        <item quantity="few">%d fonts</item>
-        <item quantity="many">%d fonts</item>
-        <item quantity="other">%d fonts</item>
+        <item quantity="one">%1$d font</item>
+        <item quantity="two">%1$d fonts</item>
+        <item quantity="few">%1$d fonts</item>
+        <item quantity="many">%1$d fonts</item>
+        <item quantity="other">%1$d fonts</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Basat en la col·lecció Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Mostra la font de la col·lecció</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d entrades no llegides</item>
-        <item quantity="one">%d entrada no llegida</item>
-        <item quantity="two">%d entrades no llegides</item>
-        <item quantity="few">%d entrades no llegides</item>
-        <item quantity="many">%d entrades no llegides</item>
-        <item quantity="other">%d entrades no llegides</item>
+        <item quantity="zero">%1$d entrades no llegides</item>
+        <item quantity="one">%1$d entrada no llegida</item>
+        <item quantity="two">%1$d entrades no llegides</item>
+        <item quantity="few">%1$d entrades no llegides</item>
+        <item quantity="many">%1$d entrades no llegides</item>
+        <item quantity="other">%1$d entrades no llegides</item>
     </plurals>
 </resources>

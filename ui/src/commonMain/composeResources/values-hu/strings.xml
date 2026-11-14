@@ -54,11 +54,11 @@
     <string name="unread_n">Olvasatlan (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Nincs hírfolyam</item>
-        <item quantity="one">%d hírfolyam</item>
-        <item quantity="two">%d hírfolyam</item>
-        <item quantity="few">%d hírfolyam</item>
-        <item quantity="many">%d hírfolyam</item>
-        <item quantity="other">%d hírfolyam</item>
+        <item quantity="one">%1$d hírfolyam</item>
+        <item quantity="two">%1$d hírfolyam</item>
+        <item quantity="few">%1$d hírfolyam</item>
+        <item quantity="many">%1$d hírfolyam</item>
+        <item quantity="other">%1$d hírfolyam</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Az Awesome RSS Feeds gyűjteményen alapul%1$s.</string>
     <string name="view_collection_source">A gyűjtemény forrásának megtekintése</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d olvasatlan bejegyzés</item>
-        <item quantity="one">%d olvasatlan bejegyzés</item>
-        <item quantity="two">%d olvasatlan bejegyzés</item>
-        <item quantity="few">%d olvasatlan bejegyzés</item>
-        <item quantity="many">%d olvasatlan bejegyzés</item>
-        <item quantity="other">%d olvasatlan bejegyzés</item>
+        <item quantity="zero">%1$d olvasatlan bejegyzés</item>
+        <item quantity="one">%1$d olvasatlan bejegyzés</item>
+        <item quantity="two">%1$d olvasatlan bejegyzés</item>
+        <item quantity="few">%1$d olvasatlan bejegyzés</item>
+        <item quantity="many">%1$d olvasatlan bejegyzés</item>
+        <item quantity="other">%1$d olvasatlan bejegyzés</item>
     </plurals>
 </resources>

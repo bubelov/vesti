@@ -54,11 +54,11 @@
     <string name="unread_n">Necitite (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Niciun feed</item>
-        <item quantity="one">%d feed</item>
-        <item quantity="two">%d feed-uri</item>
-        <item quantity="few">%d feed-uri</item>
-        <item quantity="many">%d feed-uri</item>
-        <item quantity="other">%d feed-uri</item>
+        <item quantity="one">%1$d feed</item>
+        <item quantity="two">%1$d feed-uri</item>
+        <item quantity="few">%1$d feed-uri</item>
+        <item quantity="many">%1$d feed-uri</item>
+        <item quantity="other">%1$d feed-uri</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Bazat pe colecția Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Vezi sursa colecției</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d articole necitite</item>
-        <item quantity="one">%d articol necitit</item>
-        <item quantity="two">%d articole necitite</item>
-        <item quantity="few">%d articole necitite</item>
-        <item quantity="many">%d articole necitite</item>
-        <item quantity="other">%d articole necitite</item>
+        <item quantity="zero">%1$d articole necitite</item>
+        <item quantity="one">%1$d articol necitit</item>
+        <item quantity="two">%1$d articole necitite</item>
+        <item quantity="few">%1$d articole necitite</item>
+        <item quantity="many">%1$d articole necitite</item>
+        <item quantity="other">%1$d articole necitite</item>
     </plurals>
 </resources>

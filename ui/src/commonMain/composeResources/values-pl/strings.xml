@@ -54,11 +54,11 @@
     <string name="unread_n">Nieprzeczytane (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Brak kanałów</item>
-        <item quantity="one">%d kanał</item>
-        <item quantity="two">%d kanały</item>
-        <item quantity="few">%d kanały</item>
-        <item quantity="many">%d kanałów</item>
-        <item quantity="other">%d kanałów</item>
+        <item quantity="one">%1$d kanał</item>
+        <item quantity="two">%1$d kanały</item>
+        <item quantity="few">%1$d kanały</item>
+        <item quantity="many">%1$d kanałów</item>
+        <item quantity="other">%1$d kanałów</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Na podstawie kolekcji Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Zobacz źródło kolekcji</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d nieprzeczytanych wpisów</item>
-        <item quantity="one">%d nieprzeczytany wpis</item>
-        <item quantity="two">%d nieprzeczytane wpisy</item>
-        <item quantity="few">%d nieprzeczytane wpisy</item>
-        <item quantity="many">%d nieprzeczytanych wpisów</item>
-        <item quantity="other">%d nieprzeczytanych wpisów</item>
+        <item quantity="zero">%1$d nieprzeczytanych wpisów</item>
+        <item quantity="one">%1$d nieprzeczytany wpis</item>
+        <item quantity="two">%1$d nieprzeczytane wpisy</item>
+        <item quantity="few">%1$d nieprzeczytane wpisy</item>
+        <item quantity="many">%1$d nieprzeczytanych wpisów</item>
+        <item quantity="other">%1$d nieprzeczytanych wpisów</item>
     </plurals>
 </resources>

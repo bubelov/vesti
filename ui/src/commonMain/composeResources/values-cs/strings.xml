@@ -54,11 +54,11 @@
     <string name="unread_n">Nepřečtené (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Žádné kanály</item>
-        <item quantity="one">%d kanál</item>
-        <item quantity="two">%d kanály</item>
-        <item quantity="few">%d kanály</item>
-        <item quantity="many">%d kanálu</item>
-        <item quantity="other">%d kanálů</item>
+        <item quantity="one">%1$d kanál</item>
+        <item quantity="two">%1$d kanály</item>
+        <item quantity="few">%1$d kanály</item>
+        <item quantity="many">%1$d kanálu</item>
+        <item quantity="other">%1$d kanálů</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Vychází ze sbírky Awesome RSS Feeds%1$s.</string>
     <string name="view_collection_source">Zobrazit zdroj sbírky</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d nepřečtených položek</item>
-        <item quantity="one">%d nepřečtená položka</item>
-        <item quantity="two">%d nepřečtené položky</item>
-        <item quantity="few">%d nepřečtené položky</item>
-        <item quantity="many">%d nepřečtené položky</item>
-        <item quantity="other">%d nepřečtených položek</item>
+        <item quantity="zero">%1$d nepřečtených položek</item>
+        <item quantity="one">%1$d nepřečtená položka</item>
+        <item quantity="two">%1$d nepřečtené položky</item>
+        <item quantity="few">%1$d nepřečtené položky</item>
+        <item quantity="many">%1$d nepřečtené položky</item>
+        <item quantity="other">%1$d nepřečtených položek</item>
     </plurals>
 </resources>

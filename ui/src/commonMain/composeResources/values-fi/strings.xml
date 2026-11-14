@@ -54,11 +54,11 @@
     <string name="unread_n">Lukematta (%1$d)</string>
     <plurals name="tag_feed_count">
         <item quantity="zero">Ei syötteitä</item>
-        <item quantity="one">%d syöte</item>
-        <item quantity="two">%d syötettä</item>
-        <item quantity="few">%d syötettä</item>
-        <item quantity="many">%d syötettä</item>
-        <item quantity="other">%d syötettä</item>
+        <item quantity="one">%1$d syöte</item>
+        <item quantity="two">%1$d syötettä</item>
+        <item quantity="few">%1$d syötettä</item>
+        <item quantity="many">%1$d syötettä</item>
+        <item quantity="other">%1$d syötettä</item>
     </plurals>
 
     <string name="app_name">Vesti</string>
@@ -150,11 +150,11 @@
     <string name="based_on_awesome_rss_feeds">Perustuu Awesome RSS Feeds -kokoelmaan%1$s.</string>
     <string name="view_collection_source">Näytä kokoelman lähde</string>
     <plurals name="unread_entry_count">
-        <item quantity="zero">%d lukematonta tietuetta</item>
-        <item quantity="one">%d lukematon tietue</item>
-        <item quantity="two">%d lukematonta tietuetta</item>
-        <item quantity="few">%d lukematonta tietuetta</item>
-        <item quantity="many">%d lukematonta tietuetta</item>
-        <item quantity="other">%d lukematonta tietuetta</item>
+        <item quantity="zero">%1$d lukematonta tietuetta</item>
+        <item quantity="one">%1$d lukematon tietue</item>
+        <item quantity="two">%1$d lukematonta tietuetta</item>
+        <item quantity="few">%1$d lukematonta tietuetta</item>
+        <item quantity="many">%1$d lukematonta tietuetta</item>
+        <item quantity="other">%1$d lukematonta tietuetta</item>
     </plurals>
 </resources>
