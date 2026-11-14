@@ -4,7 +4,7 @@ package org.vestifeed.ui.icons
  * The Material Symbols glyphs the app draws, addressed by their Unicode
  * codepoints in the font's private-use area. The bundled font
  * (`composeResources/font/material_symbols.ttf`) is a subset containing exactly
- * these glyphs, so the app ships a ~40 KB icon font rather than the ~10 MB full
+ * these glyphs, so the app ships a ~180 KB icon font rather than the ~11 MB full
  * variable font.
  *
  * Codepoints are stable across Material Symbols releases; the names match the
@@ -21,6 +21,7 @@ object MaterialSymbols {
     const val Bookmark = "\uE866"
     const val BookmarkAdd = "\uE598"
     const val BookmarkAdded = "\uE599"
+    const val BookmarkCheck = "\uF457"
     const val Close = "\uE14C"
     const val RssFeed = "\uE0E5"
     const val Settings = "\uE8B8"
