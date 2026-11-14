@@ -157,4 +157,29 @@
         <item quantity="many">%1$d רשומות שלא נקראו</item>
         <item quantity="other">%1$d רשומות שלא נקראו</item>
     </plurals>
+    <string name="bookmarked">בסימניות</string>
+    <string name="data">נתונים</string>
+    <string name="database">מסד נתונים</string>
+    <string name="database_statistics">סטטיסטיקות מסד נתונים</string>
+    <string name="duration">משך</string>
+    <string name="error">שגיאה</string>
+    <string name="failed">נכשל</string>
+    <string name="file">קובץ</string>
+    <string name="idle">לא פעיל</string>
+    <string name="last_prune">ניקוי אחרון</string>
+    <string name="last_sync">סנכרון אחרון</string>
+    <string name="never">אף פעם</string>
+    <string name="no_unread_entries">אין פריטים שלא נקראו</string>
+    <string name="pending_changes">שינויים ממתינים</string>
+    <string name="pending_sync">סנכרון ממתין</string>
+    <string name="reader_text_size">גודל טקסט</string>
+    <string name="rows">שורות</string>
+    <string name="schema_version">גרסת סכימה</string>
+    <string name="server">שרת</string>
+    <string name="session_expired">תוקף ההפעלה שלך פג. יש להתחבר שוב.</string>
+    <string name="size">גודל</string>
+    <string name="state">מצב</string>
+    <string name="sync_cursor">סמן סנכרון</string>
+    <string name="syncing">מסנכרן…</string>
+    <string name="tables">טבלאות</string>
 </resources>

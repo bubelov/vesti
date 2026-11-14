@@ -157,4 +157,29 @@
         <item quantity="many">%1$d ongelezen berichten</item>
         <item quantity="other">%1$d ongelezen berichten</item>
     </plurals>
+    <string name="bookmarked">Gemarkeerd</string>
+    <string name="data">Gegevens</string>
+    <string name="database">Database</string>
+    <string name="database_statistics">Databasestatistieken</string>
+    <string name="duration">Duur</string>
+    <string name="error">Fout</string>
+    <string name="failed">Mislukt</string>
+    <string name="file">Bestand</string>
+    <string name="idle">Inactief</string>
+    <string name="last_prune">Laatste opschoning</string>
+    <string name="last_sync">Laatste synchronisatie</string>
+    <string name="never">Nooit</string>
+    <string name="no_unread_entries">Geen ongelezen items</string>
+    <string name="pending_changes">Openstaande wijzigingen</string>
+    <string name="pending_sync">Openstaande synchronisatie</string>
+    <string name="reader_text_size">Tekstgrootte</string>
+    <string name="rows">Rijen</string>
+    <string name="schema_version">Schemaversie</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Je sessie is verlopen. Log opnieuw in.</string>
+    <string name="size">Grootte</string>
+    <string name="state">Status</string>
+    <string name="sync_cursor">Synchronisatiecursor</string>
+    <string name="syncing">Synchroniseren…</string>
+    <string name="tables">Tabellen</string>
 </resources>

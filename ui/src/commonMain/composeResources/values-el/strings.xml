@@ -157,4 +157,29 @@
         <item quantity="many">%1$d μη αναγνωσμένες καταχωρίσεις</item>
         <item quantity="other">%1$d μη αναγνωσμένες καταχωρίσεις</item>
     </plurals>
+    <string name="bookmarked">Σε σελιδοδείκτες</string>
+    <string name="data">Δεδομένα</string>
+    <string name="database">Βάση δεδομένων</string>
+    <string name="database_statistics">Στατιστικά βάσης δεδομένων</string>
+    <string name="duration">Διάρκεια</string>
+    <string name="error">Σφάλμα</string>
+    <string name="failed">Απέτυχε</string>
+    <string name="file">Αρχείο</string>
+    <string name="idle">Αδρανές</string>
+    <string name="last_prune">Τελευταίος καθαρισμός</string>
+    <string name="last_sync">Τελευταίος συγχρονισμός</string>
+    <string name="never">Ποτέ</string>
+    <string name="no_unread_entries">Καμία μη αναγνωσμένη καταχώριση</string>
+    <string name="pending_changes">Εκκρεμείς αλλαγές</string>
+    <string name="pending_sync">Εκκρεμής συγχρονισμός</string>
+    <string name="reader_text_size">Μέγεθος κειμένου</string>
+    <string name="rows">Γραμμές</string>
+    <string name="schema_version">Έκδοση σχήματος</string>
+    <string name="server">Διακομιστής</string>
+    <string name="session_expired">Η συνεδρία σας έληξε. Συνδεθείτε ξανά.</string>
+    <string name="size">Μέγεθος</string>
+    <string name="state">Κατάσταση</string>
+    <string name="sync_cursor">Δείκτης συγχρονισμού</string>
+    <string name="syncing">Γίνεται συγχρονισμός…</string>
+    <string name="tables">Πίνακες</string>
 </resources>

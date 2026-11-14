@@ -157,4 +157,29 @@
         <item quantity="many">%1$d bài viết chưa đọc</item>
         <item quantity="other">%1$d bài viết chưa đọc</item>
     </plurals>
+    <string name="bookmarked">Đã đánh dấu</string>
+    <string name="data">Dữ liệu</string>
+    <string name="database">Cơ sở dữ liệu</string>
+    <string name="database_statistics">Thống kê cơ sở dữ liệu</string>
+    <string name="duration">Thời lượng</string>
+    <string name="error">Lỗi</string>
+    <string name="failed">Thất bại</string>
+    <string name="file">Tệp</string>
+    <string name="idle">Chờ</string>
+    <string name="last_prune">Lần dọn dẹp gần nhất</string>
+    <string name="last_sync">Lần đồng bộ gần nhất</string>
+    <string name="never">Chưa bao giờ</string>
+    <string name="no_unread_entries">Không có mục chưa đọc</string>
+    <string name="pending_changes">Thay đổi đang chờ</string>
+    <string name="pending_sync">Đồng bộ đang chờ</string>
+    <string name="reader_text_size">Cỡ chữ</string>
+    <string name="rows">Số hàng</string>
+    <string name="schema_version">Phiên bản lược đồ</string>
+    <string name="server">Máy chủ</string>
+    <string name="session_expired">Phiên của bạn đã hết hạn. Hãy đăng nhập lại.</string>
+    <string name="size">Kích thước</string>
+    <string name="state">Trạng thái</string>
+    <string name="sync_cursor">Con trỏ đồng bộ</string>
+    <string name="syncing">Đang đồng bộ…</string>
+    <string name="tables">Bảng</string>
 </resources>

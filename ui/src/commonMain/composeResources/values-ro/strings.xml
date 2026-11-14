@@ -157,4 +157,29 @@
         <item quantity="many">%1$d articole necitite</item>
         <item quantity="other">%1$d articole necitite</item>
     </plurals>
+    <string name="bookmarked">Marcat</string>
+    <string name="data">Date</string>
+    <string name="database">Bază de date</string>
+    <string name="database_statistics">Statistici bază de date</string>
+    <string name="duration">Durată</string>
+    <string name="error">Eroare</string>
+    <string name="failed">Eșuat</string>
+    <string name="file">Fișier</string>
+    <string name="idle">Inactiv</string>
+    <string name="last_prune">Ultima curățare</string>
+    <string name="last_sync">Ultima sincronizare</string>
+    <string name="never">Niciodată</string>
+    <string name="no_unread_entries">Nicio intrare necitită</string>
+    <string name="pending_changes">Modificări în așteptare</string>
+    <string name="pending_sync">Sincronizare în așteptare</string>
+    <string name="reader_text_size">Dimensiunea textului</string>
+    <string name="rows">Rânduri</string>
+    <string name="schema_version">Versiunea schemei</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Sesiunea a expirat. Autentifică-te din nou.</string>
+    <string name="size">Dimensiune</string>
+    <string name="state">Stare</string>
+    <string name="sync_cursor">Cursor de sincronizare</string>
+    <string name="syncing">Se sincronizează…</string>
+    <string name="tables">Tabele</string>
 </resources>

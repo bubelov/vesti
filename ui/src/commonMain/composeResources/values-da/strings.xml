@@ -157,4 +157,29 @@
         <item quantity="many">%1$d ulæste indlæg</item>
         <item quantity="other">%1$d ulæste indlæg</item>
     </plurals>
+    <string name="bookmarked">Bogmærket</string>
+    <string name="data">Data</string>
+    <string name="database">Database</string>
+    <string name="database_statistics">Databasestatistik</string>
+    <string name="duration">Varighed</string>
+    <string name="error">Fejl</string>
+    <string name="failed">Mislykkedes</string>
+    <string name="file">Fil</string>
+    <string name="idle">Inaktiv</string>
+    <string name="last_prune">Seneste oprydning</string>
+    <string name="last_sync">Seneste synkronisering</string>
+    <string name="never">Aldrig</string>
+    <string name="no_unread_entries">Ingen ulæste indlæg</string>
+    <string name="pending_changes">Afventende ændringer</string>
+    <string name="pending_sync">Afventende synkronisering</string>
+    <string name="reader_text_size">Tekststørrelse</string>
+    <string name="rows">Rækker</string>
+    <string name="schema_version">Skemaversion</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Din session er udløbet. Log ind igen.</string>
+    <string name="size">Størrelse</string>
+    <string name="state">Tilstand</string>
+    <string name="sync_cursor">Synkroniseringsmarkør</string>
+    <string name="syncing">Synkroniserer…</string>
+    <string name="tables">Tabeller</string>
 </resources>

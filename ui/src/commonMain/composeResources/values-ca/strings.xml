@@ -157,4 +157,29 @@
         <item quantity="many">%1$d entrades no llegides</item>
         <item quantity="other">%1$d entrades no llegides</item>
     </plurals>
+    <string name="bookmarked">Marcat</string>
+    <string name="data">Dades</string>
+    <string name="database">Base de dades</string>
+    <string name="database_statistics">Estadístiques de la base de dades</string>
+    <string name="duration">Durada</string>
+    <string name="error">Error</string>
+    <string name="failed">Ha fallat</string>
+    <string name="file">Fitxer</string>
+    <string name="idle">Inactiu</string>
+    <string name="last_prune">Darrera neteja</string>
+    <string name="last_sync">Darrera sincronització</string>
+    <string name="never">Mai</string>
+    <string name="no_unread_entries">No hi ha entrades sense llegir</string>
+    <string name="pending_changes">Canvis pendents</string>
+    <string name="pending_sync">Sincronització pendent</string>
+    <string name="reader_text_size">Mida del text</string>
+    <string name="rows">Files</string>
+    <string name="schema_version">Versió de l'esquema</string>
+    <string name="server">Servidor</string>
+    <string name="session_expired">La teva sessió ha caducat. Torna a iniciar la sessió.</string>
+    <string name="size">Mida</string>
+    <string name="state">Estat</string>
+    <string name="sync_cursor">Cursor de sincronització</string>
+    <string name="syncing">S'està sincronitzant…</string>
+    <string name="tables">Taules</string>
 </resources>

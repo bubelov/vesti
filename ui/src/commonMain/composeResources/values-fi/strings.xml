@@ -157,4 +157,29 @@
         <item quantity="many">%1$d lukematonta tietuetta</item>
         <item quantity="other">%1$d lukematonta tietuetta</item>
     </plurals>
+    <string name="bookmarked">Kirjanmerkissä</string>
+    <string name="data">Tiedot</string>
+    <string name="database">Tietokanta</string>
+    <string name="database_statistics">Tietokannan tilastot</string>
+    <string name="duration">Kesto</string>
+    <string name="error">Virhe</string>
+    <string name="failed">Epäonnistui</string>
+    <string name="file">Tiedosto</string>
+    <string name="idle">Toimeton</string>
+    <string name="last_prune">Viimeisin siivous</string>
+    <string name="last_sync">Viimeisin synkronointi</string>
+    <string name="never">Ei koskaan</string>
+    <string name="no_unread_entries">Ei lukemattomia merkintöjä</string>
+    <string name="pending_changes">Odottavat muutokset</string>
+    <string name="pending_sync">Odottava synkronointi</string>
+    <string name="reader_text_size">Tekstin koko</string>
+    <string name="rows">Rivit</string>
+    <string name="schema_version">Skeeman versio</string>
+    <string name="server">Palvelin</string>
+    <string name="session_expired">Istuntosi on vanhentunut. Kirjaudu uudelleen.</string>
+    <string name="size">Koko</string>
+    <string name="state">Tila</string>
+    <string name="sync_cursor">Synkronoinnin kursori</string>
+    <string name="syncing">Synkronoidaan…</string>
+    <string name="tables">Taulut</string>
 </resources>

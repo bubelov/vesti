@@ -157,4 +157,29 @@
         <item quantity="many">%1$d nepřečtené položky</item>
         <item quantity="other">%1$d nepřečtených položek</item>
     </plurals>
+    <string name="bookmarked">V záložkách</string>
+    <string name="data">Data</string>
+    <string name="database">Databáze</string>
+    <string name="database_statistics">Statistiky databáze</string>
+    <string name="duration">Trvání</string>
+    <string name="error">Chyba</string>
+    <string name="failed">Selhalo</string>
+    <string name="file">Soubor</string>
+    <string name="idle">Nečinné</string>
+    <string name="last_prune">Poslední čištění</string>
+    <string name="last_sync">Poslední synchronizace</string>
+    <string name="never">Nikdy</string>
+    <string name="no_unread_entries">Žádné nepřečtené položky</string>
+    <string name="pending_changes">Čekající změny</string>
+    <string name="pending_sync">Čekající synchronizace</string>
+    <string name="reader_text_size">Velikost textu</string>
+    <string name="rows">Řádky</string>
+    <string name="schema_version">Verze schématu</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Platnost relace vypršela. Přihlaste se znovu.</string>
+    <string name="size">Velikost</string>
+    <string name="state">Stav</string>
+    <string name="sync_cursor">Kurzor synchronizace</string>
+    <string name="syncing">Synchronizuje se…</string>
+    <string name="tables">Tabulky</string>
 </resources>

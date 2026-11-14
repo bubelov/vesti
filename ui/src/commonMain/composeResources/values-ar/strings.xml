@@ -157,4 +157,29 @@
         <item quantity="many">%1$d عنصرًا غير مقروء</item>
         <item quantity="other">%1$d عنصر غير مقروء</item>
     </plurals>
+    <string name="bookmarked">مضاف إلى العلامات المرجعية</string>
+    <string name="data">البيانات</string>
+    <string name="database">قاعدة البيانات</string>
+    <string name="database_statistics">إحصاءات قاعدة البيانات</string>
+    <string name="duration">المدة</string>
+    <string name="error">خطأ</string>
+    <string name="failed">فشل</string>
+    <string name="file">الملف</string>
+    <string name="idle">خامل</string>
+    <string name="last_prune">آخر تنظيف</string>
+    <string name="last_sync">آخر مزامنة</string>
+    <string name="never">أبدًا</string>
+    <string name="no_unread_entries">لا توجد عناصر غير مقروءة</string>
+    <string name="pending_changes">تغييرات معلّقة</string>
+    <string name="pending_sync">مزامنة معلّقة</string>
+    <string name="reader_text_size">حجم النص</string>
+    <string name="rows">الصفوف</string>
+    <string name="schema_version">إصدار المخطط</string>
+    <string name="server">الخادم</string>
+    <string name="session_expired">انتهت صلاحية جلستك. سجّل الدخول مرة أخرى.</string>
+    <string name="size">الحجم</string>
+    <string name="state">الحالة</string>
+    <string name="sync_cursor">مؤشر المزامنة</string>
+    <string name="syncing">جارٍ المزامنة…</string>
+    <string name="tables">الجداول</string>
 </resources>

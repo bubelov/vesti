@@ -157,4 +157,29 @@
         <item quantity="many">%1$d uleste innlegg</item>
         <item quantity="other">%1$d uleste innlegg</item>
     </plurals>
+    <string name="bookmarked">Bokmerket</string>
+    <string name="data">Data</string>
+    <string name="database">Database</string>
+    <string name="database_statistics">Databasestatistikk</string>
+    <string name="duration">Varighet</string>
+    <string name="error">Feil</string>
+    <string name="failed">Mislyktes</string>
+    <string name="file">Fil</string>
+    <string name="idle">Inaktiv</string>
+    <string name="last_prune">Siste opprydding</string>
+    <string name="last_sync">Siste synkronisering</string>
+    <string name="never">Aldri</string>
+    <string name="no_unread_entries">Ingen uleste innlegg</string>
+    <string name="pending_changes">Ventende endringer</string>
+    <string name="pending_sync">Ventende synkronisering</string>
+    <string name="reader_text_size">Tekststørrelse</string>
+    <string name="rows">Rader</string>
+    <string name="schema_version">Skjemaversjon</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Økten din er utløpt. Logg inn på nytt.</string>
+    <string name="size">Størrelse</string>
+    <string name="state">Tilstand</string>
+    <string name="sync_cursor">Synkroniseringsmarkør</string>
+    <string name="syncing">Synkroniserer…</string>
+    <string name="tables">Tabeller</string>
 </resources>

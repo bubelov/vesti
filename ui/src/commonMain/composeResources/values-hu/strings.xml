@@ -157,4 +157,29 @@
         <item quantity="many">%1$d olvasatlan bejegyzés</item>
         <item quantity="other">%1$d olvasatlan bejegyzés</item>
     </plurals>
+    <string name="bookmarked">Könyvjelzőzve</string>
+    <string name="data">Adatok</string>
+    <string name="database">Adatbázis</string>
+    <string name="database_statistics">Adatbázis-statisztika</string>
+    <string name="duration">Időtartam</string>
+    <string name="error">Hiba</string>
+    <string name="failed">Sikertelen</string>
+    <string name="file">Fájl</string>
+    <string name="idle">Tétlen</string>
+    <string name="last_prune">Utolsó tisztítás</string>
+    <string name="last_sync">Utolsó szinkronizálás</string>
+    <string name="never">Soha</string>
+    <string name="no_unread_entries">Nincsenek olvasatlan bejegyzések</string>
+    <string name="pending_changes">Függőben lévő módosítások</string>
+    <string name="pending_sync">Függőben lévő szinkronizálás</string>
+    <string name="reader_text_size">Szövegméret</string>
+    <string name="rows">Sorok</string>
+    <string name="schema_version">Sémaverzió</string>
+    <string name="server">Kiszolgáló</string>
+    <string name="session_expired">A munkamenet lejárt. Jelentkezzen be újra.</string>
+    <string name="size">Méret</string>
+    <string name="state">Állapot</string>
+    <string name="sync_cursor">Szinkronizálási kurzor</string>
+    <string name="syncing">Szinkronizálás…</string>
+    <string name="tables">Táblák</string>
 </resources>

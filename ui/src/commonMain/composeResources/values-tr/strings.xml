@@ -157,4 +157,29 @@
         <item quantity="many">%1$d okunmamış girdi</item>
         <item quantity="other">%1$d okunmamış girdi</item>
     </plurals>
+    <string name="bookmarked">Yer iminde</string>
+    <string name="data">Veriler</string>
+    <string name="database">Veritabanı</string>
+    <string name="database_statistics">Veritabanı istatistikleri</string>
+    <string name="duration">Süre</string>
+    <string name="error">Hata</string>
+    <string name="failed">Başarısız</string>
+    <string name="file">Dosya</string>
+    <string name="idle">Boşta</string>
+    <string name="last_prune">Son temizlik</string>
+    <string name="last_sync">Son senkronizasyon</string>
+    <string name="never">Hiçbir zaman</string>
+    <string name="no_unread_entries">Okunmamış giriş yok</string>
+    <string name="pending_changes">Bekleyen değişiklikler</string>
+    <string name="pending_sync">Bekleyen senkronizasyon</string>
+    <string name="reader_text_size">Metin boyutu</string>
+    <string name="rows">Satırlar</string>
+    <string name="schema_version">Şema sürümü</string>
+    <string name="server">Sunucu</string>
+    <string name="session_expired">Oturumunuz sona erdi. Tekrar giriş yapın.</string>
+    <string name="size">Boyut</string>
+    <string name="state">Durum</string>
+    <string name="sync_cursor">Senkronizasyon imleci</string>
+    <string name="syncing">Senkronize ediliyor…</string>
+    <string name="tables">Tablolar</string>
 </resources>

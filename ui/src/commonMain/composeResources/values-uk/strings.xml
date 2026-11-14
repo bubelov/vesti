@@ -157,4 +157,29 @@
         <item quantity="many">%1$d непрочитаних записів</item>
         <item quantity="other">%1$d непрочитаних записів</item>
     </plurals>
+    <string name="bookmarked">У закладках</string>
+    <string name="data">Дані</string>
+    <string name="database">База даних</string>
+    <string name="database_statistics">Статистика бази даних</string>
+    <string name="duration">Тривалість</string>
+    <string name="error">Помилка</string>
+    <string name="failed">Не вдалося</string>
+    <string name="file">Файл</string>
+    <string name="idle">Очікування</string>
+    <string name="last_prune">Останнє очищення</string>
+    <string name="last_sync">Остання синхронізація</string>
+    <string name="never">Ніколи</string>
+    <string name="no_unread_entries">Немає непрочитаних записів</string>
+    <string name="pending_changes">Зміни в очікуванні</string>
+    <string name="pending_sync">Синхронізація в очікуванні</string>
+    <string name="reader_text_size">Розмір тексту</string>
+    <string name="rows">Рядки</string>
+    <string name="schema_version">Версія схеми</string>
+    <string name="server">Сервер</string>
+    <string name="session_expired">Термін дії сеансу минув. Увійдіть знову.</string>
+    <string name="size">Розмір</string>
+    <string name="state">Стан</string>
+    <string name="sync_cursor">Курсор синхронізації</string>
+    <string name="syncing">Синхронізація…</string>
+    <string name="tables">Таблиці</string>
 </resources>

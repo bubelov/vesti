@@ -157,4 +157,29 @@
         <item quantity="many">%1$d articoli non letti</item>
         <item quantity="other">%1$d articoli non letti</item>
     </plurals>
+    <string name="bookmarked">Nei segnalibri</string>
+    <string name="data">Dati</string>
+    <string name="database">Database</string>
+    <string name="database_statistics">Statistiche del database</string>
+    <string name="duration">Durata</string>
+    <string name="error">Errore</string>
+    <string name="failed">Non riuscito</string>
+    <string name="file">File</string>
+    <string name="idle">Inattivo</string>
+    <string name="last_prune">Ultima pulizia</string>
+    <string name="last_sync">Ultima sincronizzazione</string>
+    <string name="never">Mai</string>
+    <string name="no_unread_entries">Nessuna voce non letta</string>
+    <string name="pending_changes">Modifiche in sospeso</string>
+    <string name="pending_sync">Sincronizzazione in sospeso</string>
+    <string name="reader_text_size">Dimensione del testo</string>
+    <string name="rows">Righe</string>
+    <string name="schema_version">Versione dello schema</string>
+    <string name="server">Server</string>
+    <string name="session_expired">La sessione è scaduta. Accedi di nuovo.</string>
+    <string name="size">Dimensione</string>
+    <string name="state">Stato</string>
+    <string name="sync_cursor">Cursore di sincronizzazione</string>
+    <string name="syncing">Sincronizzazione…</string>
+    <string name="tables">Tabelle</string>
 </resources>

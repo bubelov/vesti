@@ -157,4 +157,29 @@
         <item quantity="many">%1$d ungelesene Einträge</item>
         <item quantity="other">%1$d ungelesene Einträge</item>
     </plurals>
+    <string name="bookmarked">Gemerkt</string>
+    <string name="data">Daten</string>
+    <string name="database">Datenbank</string>
+    <string name="database_statistics">Datenbankstatistik</string>
+    <string name="duration">Dauer</string>
+    <string name="error">Fehler</string>
+    <string name="failed">Fehlgeschlagen</string>
+    <string name="file">Datei</string>
+    <string name="idle">Inaktiv</string>
+    <string name="last_prune">Letzte Bereinigung</string>
+    <string name="last_sync">Letzte Synchronisierung</string>
+    <string name="never">Nie</string>
+    <string name="no_unread_entries">Keine ungelesenen Einträge</string>
+    <string name="pending_changes">Ausstehende Änderungen</string>
+    <string name="pending_sync">Ausstehende Synchronisierung</string>
+    <string name="reader_text_size">Textgröße</string>
+    <string name="rows">Zeilen</string>
+    <string name="schema_version">Schemaversion</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Deine Sitzung ist abgelaufen. Melde dich erneut an.</string>
+    <string name="size">Größe</string>
+    <string name="state">Status</string>
+    <string name="sync_cursor">Synchronisierungszeiger</string>
+    <string name="syncing">Synchronisierung läuft…</string>
+    <string name="tables">Tabellen</string>
 </resources>

@@ -157,4 +157,29 @@
         <item quantity="many">%1$d 篇未读文章</item>
         <item quantity="other">%1$d 篇未读文章</item>
     </plurals>
+    <string name="bookmarked">已收藏</string>
+    <string name="data">数据</string>
+    <string name="database">数据库</string>
+    <string name="database_statistics">数据库统计</string>
+    <string name="duration">耗时</string>
+    <string name="error">错误</string>
+    <string name="failed">失败</string>
+    <string name="file">文件</string>
+    <string name="idle">空闲</string>
+    <string name="last_prune">上次清理</string>
+    <string name="last_sync">上次同步</string>
+    <string name="never">从未</string>
+    <string name="no_unread_entries">没有未读条目</string>
+    <string name="pending_changes">待处理的更改</string>
+    <string name="pending_sync">等待同步</string>
+    <string name="reader_text_size">文字大小</string>
+    <string name="rows">行数</string>
+    <string name="schema_version">架构版本</string>
+    <string name="server">服务器</string>
+    <string name="session_expired">会话已过期，请重新登录。</string>
+    <string name="size">大小</string>
+    <string name="state">状态</string>
+    <string name="sync_cursor">同步游标</string>
+    <string name="syncing">正在同步…</string>
+    <string name="tables">表</string>
 </resources>

@@ -157,4 +157,29 @@
         <item quantity="many">%1$d ongelese inskrywings</item>
         <item quantity="other">%1$d ongelese inskrywings</item>
     </plurals>
+    <string name="bookmarked">Gebokmerk</string>
+    <string name="data">Data</string>
+    <string name="database">Databasis</string>
+    <string name="database_statistics">Databasisstatistieke</string>
+    <string name="duration">Duur</string>
+    <string name="error">Fout</string>
+    <string name="failed">Misluk</string>
+    <string name="file">Lêer</string>
+    <string name="idle">Onaktief</string>
+    <string name="last_prune">Laaste opruiming</string>
+    <string name="last_sync">Laaste sinchronisering</string>
+    <string name="never">Nooit</string>
+    <string name="no_unread_entries">Geen ongelese inskrywings</string>
+    <string name="pending_changes">Hangende veranderinge</string>
+    <string name="pending_sync">Hangende sinchronisering</string>
+    <string name="reader_text_size">Teksgrootte</string>
+    <string name="rows">Rye</string>
+    <string name="schema_version">Skemaversie</string>
+    <string name="server">Bediener</string>
+    <string name="session_expired">Jou sessie het verval. Meld weer aan.</string>
+    <string name="size">Grootte</string>
+    <string name="state">Toestand</string>
+    <string name="sync_cursor">Sinchroniseerposisie</string>
+    <string name="syncing">Sinchroniseer tans…</string>
+    <string name="tables">Tabelle</string>
 </resources>

@@ -157,4 +157,29 @@
         <item quantity="many">%1$d непрочитаних записа</item>
         <item quantity="other">%1$d непрочитаних записа</item>
     </plurals>
+    <string name="bookmarked">У обележивачима</string>
+    <string name="data">Подаци</string>
+    <string name="database">База података</string>
+    <string name="database_statistics">Статистика базе података</string>
+    <string name="duration">Трајање</string>
+    <string name="error">Грешка</string>
+    <string name="failed">Неуспешно</string>
+    <string name="file">Датотека</string>
+    <string name="idle">Неактивно</string>
+    <string name="last_prune">Последње чишћење</string>
+    <string name="last_sync">Последња синхронизација</string>
+    <string name="never">Никад</string>
+    <string name="no_unread_entries">Нема непрочитаних ставки</string>
+    <string name="pending_changes">Измене на чекању</string>
+    <string name="pending_sync">Синхронизација на чекању</string>
+    <string name="reader_text_size">Величина текста</string>
+    <string name="rows">Редови</string>
+    <string name="schema_version">Верзија шеме</string>
+    <string name="server">Сервер</string>
+    <string name="session_expired">Сесија је истекла. Пријавите се поново.</string>
+    <string name="size">Величина</string>
+    <string name="state">Стање</string>
+    <string name="sync_cursor">Курсор синхронизације</string>
+    <string name="syncing">Синхронизација…</string>
+    <string name="tables">Табеле</string>
 </resources>

@@ -157,4 +157,29 @@
         <item quantity="many">%1$d olästa inlägg</item>
         <item quantity="other">%1$d olästa inlägg</item>
     </plurals>
+    <string name="bookmarked">Bokmärkt</string>
+    <string name="data">Data</string>
+    <string name="database">Databas</string>
+    <string name="database_statistics">Databasstatistik</string>
+    <string name="duration">Varaktighet</string>
+    <string name="error">Fel</string>
+    <string name="failed">Misslyckades</string>
+    <string name="file">Fil</string>
+    <string name="idle">Inaktiv</string>
+    <string name="last_prune">Senaste rensning</string>
+    <string name="last_sync">Senaste synkronisering</string>
+    <string name="never">Aldrig</string>
+    <string name="no_unread_entries">Inga olästa poster</string>
+    <string name="pending_changes">Väntande ändringar</string>
+    <string name="pending_sync">Väntande synkronisering</string>
+    <string name="reader_text_size">Textstorlek</string>
+    <string name="rows">Rader</string>
+    <string name="schema_version">Schemaversion</string>
+    <string name="server">Server</string>
+    <string name="session_expired">Din session har gått ut. Logga in igen.</string>
+    <string name="size">Storlek</string>
+    <string name="state">Tillstånd</string>
+    <string name="sync_cursor">Synkroniseringsmarkör</string>
+    <string name="syncing">Synkroniserar…</string>
+    <string name="tables">Tabeller</string>
 </resources>

@@ -157,4 +157,29 @@
         <item quantity="many">읽지 않은 항목 %1$d개</item>
         <item quantity="other">읽지 않은 항목 %1$d개</item>
     </plurals>
+    <string name="bookmarked">북마크됨</string>
+    <string name="data">데이터</string>
+    <string name="database">데이터베이스</string>
+    <string name="database_statistics">데이터베이스 통계</string>
+    <string name="duration">소요 시간</string>
+    <string name="error">오류</string>
+    <string name="failed">실패</string>
+    <string name="file">파일</string>
+    <string name="idle">대기 중</string>
+    <string name="last_prune">마지막 정리</string>
+    <string name="last_sync">마지막 동기화</string>
+    <string name="never">없음</string>
+    <string name="no_unread_entries">읽지 않은 항목이 없습니다</string>
+    <string name="pending_changes">보류 중인 변경 사항</string>
+    <string name="pending_sync">동기화 대기 중</string>
+    <string name="reader_text_size">텍스트 크기</string>
+    <string name="rows">행</string>
+    <string name="schema_version">스키마 버전</string>
+    <string name="server">서버</string>
+    <string name="session_expired">세션이 만료되었습니다. 다시 로그인하세요.</string>
+    <string name="size">크기</string>
+    <string name="state">상태</string>
+    <string name="sync_cursor">동기화 커서</string>
+    <string name="syncing">동기화 중…</string>
+    <string name="tables">테이블</string>
 </resources>

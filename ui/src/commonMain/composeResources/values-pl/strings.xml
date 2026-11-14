@@ -157,4 +157,29 @@
         <item quantity="many">%1$d nieprzeczytanych wpisów</item>
         <item quantity="other">%1$d nieprzeczytanych wpisów</item>
     </plurals>
+    <string name="bookmarked">W zakładkach</string>
+    <string name="data">Dane</string>
+    <string name="database">Baza danych</string>
+    <string name="database_statistics">Statystyki bazy danych</string>
+    <string name="duration">Czas trwania</string>
+    <string name="error">Błąd</string>
+    <string name="failed">Niepowodzenie</string>
+    <string name="file">Plik</string>
+    <string name="idle">Bezczynny</string>
+    <string name="last_prune">Ostatnie czyszczenie</string>
+    <string name="last_sync">Ostatnia synchronizacja</string>
+    <string name="never">Nigdy</string>
+    <string name="no_unread_entries">Brak nieprzeczytanych wpisów</string>
+    <string name="pending_changes">Oczekujące zmiany</string>
+    <string name="pending_sync">Oczekująca synchronizacja</string>
+    <string name="reader_text_size">Rozmiar tekstu</string>
+    <string name="rows">Wiersze</string>
+    <string name="schema_version">Wersja schematu</string>
+    <string name="server">Serwer</string>
+    <string name="session_expired">Twoja sesja wygasła. Zaloguj się ponownie.</string>
+    <string name="size">Rozmiar</string>
+    <string name="state">Stan</string>
+    <string name="sync_cursor">Kursor synchronizacji</string>
+    <string name="syncing">Synchronizowanie…</string>
+    <string name="tables">Tabele</string>
 </resources>

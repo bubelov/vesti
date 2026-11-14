@@ -157,4 +157,29 @@
         <item quantity="many">%1$d непрочитанных записей</item>
         <item quantity="other">%1$d непрочитанные записи</item>
     </plurals>
+    <string name="bookmarked">В закладках</string>
+    <string name="data">Данные</string>
+    <string name="database">База данных</string>
+    <string name="database_statistics">Статистика базы данных</string>
+    <string name="duration">Длительность</string>
+    <string name="error">Ошибка</string>
+    <string name="failed">Не удалось</string>
+    <string name="file">Файл</string>
+    <string name="idle">Ожидание</string>
+    <string name="last_prune">Последняя очистка</string>
+    <string name="last_sync">Последняя синхронизация</string>
+    <string name="never">Никогда</string>
+    <string name="no_unread_entries">Нет непрочитанных записей</string>
+    <string name="pending_changes">Ожидающие изменения</string>
+    <string name="pending_sync">Ожидание синхронизации</string>
+    <string name="reader_text_size">Размер текста</string>
+    <string name="rows">Строки</string>
+    <string name="schema_version">Версия схемы</string>
+    <string name="server">Сервер</string>
+    <string name="session_expired">Срок действия сеанса истёк. Войдите снова.</string>
+    <string name="size">Размер</string>
+    <string name="state">Состояние</string>
+    <string name="sync_cursor">Курсор синхронизации</string>
+    <string name="syncing">Синхронизация…</string>
+    <string name="tables">Таблицы</string>
 </resources>

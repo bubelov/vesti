@@ -157,4 +157,29 @@
         <item quantity="many">%1$d 件の未読記事</item>
         <item quantity="other">%1$d 件の未読記事</item>
     </plurals>
+    <string name="bookmarked">ブックマーク済み</string>
+    <string name="data">データ</string>
+    <string name="database">データベース</string>
+    <string name="database_statistics">データベース統計</string>
+    <string name="duration">所要時間</string>
+    <string name="error">エラー</string>
+    <string name="failed">失敗</string>
+    <string name="file">ファイル</string>
+    <string name="idle">待機中</string>
+    <string name="last_prune">最終整理</string>
+    <string name="last_sync">最終同期</string>
+    <string name="never">なし</string>
+    <string name="no_unread_entries">未読の記事はありません</string>
+    <string name="pending_changes">保留中の変更</string>
+    <string name="pending_sync">同期待ち</string>
+    <string name="reader_text_size">文字サイズ</string>
+    <string name="rows">行数</string>
+    <string name="schema_version">スキーマバージョン</string>
+    <string name="server">サーバー</string>
+    <string name="session_expired">セッションの有効期限が切れました。もう一度サインインしてください。</string>
+    <string name="size">サイズ</string>
+    <string name="state">状態</string>
+    <string name="sync_cursor">同期カーソル</string>
+    <string name="syncing">同期中…</string>
+    <string name="tables">テーブル</string>
 </resources>

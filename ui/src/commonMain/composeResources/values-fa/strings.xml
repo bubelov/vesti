@@ -157,4 +157,29 @@
         <item quantity="many">%1$d مطلب خوانده‌نشده</item>
         <item quantity="other">%1$d مطلب خوانده‌نشده</item>
     </plurals>
+    <string name="bookmarked">نشانک‌شده</string>
+    <string name="data">داده‌ها</string>
+    <string name="database">پایگاه داده</string>
+    <string name="database_statistics">آمار پایگاه داده</string>
+    <string name="duration">مدت</string>
+    <string name="error">خطا</string>
+    <string name="failed">ناموفق</string>
+    <string name="file">فایل</string>
+    <string name="idle">غیرفعال</string>
+    <string name="last_prune">آخرین پاک‌سازی</string>
+    <string name="last_sync">آخرین همگام‌سازی</string>
+    <string name="never">هرگز</string>
+    <string name="no_unread_entries">هیچ ورودی خوانده‌نشده‌ای نیست</string>
+    <string name="pending_changes">تغییرات در انتظار</string>
+    <string name="pending_sync">همگام‌سازی در انتظار</string>
+    <string name="reader_text_size">اندازه متن</string>
+    <string name="rows">ردیف‌ها</string>
+    <string name="schema_version">نسخه طرح‌واره</string>
+    <string name="server">سرور</string>
+    <string name="session_expired">نشست شما منقضی شد. دوباره وارد شوید.</string>
+    <string name="size">اندازه</string>
+    <string name="state">وضعیت</string>
+    <string name="sync_cursor">نشانگر همگام‌سازی</string>
+    <string name="syncing">در حال همگام‌سازی…</string>
+    <string name="tables">جدول‌ها</string>
 </resources>
