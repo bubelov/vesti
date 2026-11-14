@@ -39,6 +39,19 @@ class EntryTable(private val conn: SQLiteConnection) {
         """
 
         /**
+         * Index for the unread queries, which are the hot path of the UI: the
+         * Unread tab (`ext_read = 0 AND ext_bookmarked = 0`), the unread badge
+         * and the per-feed unread counts (`ext_read = 0 GROUP BY feed_id`).
+         *
+         * Without it every one of those scans the whole entry table. With
+         * `(ext_read, feed_id)` SQLite seeks to the unread rows and reads them
+         * in feed order, so the grouped count needs no temporary b-tree either.
+         */
+        const val UNREAD_INDEX = """
+            CREATE INDEX index_entry_unread_by_feed ON entry(ext_read, feed_id);
+        """
+
+        /**
          * The projection every entries-list query returns, in exactly the order
          * [statementToEntriesAdapterRow] reads it. The list queries (all,
          * unread, bookmarked, one feed, one tag) share it so their rows cannot

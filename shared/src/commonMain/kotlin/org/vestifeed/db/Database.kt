@@ -95,8 +95,9 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(ConfTable.SCHEMA)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
-            conn.execSQL("PRAGMA user_version=14;")
-            version = 14
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL("PRAGMA user_version=15;")
+            version = 15
         }
 
         if (version == 1) {
@@ -201,6 +202,14 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("ALTER TABLE conf ADD COLUMN last_prune_at TEXT;")
             conn.execSQL("PRAGMA user_version=14;")
             version = 14
+        }
+
+        if (version == 14) {
+            // The feeds screen and the Unread tab both filter on `ext_read`;
+            // without an index they scan every entry row.
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL("PRAGMA user_version=15;")
+            version = 15
         }
     }
 

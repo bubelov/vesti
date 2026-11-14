@@ -686,6 +686,53 @@ class DatabaseMigrationTest {
     }
 
     /**
+     * v15 is a perf migration: the feeds screen and the Unread tab filter on
+     * `ext_read`, and without this index every one of those queries scanned the
+     * whole entry table.
+     */
+    @Test
+    fun migrate_v14ToV15_addsTheUnreadIndex() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            // v14's schema is exactly this, minus the index v15 adds.
+            conn.execSQL("PRAGMA user_version=14;")
+        }
+
+        assertEquals(0, countIndexes("index_entry_unread_by_feed"))
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        assertEquals(1, countIndexes("index_entry_unread_by_feed"))
+    }
+
+    @Test
+    fun freshDatabase_createsTheUnreadIndex() = runBlocking<Unit> {
+        val db = Database(BundledSQLiteDriver(), dbFile.absolutePath)
+        db.connect()
+
+        assertEquals(1, countIndexes("index_entry_unread_by_feed"))
+        assertEquals(15, db.readStats().version)
+    }
+
+    /** How many indexes of [name] the database has, read through a fresh connection. */
+    private fun countIndexes(name: String): Int =
+        BundledSQLiteDriver().open(dbFile.absolutePath).use { conn ->
+            conn.prepare(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=?;",
+            ).use { stmt ->
+                stmt.bindText(1, name)
+                if (stmt.step()) stmt.getInt(0) else 0
+            }
+        }
+
+    /**
      * Inserts an entry with the v9–v11 column set, which still includes the OG
      * dimension columns. Raw SQL because the current [EntryTable] no longer
      * writes them, so it cannot populate an older schema.

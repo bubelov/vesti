@@ -113,10 +113,15 @@ fun FeedsScreen(state: AppState) {
     var refreshKey by remember { mutableStateOf(0) }
 
     suspend fun reload() {
-        feeds = state.withDb { state.db.feed.selectAll() }
-        // One grouped count query for every feed, rather than one query per
-        // feed that loaded each entry just to count the unread ones.
-        unread = state.withDb { state.db.entry.selectUnreadCountsByFeedId() }
+        // Two queries for the whole screen: the feeds themselves, and one
+        // grouped count of unread entries per feed (rather than one query per
+        // feed that loaded each entry just to count it). Both run in a single
+        // dispatcher hop.
+        val (loadedFeeds, counts) = state.withDb {
+            state.db.feed.selectAll() to state.db.entry.selectUnreadCountsByFeedId()
+        }
+        feeds = loadedFeeds
+        unread = counts
     }
 
     LaunchedEffect(refreshKey) { reload() }
