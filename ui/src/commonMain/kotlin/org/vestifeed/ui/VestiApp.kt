@@ -176,6 +176,21 @@ private fun MainScaffold(state: AppState, screen: Screen) {
     }
 }
 
+/**
+ * Whether the current entry list draws the running sync's progress itself.
+ *
+ * On hosts with the pull gesture the list shows the pull-to-refresh indicator
+ * for every run (the first-sync placeholder on an empty database carries its
+ * own spinner as well), so the app bar must not draw a second one for the same
+ * sync. [org.vestifeed.sync.Sync] still owns the state; this only decides who
+ * renders it.
+ */
+internal fun entryListShowsSyncProgress(
+    running: Boolean,
+    onEntriesScreen: Boolean,
+    supportsPullToRefresh: Boolean,
+): Boolean = running && onEntriesScreen && supportsPullToRefresh
+
 @Composable
 private fun AppTopBar(state: AppState, screen: Screen) {
     val running by state.sync.running.collectAsState()
@@ -236,7 +251,15 @@ private fun AppTopBar(state: AppState, screen: Screen) {
         actions = {
             // Syncing only makes sense on the entry lists, and the stats screen
             // offers it so the sync card can be refreshed where it is read.
-            if (screen is Screen.Entries || screen is Screen.DbStats) {
+            // While an entry list draws the run's progress itself (its
+            // pull-to-refresh indicator), the action is hidden rather than
+            // replaced by a second spinner.
+            val progressOnScreen = entryListShowsSyncProgress(
+                running = running,
+                onEntriesScreen = screen is Screen.Entries,
+                supportsPullToRefresh = state.platform.supportsPullToRefresh,
+            )
+            if ((screen is Screen.Entries || screen is Screen.DbStats) && !progressOnScreen) {
                 IconButton(
                     onClick = {
                         state.sync.clearError()
