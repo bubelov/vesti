@@ -7,12 +7,13 @@ import kotlin.time.Instant
 import kotlin.time.TimeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.vestifeed.backend.Backend
 import org.vestifeed.backend.backend
@@ -56,6 +57,9 @@ class Sync(
         backend(database, agent)
     },
 ) {
+
+    /** Serializes full runs; see [run]. */
+    private val runMutex = Mutex()
 
     private val _running = MutableStateFlow(false)
     val running: StateFlow<Boolean> = _running.asStateFlow()
@@ -125,10 +129,15 @@ class Sync(
     }
 
     private suspend fun run(reason: SyncReason) {
-        while (running.value) {
-            delay(100)
-        }
+        // Runs are serialized rather than overlapping: a second sync (a pull
+        // during the startup run) waits for the first instead of racing it for
+        // the same cursor rows. This used to spin on `running` with a 100 ms
+        // sleep, which added up to that much latency to every queued run and
+        // woke the coroutine ten times a second while it waited.
+        runMutex.withLock { runLocked(reason) }
+    }
 
+    private suspend fun runLocked(reason: SyncReason) {
         _running.update { true }
         _lastError.value = null
 
