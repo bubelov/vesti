@@ -9,9 +9,6 @@ kotlin = "2.4.20"
 # Compose Multiplatform
 # https://github.com/JetBrains/compose-multiplatform/releases
 compose-plugin = "1.13.0-beta02"
-# AndroidX Compose UI, pinned to the version Compose Multiplatform resolves for
-# the Android target (used by the instrumented test artifacts).
-androidx-compose = "1.13.0-beta02"
 # Enables suspending functions
 # https://github.com/Kotlin/kotlinx.coroutines/releases
 coroutines = "1.11.0"
@@ -43,12 +40,6 @@ sqlite = "2.7.1"
 # Manages the shared activity and edge-to-edge setup
 # https://developer.android.com/jetpack/androidx/releases/activity
 androidx-activity = "1.13.0"
-# Enables lifecycle-aware components
-# https://developer.android.com/jetpack/androidx/releases/lifecycle
-lifecycle = "2.11.0"
-# Enables background sync
-# https://developer.android.com/jetpack/androidx/releases/work
-work = "2.11.2"
 # Enables embedded browser
 # https://developer.android.com/jetpack/androidx/releases/browser
 browser = "1.10.0"
@@ -73,12 +64,6 @@ material = "1.14.0"
 # Unit tests
 # https://junit.org/junit4/
 junit = "4.13.2"
-
-# Instrumented tests
-# https://developer.android.com/jetpack/androidx/releases/test
-espresso = "3.7.0"
-testrunner = "1.7.0"
-extjunit = "1.3.0"
 
 [libraries]
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -108,18 +93,12 @@ androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sq
 # AndroidX
 androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activity" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity" }
-androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-androidx-work = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
-androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "work" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Networking (test-only now)
-okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3-junit4", version.ref = "okhttp" }
 
 # UI
-coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
@@ -134,15 +113,6 @@ composemediaplayer-audio = { module = "io.github.kdroidfilter:composemediaplayer
 
 # Unit tests
 junit = { group = "junit", name = "junit", version.ref = "junit" }
-
-# Instrumented tests
-androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "testrunner" }
-androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testrunner" }
-androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
-androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testrunner" }
-androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "extjunit" }
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidx-compose" }
-androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "androidx-compose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -52,8 +52,6 @@ android {
         versionName = "0.4.3"
 
         buildConfigField("long", "BUILD_TIME", "${buildTime}L")
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -120,24 +118,10 @@ dependencies {
 
     // Material Components themes the host; Compose Material3 draws the UI.
     implementation(libs.material)
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.work)
     implementation(libs.androidx.browser)
-    androidTestImplementation(libs.androidx.work.testing)
 
     // Unit tests
     testImplementation(libs.junit)
-
-    // Instrumented tests
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.core)
-    androidTestImplementation(libs.androidx.test.rules)
-    androidTestImplementation(libs.androidx.test.espresso.core)
-    androidTestImplementation(libs.androidx.test.runner)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 /**

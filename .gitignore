@@ -10,8 +10,10 @@
 .externalNativeBuild
 .cxx
 /crowdin.properties
-/website/releases/vesti-nightly.apk
-/website/releases/vesti-nightly.json
+# Published release artifacts (APKs and the nightly manifest) are rsynced to
+# the server by ./devtools publish; they are not sources and must not be
+# committed (a single APK is ~23 MB).
+/website/releases/
 /.env
 /waydroid.log
 *.jks
