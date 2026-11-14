@@ -2,13 +2,18 @@ package org.vestifeed.desktop
 
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
@@ -20,7 +25,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 import org.jetbrains.compose.resources.painterResource
 import org.vestifeed.db.Database
@@ -64,26 +72,82 @@ private fun startUi() = application {
         }
     }
 
+    val geometryFile = remember { File(dataDirectory(), "window.properties") }
+    val savedGeometry = remember { WindowGeometry.load(geometryFile) }
+
+    // A first guess at the size, corrected once the window exists (see below).
+    // Passing the saved size here keeps that correction small: the initial size
+    // is applied as the content size, so the window lands a title bar tall.
+    val initialSize = savedGeometry
+        ?.takeIf { !it.maximized }
+        ?.let { DpSize(it.width.dp, it.height.dp) }
+        ?: DpSize(1100.dp, 800.dp)
+
+    val windowState = rememberWindowState(
+        size = initialSize,
+        placement = if (savedGeometry == null || savedGeometry.maximized) {
+            // A first run has nothing to restore, and the window is the reading
+            // surface: start maximized rather than at a fixed 1100x800.
+            WindowPlacement.Maximized
+        } else {
+            WindowPlacement.Floating
+        },
+    )
+
+    // Persisting is only safe once the size below has been corrected, otherwise
+    // the intermediate value would be written back as the reader's preference.
+    var geometryReady by remember { mutableStateOf(false) }
+
+    // The size to fall back to when the reader un-maximizes: a maximized window
+    // reports the screen's size, which is not what should be restored.
+    var restoreSize by remember { mutableStateOf(initialSize) }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        // A resize immediately followed by a close may not have reached the
+        // debounced save below.
+        onCloseRequest = {
+            persistGeometry(windowState, restoreSize, geometryFile)
+            exitApplication()
+        },
         title = "Vesti",
         // The same artwork as the Android launcher icon, so the window/taskbar
         // entry does not fall back to the Java runtime's default icon.
         icon = painterResource(Res.drawable.icon),
-        // Open maximized: the window is the reading surface, and the previous
-        // default (1100x800) was cramped for the card grid on a large display.
-        // `size` stays as the size the window manager restores to when the
-        // reader un-maximizes it.
-        state = rememberWindowState(
-            size = DpSize(1100.dp, 800.dp),
-            placement = WindowPlacement.Maximized,
-        ),
+        state = windowState,
     ) {
         // Runs once the first composition has been applied — the closest thing
         // to "a window is on screen" this side of the surface can see. It is
         // what `./devtools run` waits for before it returns control (see
         // cmd_run_desktop), so an early failure does not look like a launch.
         LaunchedEffect(Unit) { println("vesti: first composition committed") }
+
+        // The size a window is *created* with is applied as its content size, so
+        // the frame ends up a title bar taller than the saved value; assigning
+        // the size once the window is up sets the frame directly instead. That
+        // is what makes the restored window match the one the reader left, and
+        // keeps a resize from ratcheting the window larger on every launch.
+        LaunchedEffect(Unit) {
+            if (savedGeometry != null && !savedGeometry.maximized) {
+                // Let the initial size settle before overriding it; the window
+                // manager applies the first request asynchronously.
+                delay(400)
+                windowState.size = DpSize(savedGeometry.width.dp, savedGeometry.height.dp)
+                delay(200)
+            }
+            geometryReady = true
+        }
+
+        // Remember the geometry for the next launch. A drag produces a stream of
+        // updates, so the write is coalesced instead of issued per frame.
+        LaunchedEffect(windowState) {
+            snapshotFlow { windowState.placement to windowState.size }
+                .collectLatest { (placement, size) ->
+                    delay(500)
+                    if (!geometryReady) return@collectLatest
+                    if (placement == WindowPlacement.Floating) restoreSize = size
+                    persistGeometry(windowState, restoreSize, geometryFile)
+                }
+        }
 
         // Compose Desktop has no native Wayland backend on Linux: it runs on
         // XWayland, whose AWT toolkit only reports whole-number scales. A 275%
@@ -141,6 +205,18 @@ private fun acquireInstanceLock(): FileChannel? {
 private fun databaseFile(): File {
     val directory = dataDirectory().apply { mkdirs() }
     return File(directory, Database.NAME)
+}
+
+/**
+ * Stores the geometry the next launch should restore: the floating size and
+ * whether the window was maximized.
+ */
+private fun persistGeometry(state: WindowState, restoreSize: DpSize, file: File) {
+    WindowGeometry(
+        width = restoreSize.width.value.roundToInt(),
+        height = restoreSize.height.value.roundToInt(),
+        maximized = state.placement == WindowPlacement.Maximized,
+    ).save(file)
 }
 
 private fun dataDirectory(): File {

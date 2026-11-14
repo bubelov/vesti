@@ -26,6 +26,10 @@ kotlin {
             implementation(libs.androidx.sqlite.bundled.jvm)
         }
 
+        getByName("jvmTest").dependencies {
+            implementation(kotlin("test"))
+        }
+
         getByName("commonMain").dependencies {
             // The generated Res accessors for the window icon live in commonMain,
             // so the loader that dereferences them has to be on this classpath.
