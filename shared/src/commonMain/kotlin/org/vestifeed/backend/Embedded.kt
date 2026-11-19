@@ -72,7 +72,7 @@ open class Embedded(
                     AddFeedResult(
                         feed = feed,
                         feedLinks = feedLinks,
-                        entries = result.feed.getEntries(feed.id),
+                        entries = resolveEntryIds(db, feed.id, result.feed.getEntries(feed.id)),
                     )
                 }
 
@@ -115,9 +115,17 @@ open class Embedded(
             db.transaction {
                 db.entry.insertOrReplace(feedEntries.map { it.first })
                 for (feedEntry in feedEntries) {
-                    db.link.insertForEntry(feedEntry.first.id, feedEntry.second)
+                    db.link.reconcileForEntry(feedEntry.first.id, feedEntry.second)
                 }
             }
         }
     }
+
+    /**
+     * Embedded feeds are a sliding window: an item missing from the latest
+     * document may simply have rolled out of the feed, not been deleted. The
+     * local archive is intentional, so there is nothing safe to prune here;
+     * [resolveEntryIds] prevents the duplicates that used to grow it.
+     */
+    override suspend fun pruneDeletedEntries(): Boolean = false
 }

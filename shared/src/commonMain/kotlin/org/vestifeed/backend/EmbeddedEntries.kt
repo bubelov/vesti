@@ -43,7 +43,8 @@ internal class EmbeddedFeedFetcher(
         if (!response.status.isSuccess()) throw Exception("feed request failed")
         val feedResult = feed(response.readBytes(), response.contentType()?.toString() ?: "")
         return when (feedResult) {
-            is FeedResult.Success -> feedResult.feed.getEntries(feed.id)
+            is FeedResult.Success ->
+                resolveEntryIds(db, feed.id, feedResult.feed.getEntries(feed.id))
 
             is FeedResult.UnsupportedMediaType -> throw Exception("unsupported media type")
             is FeedResult.UnsupportedFeedType -> throw Exception("unsupported feed type")
@@ -151,6 +152,38 @@ internal fun ParsedFeed.getEntries(feedId: String): List<Pair<EntryTable.Entry, 
 
         is AtomFeed -> {
             this.entries.map { it.toEntry(feedId) }
+        }
+    }
+}
+
+/**
+ * Keeps the id of an entry that already exists under the same article URL.
+ *
+ * RSS items without a guid are keyed by a `feed-id:` hash of their content, so
+ * editing the description changes the id and used to insert a second copy of
+ * the same article. The link is the stable identity; this runs before the rows
+ * are written and rewrites both the entry id and its links when an older row
+ * is found.
+ *
+ * Only the content-hash ids are resolved: a guid (or an Atom id) is already a
+ * stable identity, and two distinct items may legitimately share one URL.
+ */
+internal suspend fun resolveEntryIds(
+    db: Database,
+    feedId: String,
+    entries: List<Pair<EntryTable.Entry, List<LinkTable.Link>>>,
+): List<Pair<EntryTable.Entry, List<LinkTable.Link>>> {
+    val existingByHref = db.link.selectAlternateEntryIdsByFeedId(feedId)
+
+    return entries.map { (entry, links) ->
+        if (!entry.id.startsWith("feed-id:")) return@map entry to links
+
+        val alternateHref = links.firstOrNull { it.rel is AtomLinkRel.Alternate }?.href
+        val existingId = alternateHref?.let(existingByHref::get)
+        if (existingId == null || existingId == entry.id) {
+            entry to links
+        } else {
+            entry.copy(id = existingId) to links.map { it.copy(entryId = existingId) }
         }
     }
 }

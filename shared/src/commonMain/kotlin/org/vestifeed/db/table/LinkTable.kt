@@ -261,6 +261,36 @@ class LinkTable(private val conn: SQLiteConnection) {
         }
     }
 
+    /**
+     * The local entry in [feedId] that owns each article URL, keyed by that URL.
+     *
+     * Embedded RSS items without a guid get an id derived from their content,
+     * so an edited description would otherwise create a second row for the same
+     * article. The article URL is the stable identity that lets the sync keep
+     * updating the original row. One query builds the whole feed's map, rather
+     * than looking each item up separately.
+     */
+    suspend fun selectAlternateEntryIdsByFeedId(feedId: String): Map<String, String> {
+        conn.prepare(
+            """
+            SELECT l.href, l.entry_id
+            FROM link l
+            JOIN entry e ON e.id = l.entry_id
+            WHERE e.feed_id = ? AND l.rel = 'Alternate'
+            ORDER BY e.published DESC;
+            """
+        ).use { stmt ->
+            stmt.bindText(1, feedId)
+            val result = mutableMapOf<String, String>()
+            while (stmt.step()) {
+                // The first row wins: the ordering prefers the newest entry
+                // when old duplicates share a URL.
+                result.getOrPut(stmt.getText(0)) { stmt.getText(1) }
+            }
+            return result
+        }
+    }
+
     suspend fun selectAllByFeedId(feedIds: List<String>): Map<String, List<Link>> {
         if (feedIds.isEmpty()) return emptyMap()
 
