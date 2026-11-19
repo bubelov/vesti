@@ -25,7 +25,7 @@ class DbStatsReaderTest {
     fun read_returnsTheSchemaVersionAndEveryUserTable() = runBlocking<Unit> {
         val stats = db.readStats()
 
-        assertEquals(17, stats.version)
+        assertEquals(18, stats.version)
         assertEquals(
             listOf("conf", "entry", "feed", "feed_tag", "link", "tag"),
             stats.tables.map { it.name },

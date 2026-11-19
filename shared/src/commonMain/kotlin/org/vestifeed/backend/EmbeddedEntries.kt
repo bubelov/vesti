@@ -24,6 +24,7 @@ import org.vestifeed.parser.RssItemGuid
 import org.vestifeed.parser.feed
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.util.toInstant
+import org.vestifeed.util.toUrlOrNull
 
 typealias ParsedFeed = Feed
 
@@ -55,24 +56,54 @@ internal class EmbeddedFeedFetcher(
 internal fun ParsedFeed.toFeed(feedUrl: Url): Pair<FeedTable.Feed, List<LinkTable.Link>> {
     return when (this) {
         is AtomFeed -> {
-            val selfLink = links.single { it.rel == AtomLinkRel.Self }
-            val links = links.map { it.toLink(feedId = selfLink.href, entryId = null) }
+            // RFC 4287 does not require a rel="self" link. Fall back to the URL
+            // we fetched so the feed still has an identity and something to
+            // sync against, instead of throwing on add.
+            val documentSelf = links
+                .firstOrNull { it.rel == AtomLinkRel.Self }
+                ?.href
+                ?.takeIf { it.isNotBlank() && it.toUrlOrNull() != null }
+
+            val feedId = documentSelf ?: feedUrl.toString()
+            val parsedLinks = links.map { it.toLink(feedId = feedId, entryId = null) }
+            val selfLink = parsedLinks.firstOrNull {
+                it.rel is AtomLinkRel.Self && it.href == feedId
+            } ?: LinkTable.Link(
+                id = null,
+                feedId = feedId,
+                entryId = null,
+                href = feedUrl.toString(),
+                rel = AtomLinkRel.Self,
+                type = null,
+                hreflang = null,
+                title = null,
+                length = null,
+                extEnclosureDownloadProgress = null,
+                extCacheUri = null,
+            )
+            val otherLinks = parsedLinks.filterNot { it.rel is AtomLinkRel.Self }
 
             Pair(
                 FeedTable.Feed(
-                    id = selfLink.href,
+                    id = feedId,
                     title = title,
                     extOpenEntriesInBrowser = false,
                     extShowPreviewImages = null,
-                ), links
+                ), listOf(selfLink) + otherLinks
             )
         }
 
         is RssFeed -> {
+            // The feed URL, not the site's <link>, is the identity: several
+            // feeds of one site (for example the main feed and a comments
+            // feed) all share the same site link, and keying on it would make
+            // them overwrite each other.
+            val feedId = feedUrl.toString()
+
             val selfLink = LinkTable.Link(
-                feedId = channel.link,
+                feedId = feedId,
                 entryId = null,
-                href = feedUrl.toString(),
+                href = feedId,
                 rel = AtomLinkRel.Self,
                 type = null,
                 hreflang = null,
@@ -84,7 +115,7 @@ internal fun ParsedFeed.toFeed(feedUrl: Url): Pair<FeedTable.Feed, List<LinkTabl
             )
 
             val alternateLink = LinkTable.Link(
-                feedId = channel.link,
+                feedId = feedId,
                 entryId = null,
                 href = channel.link,
                 rel = AtomLinkRel.Alternate,
@@ -99,7 +130,7 @@ internal fun ParsedFeed.toFeed(feedUrl: Url): Pair<FeedTable.Feed, List<LinkTabl
 
             Pair(
                 FeedTable.Feed(
-                    id = channel.link,
+                    id = feedId,
                     title = channel.title,
                     extOpenEntriesInBrowser = false,
                     extShowPreviewImages = null,

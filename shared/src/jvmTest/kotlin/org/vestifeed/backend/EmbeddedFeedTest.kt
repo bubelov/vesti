@@ -16,7 +16,11 @@ import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
 import org.vestifeed.db.testDb
+import org.vestifeed.parser.AtomFeed
 import org.vestifeed.parser.AtomLinkRel
+import org.vestifeed.parser.FeedResult
+import org.vestifeed.parser.RssFeed
+import org.vestifeed.parser.feed
 import org.vestifeed.util.toUrl
 
 class EmbeddedFeedTest {
@@ -66,17 +70,17 @@ class EmbeddedFeedTest {
         val resultOne = api.addFeed(feedOneUrl, null)
         val resultTwo = api.addFeed(feedTwoUrl, null)
 
-        assertEquals("https://example.com/one", resultOne.feed.id)
+        assertEquals(feedOneUrl.toString(), resultOne.feed.id)
         assertEquals("Example Feed One", resultOne.feed.title)
-        assertEquals("https://example.com/two", resultTwo.feed.id)
+        assertEquals(feedTwoUrl.toString(), resultTwo.feed.id)
         assertEquals("Example Feed Two", resultTwo.feed.title)
 
         assertEquals(1, resultOne.entries.size)
         assertEquals("One item one", resultOne.entries.first().first.title)
-        assertEquals("https://example.com/one", resultOne.entries.first().first.feedId)
+        assertEquals(feedOneUrl.toString(), resultOne.entries.first().first.feedId)
         assertEquals(1, resultTwo.entries.size)
         assertEquals("Two item one", resultTwo.entries.first().first.title)
-        assertEquals("https://example.com/two", resultTwo.entries.first().first.feedId)
+        assertEquals(feedTwoUrl.toString(), resultTwo.entries.first().first.feedId)
 
         db.transaction {
             db.feed.insertOrReplace(resultOne.feed)
@@ -97,10 +101,7 @@ class EmbeddedFeedTest {
         val feeds = db.feed.selectAll()
         assertEquals(2, feeds.size)
         val feedIds = feeds.map { it.id }.toSet()
-        assertEquals(
-            setOf("https://example.com/one", "https://example.com/two"),
-            feedIds,
-        )
+        assertEquals(setOf(feedOneUrl.toString(), feedTwoUrl.toString()), feedIds)
 
         val feedTitles = feeds.map { it.title }.toSet()
         assertEquals(
@@ -108,7 +109,7 @@ class EmbeddedFeedTest {
             feedTitles,
         )
 
-        val linksOne = db.link.selectByFeedId("https://example.com/one")
+        val linksOne = db.link.selectByFeedId(resultOne.feed.id)
         assertEquals(2, linksOne.size)
         assertNotNull(
             linksOne.singleOrNull {
@@ -121,7 +122,7 @@ class EmbeddedFeedTest {
             },
         )
 
-        val linksTwo = db.link.selectByFeedId("https://example.com/two")
+        val linksTwo = db.link.selectByFeedId(resultTwo.feed.id)
         assertEquals(2, linksTwo.size)
         assertNotNull(
             linksTwo.singleOrNull {
@@ -134,11 +135,11 @@ class EmbeddedFeedTest {
             },
         )
 
-        val entriesOne = db.entry.selectByFeedId("https://example.com/one")
+        val entriesOne = db.entry.selectByFeedId(resultOne.feed.id)
         assertEquals(1, entriesOne.size)
         assertEquals("One item one", entriesOne.first().title)
 
-        val entriesTwo = db.entry.selectByFeedId("https://example.com/two")
+        val entriesTwo = db.entry.selectByFeedId(resultTwo.feed.id)
         assertEquals(1, entriesTwo.size)
         assertEquals("Two item one", entriesTwo.first().title)
 
@@ -218,6 +219,52 @@ class EmbeddedFeedTest {
         assertTrue(
             "Expected 'mwall@space.com (Mike Wall)' in stored authors, got $authors",
             "mwall@space.com (Mike Wall)" in authors,
+        )
+    }
+
+    /**
+     * RFC 4287 does not require a rel="self" link. Adding such a feed used to
+     * throw (`single` on an empty list); the requested feed URL is the natural
+     * identity and sync target.
+     */
+    @Test
+    fun atomFeedWithoutSelfLinkUsesTheRequestedUrl() {
+        val body = """
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <id>urn:feed</id>
+              <title>No self link</title>
+            </feed>
+        """.trimIndent()
+        val parsed = feed(body.toByteArray(), "application/atom+xml")
+        assertTrue("Expected a parsed Atom feed, got $parsed", parsed is FeedResult.Success)
+        val atom = (parsed as FeedResult.Success).feed as AtomFeed
+
+        val (feedRow, links) = atom.toFeed("https://example.com/feed.xml".toUrl())
+
+        assertEquals("https://example.com/feed.xml", feedRow.id)
+        val self = links.single { it.rel is AtomLinkRel.Self }
+        assertEquals("https://example.com/feed.xml", self.href)
+        assertEquals(feedRow.id, self.feedId)
+    }
+
+    /**
+     * The channel's <link> is the site, not the feed document. Two feeds from
+     * one site share it, so the feed URL is what identifies the subscription.
+     */
+    @Test
+    fun rssFeedUsesTheRequestedFeedUrlAsItsIdentity() {
+        val parsed = feed(rssText("example.com.one.rss.xml").toByteArray(), "application/rss+xml")
+        assertTrue("Expected a parsed RSS feed, got $parsed", parsed is FeedResult.Success)
+        val rss = (parsed as FeedResult.Success).feed as RssFeed
+        val feedUrl = "https://mirror.example.com/feed.xml".toUrl()
+
+        val (feedRow, links) = rss.toFeed(feedUrl)
+
+        assertEquals(feedUrl.toString(), feedRow.id)
+        assertEquals(feedUrl.toString(), links.single { it.rel is AtomLinkRel.Self }.href)
+        assertEquals(
+            "https://example.com/one",
+            links.single { it.rel is AtomLinkRel.Alternate }.href,
         )
     }
 

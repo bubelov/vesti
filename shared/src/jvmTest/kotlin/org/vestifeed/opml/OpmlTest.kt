@@ -210,16 +210,11 @@ class OpmlTest {
                 titles,
             )
 
+            // Embedded RSS feeds are keyed by the feed document URL, not the
+            // channel's site link; the mock server is what was actually
+            // fetched in this test.
             val feedIds = storedFeeds.map { it.id }.toSet()
-            assertEquals(
-                setOf(
-                    "http://www.fsf.org/resources/jobs/listing",
-                    "http://www.fsf.org/news/aggregator",
-                    "https://www.fossjobs.net/",
-                    "https://www.agendadulibre.org/",
-                ),
-                feedIds,
-            )
+            assertEquals(mockUrlByOriginal.values.map { it.toString() }.toSet(), feedIds)
 
             for (feed in storedFeeds) {
                 val entries = db.entry.selectByFeedId(feed.id)
@@ -323,7 +318,7 @@ class OpmlTest {
 
             val feed = storedFeeds.single()
             assertEquals("Gagallium", feed.title)
-            assertEquals("https://cambium.inria.fr/blog/index.rss", feed.id)
+            assertEquals(mockUrl.toString(), feed.id)
 
             val entries = db.entry.selectByFeedId(feed.id)
             assertEquals(

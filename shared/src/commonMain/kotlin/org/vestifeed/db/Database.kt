@@ -13,6 +13,7 @@ import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.table.TagTable
 import org.vestifeed.dbstats.DbStats
 import org.vestifeed.dbstats.DbStatsReader
+import org.vestifeed.util.toUrlOrNull
 
 class Database(driver: SQLiteDriver, val path: String) {
 
@@ -117,8 +118,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL(EntryTable.UNREAD_INDEX)
             conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
-            conn.execSQL("PRAGMA user_version=17;")
-            version = 17
+            conn.execSQL("PRAGMA user_version=18;")
+            version = 18
         }
 
         if (version == 1) {
@@ -249,7 +250,83 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL("PRAGMA user_version=17;")
             version = 17
         }
+
+        if (version == 17) {
+            // Embedded RSS feeds used the site's <link> as their identity.
+            // Sites that publish several feeds under one link collided there,
+            // so re-key existing rows to the feed document URL (their self
+            // link). Miniflux feeds have numeric ids and are left alone.
+            rekeyEmbeddedFeedsBySelfLink(conn)
+            conn.execSQL("PRAGMA user_version=18;")
+            version = 18
+        }
     }
+
+    /**
+     * Moves every non-numeric (embedded) feed that has a distinct, valid self
+     * link to that link as its id.
+     *
+     * Child rows are re-pointed to a copy of the feed before the old row is
+     * deleted, which keeps the foreign keys satisfied at every step. A feed
+     * whose target id is already taken is skipped rather than merged, so an
+     * unusual collision cannot destroy either subscription.
+     */
+    private fun rekeyEmbeddedFeedsBySelfLink(conn: SQLiteConnection) {
+        val remaps = mutableListOf<Pair<String, String>>()
+        val seen = mutableSetOf<String>()
+        conn.prepare(
+            """
+            SELECT f.id, l.href
+            FROM feed f
+            JOIN link l ON l.feed_id = f.id
+            WHERE l.rel = 'Self' AND l.entry_id IS NULL
+            ORDER BY l.id;
+            """
+        ).use { stmt ->
+            while (stmt.step()) {
+                val oldId = stmt.getText(0)
+                val newId = stmt.getText(1)
+                if (oldId.toLongOrNull() != null) continue // Miniflux keeps its numeric id.
+                if (oldId == newId || !seen.add(oldId)) continue
+                if (newId.toUrlOrNull() == null) continue
+                remaps += oldId to newId
+            }
+        }
+
+        for ((oldId, newId) in remaps) {
+            if (feedExists(conn, newId)) continue
+
+            conn.prepare(
+                "INSERT INTO feed (id, title, ext_open_entries_in_browser, ext_show_preview_images) " +
+                    "SELECT ?, title, ext_open_entries_in_browser, ext_show_preview_images " +
+                    "FROM feed WHERE id = ?;",
+            ).use { stmt ->
+                stmt.bindText(1, newId)
+                stmt.bindText(2, oldId)
+                stmt.step()
+            }
+
+            // The table names are fixed literals, never user input.
+            listOf("entry", "link", "feed_tag").forEach { table ->
+                conn.prepare("UPDATE $table SET feed_id = ? WHERE feed_id = ?;").use { stmt ->
+                    stmt.bindText(1, newId)
+                    stmt.bindText(2, oldId)
+                    stmt.step()
+                }
+            }
+
+            conn.prepare("DELETE FROM feed WHERE id = ?;").use { stmt ->
+                stmt.bindText(1, oldId)
+                stmt.step()
+            }
+        }
+    }
+
+    private fun feedExists(conn: SQLiteConnection, id: String): Boolean =
+        conn.prepare("SELECT 1 FROM feed WHERE id = ?;").use { stmt ->
+            stmt.bindText(1, id)
+            stmt.step()
+        }
 
     /**
      * Runs [block] in a database transaction, rolling back if it throws.

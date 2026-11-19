@@ -3,6 +3,7 @@ package org.vestifeed.db
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
+import kotlin.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -17,6 +18,7 @@ import org.vestifeed.db.table.FeedTagTable
 import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.table.TagTable
+import org.vestifeed.parser.AtomLinkRel
 import java.io.File
 
 class DatabaseMigrationTest {
@@ -782,6 +784,88 @@ class DatabaseMigrationTest {
         assertEquals(true, feed.extShowPreviewImages)
     }
 
+    /**
+     * v18 re-keys embedded RSS feeds from the channel's site link to the feed
+     * document URL (their self link), so two feeds sharing a site link no
+     * longer collide. Miniflux feeds keep their numeric ids.
+     */
+    @Test
+    fun migrate_v17ToV18_rekeysEmbeddedFeedsByTheirSelfLink() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
+            conn.execSQL("PRAGMA user_version=17;")
+
+            val oldFeedId = "https://example.com/"
+            val selfHref = "https://example.com/feed.xml"
+            FeedTable(conn).insertOrReplace(
+                FeedTable.Feed(
+                    id = oldFeedId,
+                    title = "Example",
+                    extOpenEntriesInBrowser = true,
+                    extShowPreviewImages = false,
+                ),
+            )
+            LinkTable(conn).insertForFeed(
+                oldFeedId,
+                listOf(
+                    migrationLink(oldFeedId, selfHref, AtomLinkRel.Self),
+                    migrationLink(oldFeedId, oldFeedId, AtomLinkRel.Alternate),
+                ),
+            )
+
+            val tag = TagTable.Tag(
+                id = "t1",
+                name = "Tech",
+                extSource = TagTable.Source.Embedded,
+                extMinifluxId = null,
+            )
+            TagTable(conn).insertOrReplace(tag)
+            FeedTagTable(conn).insert(oldFeedId, tag.id)
+            EntryTable(conn).insertOrReplace(
+                listOf(migrationEntry(id = "entry-1", feedId = oldFeedId)),
+            )
+
+            // A Miniflux feed has a numeric id and must not be re-keyed.
+            FeedTable(conn).insertOrReplace(
+                FeedTable.Feed(
+                    id = "7",
+                    title = "Miniflux feed",
+                    extOpenEntriesInBrowser = null,
+                    extShowPreviewImages = null,
+                ),
+            )
+            LinkTable(conn).insertForFeed(
+                "7",
+                listOf(migrationLink("7", "https://reader.example.com/feed.xml", AtomLinkRel.Self)),
+            )
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        val newFeedId = "https://example.com/feed.xml"
+        assertNull(db.feed.selectById("https://example.com/"))
+        val migrated = db.feed.selectById(newFeedId)!!
+        assertEquals("Example", migrated.title)
+        assertEquals(true, migrated.extOpenEntriesInBrowser)
+        assertEquals(false, migrated.extShowPreviewImages)
+
+        assertEquals(newFeedId, db.entry.selectById("entry-1")!!.feedId)
+        assertEquals(2, db.link.selectByFeedId(newFeedId).size)
+        assertEquals(listOf("t1"), db.feedTag.selectTagIdsByFeedId(newFeedId))
+
+        assertEquals("7", db.feed.selectById("7")!!.id)
+        assertEquals("7", db.link.selectByFeedId("7").single().feedId)
+    }
+
     @Test
     fun freshDatabase_createsTheUnreadIndex() = runBlocking<Unit> {
         val db = Database(BundledSQLiteDriver(), dbFile.absolutePath)
@@ -789,7 +873,7 @@ class DatabaseMigrationTest {
 
         assertEquals(1, countIndexes("index_entry_unread_by_feed"))
         assertEquals(1, countIndexes("index_entry_unread_list"))
-        assertEquals(17, db.readStats().version)
+        assertEquals(18, db.readStats().version)
     }
 
     /**
@@ -840,6 +924,42 @@ class DatabaseMigrationTest {
                 if (stmt.step()) stmt.getInt(0) > 0 else false
             }
         }
+
+    private fun migrationLink(feedId: String, href: String, rel: AtomLinkRel) = LinkTable.Link(
+        id = null,
+        feedId = feedId,
+        entryId = null,
+        href = href,
+        rel = rel,
+        type = null,
+        hreflang = null,
+        title = null,
+        length = null,
+        extEnclosureDownloadProgress = null,
+        extCacheUri = null,
+    )
+
+    private fun migrationEntry(id: String, feedId: String) = EntryTable.Entry(
+        contentType = "html",
+        contentSrc = "",
+        contentText = "body",
+        summary = null,
+        id = id,
+        feedId = feedId,
+        title = "Entry",
+        published = Instant.parse("2026-01-01T00:00:00Z"),
+        updated = Instant.parse("2026-01-01T00:00:00Z"),
+        authorName = "",
+        extRead = false,
+        extReadSynced = true,
+        extBookmarked = false,
+        extBookmarkedSynced = true,
+        extCommentsUrl = "",
+        extOpenGraphImageChecked = true,
+        extOpenGraphImageUrl = "",
+        extOpenGraphImageFetchedAt = null,
+        extOpenGraphImageLog = "[]",
+    )
 
     /** How many indexes of [name] the database has, read through a fresh connection. */
     private fun countIndexes(name: String): Int =
