@@ -5,6 +5,7 @@ import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
 import kotlin.time.Clock
 import kotlin.time.Instant
+import org.vestifeed.db.SQL_VARIABLE_CHUNK_SIZE
 import org.vestifeed.db.bindTextOrNull
 import org.vestifeed.db.getBoolOrNull
 import org.vestifeed.db.getTextOrNull
@@ -318,25 +319,31 @@ class EntryTable(private val conn: SQLiteConnection) {
      */
     suspend fun selectUnreadByFeedIds(feedIds: List<String>): List<EntriesAdapterRow> {
         if (feedIds.isEmpty()) return emptyList()
-        val placeholders = feedIds.joinToString(",") { "?" }
-        return conn.prepare(
-            """
-            SELECT $LIST_COLUMNS
-            $LIST_FROM
-            WHERE e.feed_id IN ($placeholders)
-              AND e.ext_read = 0 AND e.ext_bookmarked = 0
-            ORDER BY e.published DESC;
-            """
-        ).use { stmt ->
-            feedIds.forEachIndexed { index, feedId ->
-                stmt.bindText(index + 1, feedId)
-            }
-            buildList {
+
+        val rows = mutableListOf<EntriesAdapterRow>()
+        feedIds.distinct().chunked(SQL_VARIABLE_CHUNK_SIZE).forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            conn.prepare(
+                """
+                SELECT $LIST_COLUMNS
+                $LIST_FROM
+                WHERE e.feed_id IN ($placeholders)
+                  AND e.ext_read = 0 AND e.ext_bookmarked = 0
+                ORDER BY e.published DESC;
+                """
+            ).use { stmt ->
+                chunk.forEachIndexed { index, feedId ->
+                    stmt.bindText(index + 1, feedId)
+                }
                 while (stmt.step()) {
-                    add(statementToEntriesAdapterRow(stmt))
+                    rows += statementToEntriesAdapterRow(stmt)
                 }
             }
         }
+
+        // Each chunk is ordered internally; merge the chunks back into one
+        // published-descending list.
+        return rows.sortedByDescending { it.published }
     }
 
     suspend fun selectUnread(): List<EntriesAdapterRow> {

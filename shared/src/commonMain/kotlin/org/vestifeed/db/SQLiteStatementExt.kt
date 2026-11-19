@@ -10,6 +10,13 @@ fun SQLiteStatement.bindTextOrNull(index: Int, value: String?) {
     if (value == null) bindNull(index) else bindText(index, value)
 }
 
+/**
+ * How many values to bind into one `IN (...)` list. Comfortably below SQLite's
+ * usual 999 bound-variable limit, so a caller cannot accidentally exceed it by
+ * passing a large set of feed ids.
+ */
+internal const val SQL_VARIABLE_CHUNK_SIZE = 500
+
 fun SQLiteStatement.bindBooleanOrNull(index: Int, value: Boolean?) {
     if (value == null) bindNull(index) else bindInt(index, if (value) 1 else 0)
 }

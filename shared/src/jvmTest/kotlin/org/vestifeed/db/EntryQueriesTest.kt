@@ -153,6 +153,47 @@ class EntryQueriesTest {
     }
 
     @Test
+    fun selectUnreadByFeedIds_chunksLargeIdLists() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+        val entry = entry().copy(feedId = feed.id)
+        db.entry.insertOrReplace(listOf(entry))
+
+        // Put the real feed after the first chunk of the IN list.
+        val ids = List(SQL_VARIABLE_CHUNK_SIZE) { "missing-$it" } + feed.id
+
+        assertEquals(listOf(entry.id), db.entry.selectUnreadByFeedIds(ids).map { it.id })
+    }
+
+    @Test
+    fun selectUnreadByFeedIds_keepsPublishedOrderAcrossChunks() = runBlocking<Unit> {
+        val olderFeed = createFeed(title = "Older")
+        val newerFeed = createFeed(title = "Newer")
+        db.feed.insertOrReplace(listOf(olderFeed, newerFeed))
+
+        val older = entry().copy(
+            feedId = olderFeed.id,
+            published = Instant.parse("2024-01-01T00:00:00Z"),
+        )
+        val newer = entry().copy(
+            feedId = newerFeed.id,
+            published = Instant.parse("2026-01-01T00:00:00Z"),
+        )
+        db.entry.insertOrReplace(listOf(older, newer))
+
+        // The older feed lands in the first chunk and the newer one in the
+        // second, so a naive concatenation would return the wrong order.
+        val ids = listOf(olderFeed.id) +
+            List(SQL_VARIABLE_CHUNK_SIZE) { "missing-$it" } +
+            newerFeed.id
+
+        assertEquals(
+            listOf(newer.id, older.id),
+            db.entry.selectUnreadByFeedIds(ids).map { it.id },
+        )
+    }
+
+    @Test
     fun selectUnread() = runBlocking<Unit> {
         val feed1 = createFeed(title = "Feed 1")
         val feed2 = createFeed(title = "Feed 2")

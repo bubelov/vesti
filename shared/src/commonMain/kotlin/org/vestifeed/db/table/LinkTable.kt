@@ -5,6 +5,7 @@ import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
 import kotlin.time.Clock
 import kotlin.time.Instant
+import org.vestifeed.db.SQL_VARIABLE_CHUNK_SIZE
 import org.vestifeed.db.bindTextOrNull
 import org.vestifeed.db.getTextOrNull
 import org.vestifeed.parser.AtomLinkRel
@@ -262,25 +263,27 @@ class LinkTable(private val conn: SQLiteConnection) {
 
     suspend fun selectAllByFeedId(feedIds: List<String>): Map<String, List<Link>> {
         if (feedIds.isEmpty()) return emptyMap()
-        val placeholders = feedIds.joinToString(",") { "?" }
-        conn.prepare(
-            """
-            SELECT $COLUMNS
-            FROM link
-            WHERE feed_id IN ($placeholders);
-            """
-        ).use { stmt ->
-            feedIds.forEachIndexed { index, id ->
-                stmt.bindText(index + 1, id)
+
+        val result = mutableMapOf<String, MutableList<Link>>()
+        feedIds.distinct().chunked(SQL_VARIABLE_CHUNK_SIZE).forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            conn.prepare(
+                """
+                SELECT $COLUMNS
+                FROM link
+                WHERE feed_id IN ($placeholders);
+                """
+            ).use { stmt ->
+                chunk.forEachIndexed { index, id ->
+                    stmt.bindText(index + 1, id)
+                }
+                while (stmt.step()) {
+                    val feedId = stmt.getText(1)
+                    result.getOrPut(feedId) { mutableListOf() }.add(stmt.toLink())
+                }
             }
-            val result = mutableMapOf<String, MutableList<Link>>()
-            while (stmt.step()) {
-                val feedId = stmt.getText(1)
-                val link = stmt.toLink()
-                result.getOrPut(feedId) { mutableListOf() }.add(link)
-            }
-            return result
         }
+        return result
     }
 
     suspend fun updateEnclosureProgress(linkId: Long, progress: Double?, cacheUri: String?) {

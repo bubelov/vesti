@@ -19,9 +19,6 @@ class Database(driver: SQLiteDriver, val path: String) {
 
     companion object {
         const val NAME = "vesti.db"
-
-        /** Comfortably below SQLite's usual 999 bound-variable limit. */
-        private const val DELETE_CHUNK_SIZE = 500
     }
 
     private val driver = driver
@@ -379,7 +376,7 @@ class Database(driver: SQLiteDriver, val path: String) {
 
             if (stale.isEmpty()) return@withTransaction 0
 
-            stale.chunked(DELETE_CHUNK_SIZE).forEach { chunk ->
+            stale.chunked(SQL_VARIABLE_CHUNK_SIZE).forEach { chunk ->
                 val placeholders = chunk.joinToString(",") { "?" }
 
                 // Links reference entries, so they must go first.

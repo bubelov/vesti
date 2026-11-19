@@ -8,6 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.vestifeed.db.Database
+import org.vestifeed.db.SQL_VARIABLE_CHUNK_SIZE
 import org.vestifeed.db.testDb
 import org.vestifeed.parser.AtomLinkRel
 
@@ -126,6 +127,21 @@ class LinkTest {
         db.link.reconcileForEntry(entry.id, emptyList())
 
         assertEquals(0, db.link.selectByEntryId(entry.id).size)
+    }
+
+    @Test
+    fun selectAllByFeedId_chunksLargeIdListsAndDeduplicates() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+        db.link.insertForFeed(feed.id, listOf(createLink("https://example.com/feed.xml")))
+
+        // The real id lands in the second chunk; the duplicate must not double
+        // the returned rows.
+        val ids = List(SQL_VARIABLE_CHUNK_SIZE) { "missing-$it" } + feed.id + feed.id
+
+        val links = db.link.selectAllByFeedId(ids)
+
+        assertEquals(1, links[feed.id]?.size)
     }
 
     private suspend fun seedEntry(): EntryTable.Entry {
