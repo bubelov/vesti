@@ -117,6 +117,8 @@ class Sync(
             try {
                 withContext(ioDispatcher) { backendFactory(db, userAgent).pushPendingChanges() }
                 _lastError.value = null
+            } catch (c: CancellationException) {
+                throw c
             } catch (t: Throwable) {
                 _lastError.value = t.message ?: t.toString()
             }
@@ -170,6 +172,8 @@ class Sync(
                 pruneIfDue(currentBackend, conf, now)
                 completed = true
             }
+        } catch (c: CancellationException) {
+            throw c
         } catch (t: Throwable) {
             _lastError.value = t.message ?: t.toString()
         } finally {

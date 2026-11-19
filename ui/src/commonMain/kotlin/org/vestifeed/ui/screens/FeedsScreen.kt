@@ -55,6 +55,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.backend.backend
 import org.vestifeed.db.table.FeedTable
+import org.vestifeed.feedsettings.withOpmlOverrides
 import org.vestifeed.opml.OpmlDocument
 import org.vestifeed.opml.OpmlOutline
 import org.vestifeed.opml.OpmlVersion
@@ -196,10 +197,11 @@ fun FeedsScreen(state: AppState) {
                     if (xmlUrl.isBlank()) continue
                     try {
                         val result = state.withDb { feedBackend.addFeed(xmlUrl.toUrl(), null) }
+                        val feed = result.feed.withOpmlOverrides(outline)
                         state.withDb {
                             state.db.transaction {
-                                state.db.feed.insertOrReplace(result.feed)
-                                state.db.link.insertForFeed(result.feed.id, result.feedLinks)
+                                state.db.feed.insertOrReplace(feed)
+                                state.db.link.insertForFeed(feed.id, result.feedLinks)
                                 state.db.entry.insertOrReplace(result.entries.map { it.first })
                                 result.entries.forEach { (entry, entryLinks) ->
                                     state.db.link.insertForEntry(entry.id, entryLinks)

@@ -129,6 +129,36 @@ class FeedTagTest {
         assertTrue(db.feed.selectAll().isNotEmpty())
     }
 
+    /**
+     * Re-inserting a feed must be an update, not a delete + insert: the
+     * `feed_tag` foreign key cascades on delete, so an `INSERT OR REPLACE`
+     * here silently removes every category the feed belongs to.
+     */
+    @Test
+    fun feedTagQueries_replacingAFeedKeepsItsTags() = runBlocking<Unit> {
+        db.tag.insertOrReplace(createTag("t1"))
+        db.feed.insertOrReplace(createFeed("f1"))
+        db.feedTag.insert("f1", "t1")
+
+        db.feed.insertOrReplace(createFeed("f1").copy(title = "Renamed"))
+
+        assertEquals("Renamed", db.feed.selectById("f1")!!.title)
+        assertEquals(listOf("t1"), db.feedTag.selectTagIdsByFeedId("f1"))
+    }
+
+    /** The same delete-cascade applies to re-inserting a tag with a new name. */
+    @Test
+    fun feedTagQueries_replacingATagKeepsItsFeeds() = runBlocking<Unit> {
+        db.tag.insertOrReplace(createTag("t1"))
+        db.feed.insertOrReplace(createFeed("f1"))
+        db.feedTag.insert("f1", "t1")
+
+        db.tag.insertOrReplace(createTag("t1").copy(name = "Renamed"))
+
+        assertEquals("Renamed", db.tag.selectById("t1")!!.name)
+        assertEquals(listOf("f1"), db.feedTag.selectFeedIdsByTagId("t1"))
+    }
+
     private fun createTag(id: String) = TagTable.Tag(
         id = id,
         name = "Tag $id",

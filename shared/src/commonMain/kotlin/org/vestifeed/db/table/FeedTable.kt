@@ -35,11 +35,18 @@ class FeedTable(private val conn: SQLiteConnection) {
         if (feeds.isEmpty()) {
             return
         }
+        // A real upsert, not INSERT OR REPLACE: replacing a feed row would
+        // delete it first, and `feed_tag.feed_id` has ON DELETE CASCADE, so
+        // every category membership would silently disappear.
         conn.prepare(
             """
-            INSERT OR REPLACE
-            INTO feed (id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images)
-            VALUES (?, ?, ?, ?, ?);
+            INSERT INTO feed (id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                ext_open_entries_in_browser = excluded.ext_open_entries_in_browser,
+                ext_blocked_words = excluded.ext_blocked_words,
+                ext_show_preview_images = excluded.ext_show_preview_images;
             """
         ).use { stmt ->
             feeds.forEach { feed ->

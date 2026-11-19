@@ -35,11 +35,17 @@ class TagTable(private val conn: SQLiteConnection) {
         if (tags.isEmpty()) {
             return
         }
+        // Upsert by id rather than INSERT OR REPLACE: the latter deletes the
+        // existing row first, and `feed_tag.tag_id` has ON DELETE CASCADE, so
+        // renaming a tag would drop every feed that uses it.
         conn.prepare(
             """
-            INSERT OR REPLACE
-            INTO tag (id, name, ext_source, ext_miniflux_id)
-            VALUES (?, ?, ?, ?);
+            INSERT INTO tag (id, name, ext_source, ext_miniflux_id)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                ext_source = excluded.ext_source,
+                ext_miniflux_id = excluded.ext_miniflux_id;
             """
         ).use { stmt ->
             tags.forEach { tag ->

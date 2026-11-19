@@ -435,6 +435,10 @@ class AppState(
                     db.link.deleteAll()
                     db.entry.deleteAll()
                     db.feed.deleteAll()
+                    // Tags outlive their feeds (feed_tag cascades, tag does
+                    // not), so they must be cleared explicitly or they would
+                    // reappear in the Tags tab after the next sign-in.
+                    db.tag.deleteAll()
                 }
             }
             conf = ConfTable.defaultConf()
