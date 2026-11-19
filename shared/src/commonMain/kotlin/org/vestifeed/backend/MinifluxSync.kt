@@ -269,7 +269,7 @@ internal class MinifluxSync(private val api: MinifluxApi, private val db: Databa
                 db.transaction {
                     rows.forEach {
                         db.entry.insertOrReplace(listOf(it.first))
-                        db.link.insertForEntry(it.first.id, it.second)
+                        db.link.reconcileForEntry(it.first.id, it.second)
                     }
                     db.conf.update {
                         it.copy(
@@ -291,7 +291,7 @@ internal class MinifluxSync(private val api: MinifluxApi, private val db: Databa
         db.transaction {
             freshEntries.forEach {
                 db.entry.insertOrReplace(listOf(it.first))
-                db.link.insertForEntry(it.first.id, it.second)
+                db.link.reconcileForEntry(it.first.id, it.second)
             }
         }
     }
@@ -301,7 +301,7 @@ internal class MinifluxSync(private val api: MinifluxApi, private val db: Databa
         db.transaction {
             freshEntries.forEach {
                 db.entry.insertOrReplace(listOf(it.first))
-                db.link.insertForEntry(it.first.id, it.second)
+                db.link.reconcileForEntry(it.first.id, it.second)
             }
         }
     }

@@ -66,8 +66,16 @@ class Database(driver: SQLiteDriver, val path: String) {
             if (connection != null) return
 
             val conn = openDatabaseConnection(driver, path)
-            conn.execSQL("PRAGMA foreign_keys = ON;")
-            migrate(conn)
+            try {
+                conn.execSQL("PRAGMA foreign_keys = ON;")
+                migrate(conn)
+            } catch (t: Throwable) {
+                // A failed migration must not leave the connection open: the
+                // caller gets the error and the next attempt should start from
+                // a clean handle (and, on Windows, the file must be closable).
+                runCatching { conn.close() }
+                throw t
+            }
 
             feed = FeedTable(conn)
             entry = EntryTable(conn)
@@ -83,7 +91,19 @@ class Database(driver: SQLiteDriver, val path: String) {
         }
     }
 
+    /**
+     * Runs the whole migration chain in one transaction, so a step that fails
+     * rolls back the schema and `user_version` together. Without this, a
+     * failure halfway leaves a partially migrated database and the next launch
+     * re-runs ALTERs that may already have been applied.
+     */
     private suspend fun migrate(conn: SQLiteConnection) {
+        withTransaction(conn) {
+            migrateLocked(conn)
+        }
+    }
+
+    private suspend fun migrateLocked(conn: SQLiteConnection) {
         var version = conn.prepare("SELECT user_version FROM pragma_user_version;").use { stmt ->
             if (stmt.step()) stmt.getInt(0) else 0
         }

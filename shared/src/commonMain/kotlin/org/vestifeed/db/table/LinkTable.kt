@@ -171,6 +171,61 @@ class LinkTable(private val conn: SQLiteConnection) {
         }
     }
 
+    /**
+     * Makes the links of [entryId] exactly [links].
+     *
+     * A pull re-sends every link of an entry, so an article URL that changed or
+     * an enclosure that disappeared must not leave the old row behind: it would
+     * keep showing up in the reader and the Podcasts tab. Rows are matched on
+     * the table's `(entry_id, href, rel)` identity; a match is updated in place
+     * instead of replaced, so the playback state in the `ext_*` columns
+     * survives a metadata refresh.
+     */
+    suspend fun reconcileForEntry(entryId: String, links: List<Link>) {
+        val desired = links.distinctBy { it.href to relToString(it.rel) }
+        val desiredKeys = desired.mapTo(HashSet()) { it.href to relToString(it.rel) }
+
+        val existingByKey = mutableMapOf<Pair<String, String?>, Link>()
+        val staleIds = mutableListOf<Long>()
+        for (cached in selectByEntryId(entryId)) {
+            val key = cached.href to relToString(cached.rel)
+            // Delete links the server dropped, and collapse duplicate rows an
+            // older build may have created for a NULL `rel`.
+            if (key !in desiredKeys || existingByKey.containsKey(key)) {
+                cached.id?.let(staleIds::add)
+            } else {
+                existingByKey[key] = cached
+            }
+        }
+        staleIds.forEach { deleteById(it) }
+
+        val toInsert = mutableListOf<Link>()
+        desired.forEach { link ->
+            val cached = existingByKey[link.href to relToString(link.rel)]
+            if (cached?.id != null) {
+                updateLinkMetadata(cached.id, link)
+            } else {
+                toInsert += link
+            }
+        }
+        if (toInsert.isNotEmpty()) {
+            insertForEntry(entryId, toInsert)
+        }
+    }
+
+    /** Refreshes a link's RFC metadata while leaving its playback state alone. */
+    private suspend fun updateLinkMetadata(id: Long, link: Link) {
+        conn.prepare("UPDATE link SET type = ?, hreflang = ?, title = ?, length = ? WHERE id = ?;")
+            .use { stmt ->
+                stmt.bindTextOrNull(1, link.type)
+                stmt.bindTextOrNull(2, link.hreflang)
+                stmt.bindTextOrNull(3, link.title)
+                stmt.bindTextOrNull(4, link.length?.toString())
+                stmt.bindLong(5, id)
+                stmt.step()
+            }
+    }
+
     suspend fun selectByFeedId(feedId: String): List<Link> {
         conn.prepare(
             """

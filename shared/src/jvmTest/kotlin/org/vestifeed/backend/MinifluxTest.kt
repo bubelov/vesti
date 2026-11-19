@@ -209,6 +209,69 @@ class MinifluxTest {
     }
 
     /**
+     * A pull re-sends an entry's links. An enclosure that disappeared upstream
+     * must be removed locally, otherwise it keeps appearing in Podcasts.
+     */
+    @Test
+    fun syncIncrementalReconcilesEntryLinks() = runBlocking {
+        db.conf.insert(
+            ConfTable.defaultConf().copy(
+                backend = ConfTable.Backend.Miniflux,
+                minifluxUrl = "http://localhost",
+                minifluxToken = "token",
+                minifluxIncrementalSyncTimestamp = "2024-01-01T00:00:00Z",
+            ),
+        )
+
+        fun dto(enclosureUrl: String, changedAt: Instant) = minifluxEntry(
+            id = 42,
+            changedAt = changedAt,
+        ).copy(
+            url = "https://example.com/article",
+            enclosures = listOf(
+                MinifluxEnclosure(
+                    id = 1,
+                    url = enclosureUrl,
+                    mimeType = "audio/mpeg",
+                    size = 10,
+                ),
+            ),
+        )
+
+        var currentEntry = dto(
+            enclosureUrl = "https://example.com/old.mp3",
+            changedAt = Instant.parse("2024-01-02T00:00:00Z"),
+        )
+
+        val api = object : FakeMinifluxApi() {
+            override suspend fun getFeeds() = emptyList<MinifluxFeed>()
+            override suspend fun getCategories() = emptyList<MinifluxCategory>()
+            override suspend fun getEntriesChangedAfter(
+                changedAfter: Instant,
+                limit: Long,
+            ) = listOf(currentEntry)
+        }
+
+        val backend = Miniflux(api, db)
+        backend.sync(initial = false)
+        assertEquals(
+            setOf("https://example.com/article", "https://example.com/old.mp3"),
+            db.link.selectByEntryId("42").map { it.href }.toSet(),
+        )
+
+        currentEntry = dto(
+            enclosureUrl = "https://example.com/new.mp3",
+            changedAt = Instant.parse("2024-01-03T00:00:00Z"),
+        )
+        backend.sync(initial = false)
+
+        assertEquals(
+            setOf("https://example.com/article", "https://example.com/new.mp3"),
+            db.link.selectByEntryId("42").map { it.href }.toSet(),
+        )
+    }
+
+    /**
      * A push sends only the entries whose local state has not reached the
      * server, with their absolute value — no feed or category re-fetch.
      */

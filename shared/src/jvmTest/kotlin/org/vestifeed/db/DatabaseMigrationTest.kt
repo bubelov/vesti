@@ -792,6 +792,45 @@ class DatabaseMigrationTest {
         assertEquals(17, db.readStats().version)
     }
 
+    /**
+     * The migration chain runs in one transaction. A failing step must roll
+     * back the schema and `user_version` together, otherwise the next launch
+     * retries ALTERs that a previous partial run already applied.
+     */
+    @Test
+    fun failedMigrationRollsBackTheWholeChain() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            // The v17 feed shape has no `ext_blocked_words`, so the v16→v17
+            // DROP COLUMN fails. The v15→v16 index creation before it must not
+            // survive.
+            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL("PRAGMA user_version=15;")
+        }
+
+        val db = Database(driver, dbFile.absolutePath)
+        assertTrue("expected the migration to fail", runCatching { db.connect() }.isFailure)
+
+        assertEquals(15, userVersionOnDisk())
+        assertEquals(0, countIndexes("index_entry_unread_list"))
+        // The index that already existed before the failed chain is untouched.
+        assertEquals(1, countIndexes("index_entry_unread_by_feed"))
+    }
+
+    /** The schema version a fresh connection sees, i.e. what survived commit. */
+    private fun userVersionOnDisk(): Int =
+        BundledSQLiteDriver().open(dbFile.absolutePath).use { conn ->
+            conn.prepare("SELECT user_version FROM pragma_user_version;").use { stmt ->
+                if (stmt.step()) stmt.getInt(0) else 0
+            }
+        }
+
     /** Whether [table] currently has a column named [column]. */
     private fun hasColumn(table: String, column: String): Boolean =
         BundledSQLiteDriver().open(dbFile.absolutePath).use { conn ->
