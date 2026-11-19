@@ -55,6 +55,12 @@ class BackgroundSyncPolicyTest {
     }
 
     @Test
+    fun disabledWhenMinifluxCredentialsAreIncomplete() {
+        assertFalse(BackgroundSyncPolicy.isEnabled(signedIn.copy(minifluxUrl = null)))
+        assertFalse(BackgroundSyncPolicy.isEnabled(signedIn.copy(minifluxToken = null)))
+    }
+
+    @Test
     fun embeddedSessionsScheduleTooBecauseTheyFetchTheirOwnFeeds() {
         assertTrue(
             BackgroundSyncPolicy.isEnabled(

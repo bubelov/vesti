@@ -65,7 +65,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.auth.AuthEvents
-import org.vestifeed.backend.backend
+import org.vestifeed.backend.validateMinifluxCredentials
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.sync.SyncReason
 import org.vestifeed.ui.AppState
@@ -299,17 +299,26 @@ private fun AuthForm(
                 state.authNotice = null
                 try {
                     if (miniflux) {
+                        val url = form.url.trim().trimEnd('/')
+                        val token = form.token
+                        // Validate with the entered values before writing them
+                        // to conf. Persisting first would make a rejected
+                        // attempt the stored session the next launch boots
+                        // into.
+                        state.withDb {
+                            validateMinifluxCredentials(
+                                minifluxUrl = url,
+                                minifluxToken = token,
+                                userAgent = state.userAgent,
+                            )
+                        }
                         state.setConf {
                             it.copy(
                                 backend = ConfTable.Backend.Miniflux,
-                                minifluxUrl = form.url.trim().trimEnd('/').ifBlank { null },
-                                minifluxToken = form.token.ifBlank { null },
+                                minifluxUrl = url.ifBlank { null },
+                                minifluxToken = token.ifBlank { null },
                             )
                         }
-                        // Validate the credentials by listing feeds. This
-                        // throws on a rejected token (401) and, in the browser,
-                        // on a cross-origin API that does not send CORS headers.
-                        state.withDb { backend(state.db, state.userAgent).getFeeds() }
                     } else {
                         state.setConf {
                             it.copy(

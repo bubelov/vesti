@@ -64,6 +64,29 @@ class ConfTest {
     }
 
     @Test
+    fun isConfigured_requiresMinifluxCredentials() {
+        val miniflux = ConfTable.defaultConf().copy(
+            backend = ConfTable.Backend.Miniflux,
+            minifluxUrl = "https://reader.example.com",
+            minifluxToken = "token",
+        )
+
+        assertTrue(miniflux.isConfigured)
+        assertFalse(miniflux.copy(minifluxUrl = null).isConfigured)
+        assertFalse(miniflux.copy(minifluxToken = null).isConfigured)
+        assertFalse(miniflux.copy(minifluxUrl = "  ").isConfigured)
+        assertFalse(miniflux.copy(minifluxToken = "").isConfigured)
+    }
+
+    @Test
+    fun isConfigured_embeddedNeedsNoCredentialsAndNoBackendIsNotConfigured() {
+        assertTrue(
+            ConfTable.defaultConf().copy(backend = ConfTable.Backend.Embedded).isConfigured,
+        )
+        assertFalse(ConfTable.defaultConf().isConfigured)
+    }
+
+    @Test
     fun confQueries_select_emptyReturnsDefault() = runBlocking<Unit> {
         val result = db.conf.select()
         val defaultConf = ConfTable.defaultConf()

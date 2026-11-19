@@ -126,7 +126,24 @@ class ConfTable(private val conn: SQLiteConnection) {
         // server, or null when it has never run. Used to schedule the prune at
         // most once a day.
         val lastPruneAt: String? = null,
-    )
+    ) {
+        /**
+         * Whether the selected backend has everything it needs to sync.
+         *
+         * A Miniflux session whose URL or token was cleared (for example after
+         * a 401) still names the backend but cannot reach it; treating that as
+         * signed in would open the main UI and schedule work that can only
+         * fail.
+         */
+        val isConfigured: Boolean
+            get() = when (backend) {
+                ConfTable.Backend.Miniflux ->
+                    !minifluxUrl.isNullOrBlank() && !minifluxToken.isNullOrBlank()
+
+                ConfTable.Backend.Embedded -> true
+                null -> false
+            }
+    }
 
     fun SQLiteStatement.toConf(): Conf = Conf(
         backend = getBackendOrNull(0),

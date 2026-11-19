@@ -68,3 +68,24 @@ suspend fun backend(db: Database, userAgent: String = ""): Backend {
         null -> Embedded(db, userAgent)
     }
 }
+
+/**
+ * Checks a Miniflux server URL and token without persisting them.
+ *
+ * Sign-in must not write credentials to [ConfTable] before the server accepts
+ * them: a rejected attempt would otherwise become the stored session, and the
+ * next launch would boot into the main UI with syncs that can only fail. The
+ * temporary client is closed here so a failed attempt does not leak it.
+ */
+suspend fun validateMinifluxCredentials(
+    minifluxUrl: String,
+    minifluxToken: String,
+    userAgent: String = "",
+): List<MinifluxFeed> {
+    val client = minifluxHttpClient(token = minifluxToken, userAgent = userAgent)
+    return try {
+        MinifluxHttpApi(client, "${minifluxUrl}/v1/".toUrl()).getFeeds()
+    } finally {
+        client.close()
+    }
+}

@@ -23,10 +23,11 @@ object BackgroundSyncPolicy {
         intervalMillis.coerceAtLeast(MIN_INTERVAL_MILLIS)
 
     /**
-     * Whether [conf] asks for periodic sync at all: the setting is on and a
-     * backend is configured to sync against. A host that has never signed in
-     * must not schedule work that can only fail.
+     * Whether [conf] asks for periodic sync at all: the setting is on and the
+     * selected backend is actually configured. A host that has never signed in
+     * (or whose credentials were cleared) must not schedule work that can only
+     * fail.
      */
     fun isEnabled(conf: ConfTable.Conf): Boolean =
-        conf.syncInBackground && conf.backend != null
+        conf.syncInBackground && conf.isConfigured
 }

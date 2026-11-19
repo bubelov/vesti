@@ -315,7 +315,7 @@ class AppState(
             db.connect()
             db.conf.select()
         }
-        screen = if (conf.backend == null) Screen.Auth else defaultTab()
+        screen = if (conf.isConfigured) defaultTab() else Screen.Auth
         connected = true
 
         withDb {
@@ -349,7 +349,7 @@ class AppState(
         // Honor "Sync on startup": pull from the backend as soon as the app is
         // up so the lists do not open on a stale database. Nothing to sync
         // against until a backend is configured (the auth screen is showing).
-        if (conf.backend != null && conf.syncOnStartup) {
+        if (conf.isConfigured && conf.syncOnStartup) {
             sync.runInBackground(SyncReason.Startup)
         }
         // Ask the update channel whether a newer nightly has been rolled out.
