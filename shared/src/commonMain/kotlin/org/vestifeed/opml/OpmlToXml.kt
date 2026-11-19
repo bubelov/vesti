@@ -30,8 +30,6 @@ fun OpmlDocument.toXml(): String {
             append(escapeAttribute(outline.htmlUrl ?: ""))
             append("\" news:openEntriesInBrowser=\"")
             append(outline.extOpenEntriesInBrowser.toString())
-            append("\" news:blockedWords=\"")
-            append(escapeAttribute(outline.extBlockedWords ?: ""))
             append("\" news:showPreviewImages=\"")
             append(outline.extShowPreviewImages.toString())
             append("\"")

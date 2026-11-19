@@ -19,12 +19,10 @@ class FeedSettingsExporterTest {
         id: String,
         extOpenEntriesInBrowser: Boolean? = null,
         extShowPreviewImages: Boolean? = null,
-        extBlockedWords: String = "",
     ) = FeedTable.Feed(
         id = id,
         title = id,
         extOpenEntriesInBrowser = extOpenEntriesInBrowser,
-        extBlockedWords = extBlockedWords,
         extShowPreviewImages = extShowPreviewImages,
     )
 
@@ -67,13 +65,12 @@ class FeedSettingsExporterTest {
     }
 
     @Test
-    fun exportsAllThreeOverrideFields() {
+    fun exportsAllOverrideFields() {
         val feeds = listOf(
             feed(
                 id = "1",
                 extOpenEntriesInBrowser = true,
                 extShowPreviewImages = false,
-                extBlockedWords = "spam,ads",
             ),
         )
 
@@ -84,16 +81,12 @@ class FeedSettingsExporterTest {
         assertEquals("miniflux:1", obj.getValue("id").asString)
         assertTrue(obj.getValue("open_entries_in_browser").asBoolean)
         assertFalse(obj.getValue("show_preview_images").asBoolean)
-        val blockedWords = obj.getValue("blocked_words").asJsonArray
-        assertEquals(2, blockedWords.size)
-        assertEquals("spam", blockedWords[0].asString)
-        assertEquals("ads", blockedWords[1].asString)
     }
 
     @Test
     fun omitsNullOverrideFields() {
         val feeds = listOf(
-            feed(id = "1", extOpenEntriesInBrowser = true, extBlockedWords = "spam"),
+            feed(id = "1", extOpenEntriesInBrowser = true),
         )
 
         val obj = parseJson(
@@ -101,21 +94,7 @@ class FeedSettingsExporterTest {
         ).asJsonArray[0].asJsonObject
 
         assertTrue(obj.has("open_entries_in_browser"))
-        assertTrue(obj.has("blocked_words"))
         assertFalse(obj.has("show_preview_images"))
-    }
-
-    @Test
-    fun trimsWhitespaceFromBlockedWords() {
-        val feeds = listOf(
-            feed(id = "1", extBlockedWords = "spam , ads ,promo"),
-        )
-
-        val blockedWords = parseJson(
-            exportFeedSettings(feeds, ConfTable.Backend.Miniflux)
-        ).asJsonArray[0].asJsonObject.getValue("blocked_words").asJsonArray
-
-        assertEquals(listOf("spam", "ads", "promo"), blockedWords.map { it.asString })
     }
 
     @Test
@@ -134,17 +113,6 @@ class FeedSettingsExporterTest {
     }
 
     @Test
-    fun treatsEmptyBlockedWordsAsNoOverride() {
-        val feeds = listOf(feed(id = "1", extBlockedWords = ""))
-
-        val array = parseJson(
-            exportFeedSettings(feeds, ConfTable.Backend.Miniflux)
-        ).asJsonArray
-
-        assertEquals(0, array.size)
-    }
-
-    @Test
     fun emptyFeedListProducesEmptyArray() {
         val json = exportFeedSettings(emptyList(), ConfTable.Backend.Miniflux)
         assertEquals("[]", json.replace("\\s".toRegex(), ""))
@@ -156,8 +124,6 @@ class FeedSettingsExporterTest {
             feed(id = "1"),
             feed(id = "2", extOpenEntriesInBrowser = true),
             feed(id = "3", extShowPreviewImages = false),
-            feed(id = "4", extBlockedWords = "spam"),
-            feed(id = "5", extOpenEntriesInBrowser = null, extShowPreviewImages = null, extBlockedWords = ""),
         )
 
         val array = parseJson(
@@ -165,9 +131,6 @@ class FeedSettingsExporterTest {
         ).asJsonArray
 
         val ids = array.map { it.asJsonObject.getValue("id").asString }
-        assertEquals(
-            listOf("miniflux:2", "miniflux:3", "miniflux:4"),
-            ids,
-        )
+        assertEquals(listOf("miniflux:2", "miniflux:3"), ids)
     }
 }

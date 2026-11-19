@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">タグがありません</string>
     <string name="fetch_news_on_startup">起動時にニュースを取得</string>
     <string name="open_entries_in_browser">記事をブラウザで開く</string>
-    <string name="blocked_words">ブロックする単語</string>
-    <string name="comma_separated">カンマ区切り</string>
     <string name="fetch_news_in_background">バックグラウンドで同期</string>
     <string name="sync">同期</string>
     <string name="you_have_no_feeds">フィードがありません</string>

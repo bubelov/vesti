@@ -55,6 +55,5 @@ private fun Element.toOutline(): OpmlOutline {
             "false" -> false
             else -> null
         },
-        extBlockedWords = attr("news:blockedWords"),
     )
 }

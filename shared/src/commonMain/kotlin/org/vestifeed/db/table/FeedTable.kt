@@ -13,7 +13,6 @@ class FeedTable(private val conn: SQLiteConnection) {
                 id TEXT PRIMARY KEY NOT NULL,
                 title TEXT NOT NULL,
                 ext_open_entries_in_browser INTEGER,
-                ext_blocked_words TEXT,
                 ext_show_preview_images INTEGER
             ) STRICT;
           """
@@ -23,7 +22,6 @@ class FeedTable(private val conn: SQLiteConnection) {
         val id: String,
         val title: String,
         val extOpenEntriesInBrowser: Boolean?,
-        val extBlockedWords: String,
         val extShowPreviewImages: Boolean?,
     )
 
@@ -40,12 +38,11 @@ class FeedTable(private val conn: SQLiteConnection) {
         // every category membership would silently disappear.
         conn.prepare(
             """
-            INSERT INTO feed (id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO feed (id, title, ext_open_entries_in_browser, ext_show_preview_images)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 ext_open_entries_in_browser = excluded.ext_open_entries_in_browser,
-                ext_blocked_words = excluded.ext_blocked_words,
                 ext_show_preview_images = excluded.ext_show_preview_images;
             """
         ).use { stmt ->
@@ -53,8 +50,7 @@ class FeedTable(private val conn: SQLiteConnection) {
                 stmt.bindText(1, feed.id)
                 stmt.bindText(2, feed.title)
                 stmt.bindBooleanOrNull(3, feed.extOpenEntriesInBrowser)
-                stmt.bindText(4, feed.extBlockedWords)
-                stmt.bindBooleanOrNull(5, feed.extShowPreviewImages)
+                stmt.bindBooleanOrNull(4, feed.extShowPreviewImages)
                 stmt.step()
                 stmt.reset()
             }
@@ -64,7 +60,7 @@ class FeedTable(private val conn: SQLiteConnection) {
     suspend fun selectAll(): List<Feed> {
         conn.prepare(
             """
-            SELECT id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images
+            SELECT id, title, ext_open_entries_in_browser, ext_show_preview_images
             FROM feed
             ORDER BY title COLLATE NOCASE;
             """
@@ -76,8 +72,7 @@ class FeedTable(private val conn: SQLiteConnection) {
                             id = stmt.getText(0),
                             title = stmt.getText(1),
                             extOpenEntriesInBrowser = stmt.getBoolOrNull(2),
-                            extBlockedWords = stmt.getText(3),
-                            extShowPreviewImages = stmt.getBoolOrNull(4),
+                            extShowPreviewImages = stmt.getBoolOrNull(3),
                         )
                     )
                 }
@@ -88,7 +83,7 @@ class FeedTable(private val conn: SQLiteConnection) {
     suspend fun selectById(id: String): Feed? {
         conn.prepare(
             """
-            SELECT id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images
+            SELECT id, title, ext_open_entries_in_browser, ext_show_preview_images
             FROM feed
             WHERE id = ?;
             """
@@ -98,8 +93,7 @@ class FeedTable(private val conn: SQLiteConnection) {
                 id = stmt.getText(0),
                 title = stmt.getText(1),
                 extOpenEntriesInBrowser = stmt.getBoolOrNull(2),
-                extBlockedWords = stmt.getText(3),
-                extShowPreviewImages = stmt.getBoolOrNull(4),
+                extShowPreviewImages = stmt.getBoolOrNull(3),
             ) else null
         }
     }

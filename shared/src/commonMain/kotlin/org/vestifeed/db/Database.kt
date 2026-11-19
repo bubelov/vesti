@@ -97,8 +97,8 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(FeedTagTable.SCHEMA)
             conn.execSQL(EntryTable.UNREAD_INDEX)
             conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
-            conn.execSQL("PRAGMA user_version=16;")
-            version = 16
+            conn.execSQL("PRAGMA user_version=17;")
+            version = 17
         }
 
         if (version == 1) {
@@ -220,6 +220,14 @@ class Database(driver: SQLiteDriver, val path: String) {
             conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
             conn.execSQL("PRAGMA user_version=16;")
             version = 16
+        }
+
+        if (version == 16) {
+            // Blocked words were an experiment that never filtered anything;
+            // the setting is gone, so drop its column.
+            conn.execSQL("ALTER TABLE feed DROP COLUMN ext_blocked_words;")
+            conn.execSQL("PRAGMA user_version=17;")
+            version = 17
         }
     }
 

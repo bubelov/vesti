@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Sinulla ei ole tunnisteita</string>
     <string name="fetch_news_on_startup">Hae uutiset käynnistyksen yhteydessä</string>
     <string name="open_entries_in_browser">Avaa tietueet selaimessa</string>
-    <string name="blocked_words">Estetyt sanat</string>
-    <string name="comma_separated">pilkulla erotettu</string>
     <string name="fetch_news_in_background">Synkronoi taustalla</string>
     <string name="sync">Synkronoi</string>
     <string name="you_have_no_feeds">Sinulla ei ole syötteitä</string>

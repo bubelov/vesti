@@ -11,7 +11,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.vestifeed.db.table.FeedTagTable
-import org.vestifeed.db.table.FeedTable
 import org.vestifeed.db.table.LinkTable
 import org.vestifeed.db.table.TagTable
 
@@ -58,7 +57,7 @@ class DatabaseConcurrencyTest {
         file.delete()
 
         BundledSQLiteDriver().open(file.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(CONF_SCHEMA_V12)

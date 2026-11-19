@@ -27,7 +27,6 @@ class FeedTest {
         assertTrue(statement.contains("id TEXT PRIMARY KEY NOT NULL"))
         assertTrue(statement.contains("title TEXT NOT NULL"))
         assertTrue(statement.contains("ext_open_entries_in_browser INTEGER"))
-        assertTrue(statement.contains("ext_blocked_words TEXT"))
         assertTrue(statement.contains("ext_show_preview_images INTEGER"))
     }
 
@@ -146,7 +145,6 @@ class FeedTest {
             id = UUID.randomUUID().toString(),
             title = "Test",
             extOpenEntriesInBrowser = null,
-            extBlockedWords = "",
             extShowPreviewImages = null,
         )
         db.feed.insertOrReplace(feed)
@@ -162,7 +160,6 @@ class FeedTest {
             id = UUID.randomUUID().toString(),
             title = "Test",
             extOpenEntriesInBrowser = true,
-            extBlockedWords = "",
             extShowPreviewImages = true,
         )
         db.feed.insertOrReplace(feed)
@@ -178,7 +175,6 @@ class FeedTest {
             id = UUID.randomUUID().toString(),
             title = "Test",
             extOpenEntriesInBrowser = false,
-            extBlockedWords = "",
             extShowPreviewImages = false,
         )
         db.feed.insertOrReplace(feed)
@@ -192,13 +188,11 @@ class FeedTest {
         id: String = UUID.randomUUID().toString(),
         title: String = "Test Feed",
         extOpenEntriesInBrowser: Boolean? = null,
-        extBlockedWords: String = "",
         extShowPreviewImages: Boolean? = null,
     ) = FeedTable.Feed(
         id = id,
         title = title,
         extOpenEntriesInBrowser = extOpenEntriesInBrowser,
-        extBlockedWords = extBlockedWords,
         extShowPreviewImages = extShowPreviewImages,
     )
 

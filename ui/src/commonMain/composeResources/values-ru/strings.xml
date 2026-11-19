@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">У вас нет меток</string>
     <string name="fetch_news_on_startup">Получать новости при запуске</string>
     <string name="open_entries_in_browser">Открывать записи в браузере</string>
-    <string name="blocked_words">Заблокированные слова</string>
-    <string name="comma_separated">разделенные запятой</string>
     <string name="fetch_news_in_background">Синхронизация в фоновом режиме</string>
     <string name="sync">Синхронизировать</string>
     <string name="you_have_no_feeds">У вас нет лент</string>

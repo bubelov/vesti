@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">ليس لديك أي وسوم</string>
     <string name="fetch_news_on_startup">تحميل الأخبار عند بدء التشغيل</string>
     <string name="open_entries_in_browser">فتح العناصر في المتصفح</string>
-    <string name="blocked_words">الكلمات المحظورة</string>
-    <string name="comma_separated">مفصولة بفواصل</string>
     <string name="fetch_news_in_background">المزامنة في الخلفية</string>
     <string name="sync">مزامنة</string>
     <string name="you_have_no_feeds">ليس لديك أي خلاصات</string>

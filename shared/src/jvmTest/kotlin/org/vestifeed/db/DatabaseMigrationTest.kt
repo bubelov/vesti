@@ -6,6 +6,7 @@ import androidx.sqlite.execSQL
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -63,7 +64,7 @@ class DatabaseMigrationTest {
     fun migrate_v1ToV2_addsEntryBodyFontSizeColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
@@ -122,7 +123,7 @@ class DatabaseMigrationTest {
     fun migrate_v2ToV3_addsShowAuthorNameColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
@@ -174,7 +175,7 @@ class DatabaseMigrationTest {
     fun migrate_v3ToV4_addsUseBuiltInAudioPlayerColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
@@ -227,7 +228,7 @@ class DatabaseMigrationTest {
     fun migrate_v4ToV5_createsTagAndFeedTagTables() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
@@ -272,7 +273,6 @@ class DatabaseMigrationTest {
                 id = "f1",
                 title = "Feed",
                 extOpenEntriesInBrowser = null,
-                extBlockedWords = "",
                 extShowPreviewImages = null,
             )
         )
@@ -294,7 +294,7 @@ class DatabaseMigrationTest {
     fun migrate_v5ToV6_addsShowTagsTabColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
 
@@ -348,7 +348,7 @@ class DatabaseMigrationTest {
     fun migrate_v6ToV7_addsShowPodcastsTabColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(TagTable.SCHEMA)
             conn.execSQL(FeedTagTable.SCHEMA)
@@ -405,7 +405,7 @@ class DatabaseMigrationTest {
     fun migrate_v7ToV8_addsExtPlayedColumns() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
             conn.execSQL(confSchemaV7)
@@ -449,7 +449,7 @@ class DatabaseMigrationTest {
     fun migrate_v8ToV9_addsExtOgLogColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             conn.execSQL(LINK_SCHEMA_V7)
             conn.execSQL(confSchemaV7)
@@ -481,7 +481,7 @@ class DatabaseMigrationTest {
     fun migrate_v9ToV10_addsEntriesViewColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V8)
             // A real v9 database has the ext_og_log column added by v8→v9.
             conn.execSQL("ALTER TABLE entry ADD COLUMN ext_og_log TEXT NOT NULL DEFAULT '[]';")
@@ -542,7 +542,7 @@ class DatabaseMigrationTest {
     fun migrate_v10ToV11_resetsOgCheckedForLinkRace() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(CONF_SCHEMA_V12)
@@ -555,7 +555,6 @@ class DatabaseMigrationTest {
                     id = "feed-1",
                     title = "Feed",
                     extOpenEntriesInBrowser = null,
-                    extBlockedWords = "",
                     extShowPreviewImages = true,
                 )
             )
@@ -595,7 +594,7 @@ class DatabaseMigrationTest {
     fun migrate_v11ToV12_dropsOgImageDimensionColumns() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(ENTRY_SCHEMA_V11)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(CONF_SCHEMA_V12)
@@ -636,7 +635,7 @@ class DatabaseMigrationTest {
     fun migrate_v12ToV13_addsLanguageColumn() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(EntryTable.SCHEMA)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(CONF_SCHEMA_V12)
@@ -659,7 +658,7 @@ class DatabaseMigrationTest {
     fun migrate_v13ToV14_addsSyncAndPruneTimestamps() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(EntryTable.SCHEMA)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(CONF_SCHEMA_V13)
@@ -694,7 +693,7 @@ class DatabaseMigrationTest {
     fun migrate_v14ToV15_addsTheUnreadIndex() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(EntryTable.SCHEMA)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(ConfTable.SCHEMA)
@@ -720,7 +719,7 @@ class DatabaseMigrationTest {
     fun migrate_v15ToV16_addsTheUnreadListIndex() = runBlocking<Unit> {
         val driver = BundledSQLiteDriver()
         driver.open(dbFile.absolutePath).use { conn ->
-            conn.execSQL(FeedTable.SCHEMA)
+            conn.execSQL(FEED_SCHEMA_V16)
             conn.execSQL(EntryTable.SCHEMA)
             conn.execSQL(LinkTable.SCHEMA)
             conn.execSQL(ConfTable.SCHEMA)
@@ -741,6 +740,48 @@ class DatabaseMigrationTest {
         assertEquals(1, countIndexes("index_entry_unread_by_feed"))
     }
 
+    /**
+     * v17 removes the blocked-words experiment: the setting was stored and
+     * exported but never filtered anything.
+     */
+    @Test
+    fun migrate_v16ToV17_dropsTheBlockedWordsColumn() = runBlocking<Unit> {
+        val driver = BundledSQLiteDriver()
+        driver.open(dbFile.absolutePath).use { conn ->
+            conn.execSQL(FEED_SCHEMA_V16)
+            conn.execSQL(EntryTable.SCHEMA)
+            conn.execSQL(LinkTable.SCHEMA)
+            conn.execSQL(ConfTable.SCHEMA)
+            conn.execSQL(TagTable.SCHEMA)
+            conn.execSQL(FeedTagTable.SCHEMA)
+            conn.execSQL(EntryTable.UNREAD_INDEX)
+            conn.execSQL(EntryTable.UNREAD_LIST_INDEX)
+            conn.execSQL("PRAGMA user_version=16;")
+
+            // The row must survive the DROP COLUMN.
+            conn.prepare(
+                "INSERT INTO feed (id, title, ext_open_entries_in_browser, ext_blocked_words, ext_show_preview_images) VALUES (?, ?, ?, ?, ?);",
+            ).use { stmt ->
+                stmt.bindText(1, "feed-1")
+                stmt.bindText(2, "Kept feed")
+                stmt.bindNull(3)
+                stmt.bindText(4, "spam")
+                stmt.bindText(5, "1")
+                stmt.step()
+            }
+        }
+
+        assertTrue(hasColumn("feed", "ext_blocked_words"))
+
+        val db = Database(driver, dbFile.absolutePath)
+        db.connect()
+
+        assertFalse(hasColumn("feed", "ext_blocked_words"))
+        val feed = db.feed.selectById("feed-1")!!
+        assertEquals("Kept feed", feed.title)
+        assertEquals(true, feed.extShowPreviewImages)
+    }
+
     @Test
     fun freshDatabase_createsTheUnreadIndex() = runBlocking<Unit> {
         val db = Database(BundledSQLiteDriver(), dbFile.absolutePath)
@@ -748,8 +789,18 @@ class DatabaseMigrationTest {
 
         assertEquals(1, countIndexes("index_entry_unread_by_feed"))
         assertEquals(1, countIndexes("index_entry_unread_list"))
-        assertEquals(16, db.readStats().version)
+        assertEquals(17, db.readStats().version)
     }
+
+    /** Whether [table] currently has a column named [column]. */
+    private fun hasColumn(table: String, column: String): Boolean =
+        BundledSQLiteDriver().open(dbFile.absolutePath).use { conn ->
+            conn.prepare("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?;").use { stmt ->
+                stmt.bindText(1, table)
+                stmt.bindText(2, column)
+                if (stmt.step()) stmt.getInt(0) > 0 else false
+            }
+        }
 
     /** How many indexes of [name] the database has, read through a fresh connection. */
     private fun countIndexes(name: String): Int =

@@ -73,7 +73,6 @@ class LinkTest {
         id = id,
         title = title,
         extOpenEntriesInBrowser = null,
-        extBlockedWords = "",
         extShowPreviewImages = null,
     )
 

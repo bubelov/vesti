@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">У вас немає тегів</string>
     <string name="fetch_news_on_startup">Отримувати новини під час запуску</string>
     <string name="open_entries_in_browser">Відкривати записи в браузері</string>
-    <string name="blocked_words">Заблоковані слова</string>
-    <string name="comma_separated">розділені комами</string>
     <string name="fetch_news_in_background">Синхронізація у фоновому режимі</string>
     <string name="sync">Синхронізувати</string>
     <string name="you_have_no_feeds">У вас немає стрічок</string>

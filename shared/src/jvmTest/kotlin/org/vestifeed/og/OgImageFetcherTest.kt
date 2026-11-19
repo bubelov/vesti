@@ -77,7 +77,6 @@ class OgImageFetcherTest {
                 id = "feed-1",
                 title = "Feed",
                 extOpenEntriesInBrowser = null,
-                extBlockedWords = "",
                 extShowPreviewImages = null,
             ),
         )

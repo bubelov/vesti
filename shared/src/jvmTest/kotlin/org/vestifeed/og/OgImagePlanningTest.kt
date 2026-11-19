@@ -315,7 +315,6 @@ class OgImagePlanningTest {
             id = UUID.randomUUID().toString(),
             title = "Feed",
             extOpenEntriesInBrowser = null,
-            extBlockedWords = "",
             extShowPreviewImages = extShowPreviewImages,
         ).also { db.feed.insertOrReplace(it) }
 

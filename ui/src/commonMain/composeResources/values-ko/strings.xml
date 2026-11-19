@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">태그가 없습니다</string>
     <string name="fetch_news_on_startup">시작할 때 뉴스 가져오기</string>
     <string name="open_entries_in_browser">브라우저에서 항목 열기</string>
-    <string name="blocked_words">차단 단어</string>
-    <string name="comma_separated">쉼표로 구분</string>
     <string name="fetch_news_in_background">백그라운드에서 동기화</string>
     <string name="sync">동기화</string>
     <string name="you_have_no_feeds">피드가 없습니다</string>

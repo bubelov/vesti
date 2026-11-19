@@ -58,7 +58,6 @@ internal class MinifluxSync(private val api: MinifluxApi, private val db: Databa
             db.feed.insertOrReplace(
                 feed.copy(
                     extOpenEntriesInBrowser = cachedFeed.extOpenEntriesInBrowser,
-                    extBlockedWords = cachedFeed.extBlockedWords,
                     extShowPreviewImages = cachedFeed.extShowPreviewImages,
                 ),
             )

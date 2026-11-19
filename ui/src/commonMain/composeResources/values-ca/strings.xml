@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">No tens cap etiqueta</string>
     <string name="fetch_news_on_startup">Obtén les notícies en iniciar</string>
     <string name="open_entries_in_browser">Obre les entrades al navegador</string>
-    <string name="blocked_words">Paraules bloquejades</string>
-    <string name="comma_separated">separades per comes</string>
     <string name="fetch_news_in_background">Sincronitza en segon pla</string>
     <string name="sync">Sincronitza</string>
     <string name="you_have_no_feeds">No tens cap font</string>

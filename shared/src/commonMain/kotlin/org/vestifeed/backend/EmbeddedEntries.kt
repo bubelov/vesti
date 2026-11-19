@@ -63,7 +63,6 @@ internal fun ParsedFeed.toFeed(feedUrl: Url): Pair<FeedTable.Feed, List<LinkTabl
                     id = selfLink.href,
                     title = title,
                     extOpenEntriesInBrowser = false,
-                    extBlockedWords = "",
                     extShowPreviewImages = null,
                 ), links
             )
@@ -103,7 +102,6 @@ internal fun ParsedFeed.toFeed(feedUrl: Url): Pair<FeedTable.Feed, List<LinkTabl
                     id = channel.link,
                     title = channel.title,
                     extOpenEntriesInBrowser = false,
-                    extBlockedWords = "",
                     extShowPreviewImages = null,
                 ), listOf(selfLink, alternateLink)
             )

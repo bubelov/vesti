@@ -29,7 +29,6 @@ class OpmlTest {
             htmlUrl = "https://blog.wirelessmoves.com/",
             extOpenEntriesInBrowser = true,
             extShowPreviewImages = false,
-            extBlockedWords = "abc",
         ),
         OpmlOutline(
             text = "Nextcloud",
@@ -37,7 +36,6 @@ class OpmlTest {
             xmlUrl = "https://nextcloud.com/blogfeed",
             htmlUrl = "https://nextcloud.com/",
             extOpenEntriesInBrowser = false,
-            extBlockedWords = "",
             extShowPreviewImages = true,
         ),
         OpmlOutline(
@@ -46,7 +44,6 @@ class OpmlTest {
             xmlUrl = "https://www.pine64.org/feed/",
             htmlUrl = "https://www.pine64.org/",
             extOpenEntriesInBrowser = true,
-            extBlockedWords = "xyz",
             extShowPreviewImages = null,
         ),
     )
@@ -94,7 +91,6 @@ class OpmlTest {
                 id = UUID.randomUUID().toString(),
                 title = it.text,
                 extOpenEntriesInBrowser = it.extOpenEntriesInBrowser!!,
-                extBlockedWords = it.extBlockedWords!!,
                 extShowPreviewImages = it.extShowPreviewImages,
             )
 
@@ -108,7 +104,6 @@ class OpmlTest {
                 xmlUrl = selfLink.href,
                 htmlUrl = alternateLink.href,
                 extOpenEntriesInBrowser = feed.extOpenEntriesInBrowser,
-                extBlockedWords = feed.extBlockedWords,
                 extShowPreviewImages = feed.extShowPreviewImages,
             )
         }
@@ -159,7 +154,6 @@ class OpmlTest {
             assertEquals("", outline.htmlUrl)
             assertEquals(false, outline.extOpenEntriesInBrowser)
             assertNull(outline.extShowPreviewImages)
-            assertEquals("", outline.extBlockedWords)
         }
 
         importsAllFourFeeds(document)

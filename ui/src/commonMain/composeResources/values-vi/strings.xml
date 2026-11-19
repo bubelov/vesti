@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Bạn không có nhãn nào</string>
     <string name="fetch_news_on_startup">Tải tin tức khi khởi động</string>
     <string name="open_entries_in_browser">Mở bài viết trong trình duyệt</string>
-    <string name="blocked_words">Từ bị chặn</string>
-    <string name="comma_separated">cách nhau bằng dấu phẩy</string>
     <string name="fetch_news_in_background">Đồng bộ trong nền</string>
     <string name="sync">Đồng bộ</string>
     <string name="you_have_no_feeds">Bạn không có nguồn cấp nào</string>

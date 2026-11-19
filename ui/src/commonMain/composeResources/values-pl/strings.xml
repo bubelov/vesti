@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Nie masz tagów</string>
     <string name="fetch_news_on_startup">Pobieraj wiadomości przy starcie</string>
     <string name="open_entries_in_browser">Otwieraj wpisy w przeglądarce</string>
-    <string name="blocked_words">Zablokowane słowa</string>
-    <string name="comma_separated">oddzielone przecinkami</string>
     <string name="fetch_news_in_background">Synchronizuj w tle</string>
     <string name="sync">Synchronizuj</string>
     <string name="you_have_no_feeds">Nie masz kanałów</string>

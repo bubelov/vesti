@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Etiketiniz yok</string>
     <string name="fetch_news_on_startup">Başlangıçta haberleri getir</string>
     <string name="open_entries_in_browser">Girdileri tarayıcıda aç</string>
-    <string name="blocked_words">Engellenen kelimeler</string>
-    <string name="comma_separated">virgülle ayrılmış</string>
     <string name="fetch_news_in_background">Arka planda senkronize et</string>
     <string name="sync">Senkronize et</string>
     <string name="you_have_no_feeds">Akışınız yok</string>

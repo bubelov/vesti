@@ -34,8 +34,6 @@
     <string name="you_have_no_tags">You have no tags</string>
     <string name="fetch_news_on_startup">Fetch news on startup</string>
     <string name="open_entries_in_browser">Open entries in browser</string>
-    <string name="blocked_words">Blocked words</string>
-    <string name="comma_separated">comma-separated</string>
     <string name="fetch_news_in_background">Sync in background</string>
     <string name="sync">Sync</string>
     <string name="you_have_no_feeds">You have no feeds</string>

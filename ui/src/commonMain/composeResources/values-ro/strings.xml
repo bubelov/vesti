@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Nu ai nicio etichetă</string>
     <string name="fetch_news_on_startup">Actualizează știrile la pornire</string>
     <string name="open_entries_in_browser">Deschide articolele în browser</string>
-    <string name="blocked_words">Cuvinte blocate</string>
-    <string name="comma_separated">separate prin virgulă</string>
     <string name="fetch_news_in_background">Sincronizare în fundal</string>
     <string name="sync">Sincronizare</string>
     <string name="you_have_no_feeds">Nu ai niciun feed</string>

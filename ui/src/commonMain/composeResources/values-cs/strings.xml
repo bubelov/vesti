@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Nemáte žádné štítky</string>
     <string name="fetch_news_on_startup">Načíst novinky při spuštění</string>
     <string name="open_entries_in_browser">Otevřít položky v prohlížeči</string>
-    <string name="blocked_words">Zablokovaná slova</string>
-    <string name="comma_separated">oddělené čárkou</string>
     <string name="fetch_news_in_background">Synchronizace v pozadí</string>
     <string name="sync">Synchronizovat</string>
     <string name="you_have_no_feeds">Nemáte žádné kanály</string>

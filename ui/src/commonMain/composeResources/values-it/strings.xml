@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Non hai etichette</string>
     <string name="fetch_news_on_startup">Aggiorna le notizie all\'avvio</string>
     <string name="open_entries_in_browser">Apri gli articoli nel browser</string>
-    <string name="blocked_words">Parole bloccate</string>
-    <string name="comma_separated">separati da virgola</string>
     <string name="fetch_news_in_background">Sincronizza in background</string>
     <string name="sync">Sincronizza</string>
     <string name="you_have_no_feeds">Non hai fonti</string>

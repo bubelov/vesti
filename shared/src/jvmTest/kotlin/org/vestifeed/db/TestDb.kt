@@ -11,6 +11,22 @@ fun testDb(): Database = Database(BundledSQLiteDriver(), ":memory:").also {
 fun db(): Database = testDb()
 
 /**
+ * Schema of the `feed` table up to v16 — the current one plus the
+ * `ext_blocked_words` column that the v16→v17 migration drops. Migration tests
+ * boot below v17 and therefore need this historical shape, otherwise the drop
+ * runs against a table that never had the column.
+ */
+const val FEED_SCHEMA_V16 = """
+    CREATE TABLE feed (
+        id TEXT PRIMARY KEY NOT NULL,
+        title TEXT NOT NULL,
+        ext_open_entries_in_browser INTEGER,
+        ext_blocked_words TEXT,
+        ext_show_preview_images INTEGER
+    ) STRICT;
+"""
+
+/**
  * Schema of the `link` table as it looked from v1 through v7 — used by
  * migration tests that boot a DB at an older user_version. Once v8 lands,
  * [org.vestifeed.db.table.LinkTable.SCHEMA] already contains

@@ -2,11 +2,9 @@ package org.vestifeed.feedsettings
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.db.table.FeedTable
 
@@ -27,7 +25,6 @@ fun exportFeedSettings(
         feeds.forEach { feed ->
             val hasOverrides = feed.extOpenEntriesInBrowser == true
                 || feed.extShowPreviewImages != null
-                || feed.extBlockedWords.isNotEmpty()
 
             if (!hasOverrides) return@forEach
 
@@ -40,13 +37,6 @@ fun exportFeedSettings(
                         put("open_entries_in_browser", true)
                     }
                     feed.extShowPreviewImages?.let { put("show_preview_images", it) }
-                    if (feed.extBlockedWords.isNotEmpty()) {
-                        putJsonArray("blocked_words") {
-                            feed.extBlockedWords.split(",").forEach { word ->
-                                add(word.trim())
-                            }
-                        }
-                    }
                 },
             )
         }

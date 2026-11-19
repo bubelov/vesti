@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Vous n’avez aucune étiquette</string>
     <string name="fetch_news_on_startup">Récupérer les actualités au démarrage</string>
     <string name="open_entries_in_browser">Ouvrir les articles dans le navigateur</string>
-    <string name="blocked_words">Mots bloqués</string>
-    <string name="comma_separated">séparés par des virgules</string>
     <string name="fetch_news_in_background">Synchroniser en arrière-plan</string>
     <string name="sync">Synchroniser</string>
     <string name="you_have_no_feeds">Vous n’êtes abonné à aucun flux</string>

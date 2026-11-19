@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Jy het geen etikette nie</string>
     <string name="fetch_news_on_startup">Laai nuus by aanvang</string>
     <string name="open_entries_in_browser">Maak inskrywings in blaaier oop</string>
-    <string name="blocked_words">Geblokkeerde woorde</string>
-    <string name="comma_separated">deur kommas geskei</string>
     <string name="fetch_news_in_background">Sinchroniseer in die agtergrond</string>
     <string name="sync">Sinchroniseer</string>
     <string name="you_have_no_feeds">Jy het geen feeds nie</string>

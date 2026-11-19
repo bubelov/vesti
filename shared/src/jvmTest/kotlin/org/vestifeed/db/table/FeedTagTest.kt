@@ -170,7 +170,6 @@ class FeedTagTest {
         id = id,
         title = "Feed $id",
         extOpenEntriesInBrowser = null,
-        extBlockedWords = "",
         extShowPreviewImages = null,
     )
 }

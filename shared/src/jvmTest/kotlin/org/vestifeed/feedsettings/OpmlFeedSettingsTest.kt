@@ -11,12 +11,10 @@ class OpmlFeedSettingsTest {
         title: String = "Fetched title",
         extOpenEntriesInBrowser: Boolean? = null,
         extShowPreviewImages: Boolean? = null,
-        extBlockedWords: String = "",
     ) = FeedTable.Feed(
         id = "feed-1",
         title = title,
         extOpenEntriesInBrowser = extOpenEntriesInBrowser,
-        extBlockedWords = extBlockedWords,
         extShowPreviewImages = extShowPreviewImages,
     )
 
@@ -24,7 +22,6 @@ class OpmlFeedSettingsTest {
         text: String = "OPML title",
         extOpenEntriesInBrowser: Boolean? = false,
         extShowPreviewImages: Boolean? = null,
-        extBlockedWords: String? = "",
     ) = OpmlOutline(
         text = text,
         outlines = emptyList(),
@@ -32,7 +29,6 @@ class OpmlFeedSettingsTest {
         htmlUrl = "https://example.com/",
         extOpenEntriesInBrowser = extOpenEntriesInBrowser,
         extShowPreviewImages = extShowPreviewImages,
-        extBlockedWords = extBlockedWords,
     )
 
     @Test
@@ -41,13 +37,11 @@ class OpmlFeedSettingsTest {
             outline(
                 extOpenEntriesInBrowser = true,
                 extShowPreviewImages = false,
-                extBlockedWords = "spoilers, leaks",
             ),
         )
 
         assertEquals(true, result.extOpenEntriesInBrowser)
         assertEquals(false, result.extShowPreviewImages)
-        assertEquals("spoilers, leaks", result.extBlockedWords)
     }
 
     @Test

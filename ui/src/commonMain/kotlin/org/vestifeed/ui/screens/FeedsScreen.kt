@@ -243,7 +243,6 @@ fun FeedsScreen(state: AppState) {
                         htmlUrl = links.firstOrNull { it.rel == AtomLinkRel.Alternate }?.href,
                         extOpenEntriesInBrowser = feed.extOpenEntriesInBrowser,
                         extShowPreviewImages = feed.extShowPreviewImages,
-                        extBlockedWords = feed.extBlockedWords,
                     )
                 },
             )

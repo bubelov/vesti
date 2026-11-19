@@ -17,15 +17,14 @@ internal object MinifluxMapping {
 
     /**
      * The feed's local row. The per-feed display overrides (open in browser,
-     * blocked words, preview images) are the user's, not the server's, so they
-     * are left at their defaults here; [MinifluxSync] copies the cached values
-     * back over them when the feed already exists.
+     * preview images) are the user's, not the server's, so they are left at
+     * their defaults here; [MinifluxSync] copies the cached values back over
+     * them when the feed already exists.
      */
     fun toFeed(feed: MinifluxFeed): FeedTable.Feed = FeedTable.Feed(
         id = feed.id.toString(),
         title = feed.title,
         extOpenEntriesInBrowser = false,
-        extBlockedWords = "",
         extShowPreviewImages = null,
     )
 

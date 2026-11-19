@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Немате ниједну ознаку</string>
     <string name="fetch_news_on_startup">Преузимај вести при покретању</string>
     <string name="open_entries_in_browser">Отварај записе у прегледачу</string>
-    <string name="blocked_words">Блокиране речи</string>
-    <string name="comma_separated">одвојено зарезом</string>
     <string name="fetch_news_in_background">Синхронизација у позадини</string>
     <string name="sync">Синхронизуј</string>
     <string name="you_have_no_feeds">Немате ниједан извор</string>

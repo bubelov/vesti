@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">אין לך תגיות</string>
     <string name="fetch_news_on_startup">הבאת חדשות בעת ההפעלה</string>
     <string name="open_entries_in_browser">פתיחת רשומות בדפדפן</string>
-    <string name="blocked_words">מילים חסומות</string>
-    <string name="comma_separated">מופרדות בפסיקים</string>
     <string name="fetch_news_in_background">סנכרון ברקע</string>
     <string name="sync">סנכרון</string>
     <string name="you_have_no_feeds">אין לך פידים</string>

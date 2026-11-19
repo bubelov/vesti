@@ -25,7 +25,7 @@ class DbStatsReaderTest {
     fun read_returnsTheSchemaVersionAndEveryUserTable() = runBlocking<Unit> {
         val stats = db.readStats()
 
-        assertEquals(16, stats.version)
+        assertEquals(17, stats.version)
         assertEquals(
             listOf("conf", "entry", "feed", "feed_tag", "link", "tag"),
             stats.tables.map { it.name },
@@ -106,7 +106,6 @@ class DbStatsReaderTest {
         id = UUID.randomUUID().toString(),
         title = "Feed",
         extOpenEntriesInBrowser = null,
-        extBlockedWords = "",
         extShowPreviewImages = null,
     )
 

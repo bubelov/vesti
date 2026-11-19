@@ -43,8 +43,6 @@ import org.vestifeed.ui.AppState
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.resources.Res
-import org.vestifeed.ui.resources.blocked_words
-import org.vestifeed.ui.resources.comma_separated
 import org.vestifeed.ui.resources.delete_feed
 import org.vestifeed.ui.resources.export_settings
 import org.vestifeed.ui.resources.follow_global
@@ -61,7 +59,6 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
     val scope = rememberCoroutineScope()
     var feed by remember { mutableStateOf<FeedTable.Feed?>(null) }
     var title by remember { mutableStateOf("") }
-    var blockedWords by remember { mutableStateOf("") }
     var showImages by remember { mutableStateOf<Boolean?>(null) }
     var openInBrowser by remember { mutableStateOf<Boolean?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -71,7 +68,6 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         val loadedFeed = state.withDb { state.db.feed.selectById(feedId) }
         feed = loadedFeed
         title = loadedFeed?.title ?: ""
-        blockedWords = loadedFeed?.extBlockedWords ?: ""
         showImages = loadedFeed?.extShowPreviewImages
         openInBrowser = loadedFeed?.extOpenEntriesInBrowser
         loaded = true
@@ -105,19 +101,6 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         PreviewOption(stringResource(Res.string.hide), showImages == false) { showImages = false }
 
         Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = blockedWords,
-            onValueChange = { blockedWords = it },
-            label = {
-                Text(
-                    "${stringResource(Res.string.blocked_words)} " +
-                        "(${stringResource(Res.string.comma_separated)})",
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -136,7 +119,6 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
                     val current = feed ?: return@launch
                     val updated = current.copy(
                         title = title,
-                        extBlockedWords = blockedWords,
                         extShowPreviewImages = showImages,
                         extOpenEntriesInBrowser = openInBrowser,
                     )

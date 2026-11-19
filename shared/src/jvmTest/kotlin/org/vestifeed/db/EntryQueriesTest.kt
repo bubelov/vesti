@@ -592,13 +592,11 @@ private fun createFeed(
     id: String = UUID.randomUUID().toString(),
     title: String = "Test Feed",
     extOpenEntriesInBrowser: Boolean? = null,
-    extBlockedWords: String = "",
     extShowPreviewImages: Boolean? = null,
 ) = FeedTable.Feed(
     id = id,
     title = title,
     extOpenEntriesInBrowser = extOpenEntriesInBrowser,
-    extBlockedWords = extBlockedWords,
     extShowPreviewImages = extShowPreviewImages,
 )
 

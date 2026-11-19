@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Nincsenek címkéi</string>
     <string name="fetch_news_on_startup">Hírek lekérdezése indításkor</string>
     <string name="open_entries_in_browser">Bejegyzések megnyitása a böngészőben</string>
-    <string name="blocked_words">Tiltott szavak</string>
-    <string name="comma_separated">vesszővel elválasztott</string>
     <string name="fetch_news_in_background">Szinkronizálás a háttérben</string>
     <string name="sync">Szinkronizálás</string>
     <string name="you_have_no_feeds">Nincsen hírfolyama</string>

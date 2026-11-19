@@ -22,7 +22,6 @@ data class OpmlOutline(
     // App-specific extensions
     val extOpenEntriesInBrowser: Boolean?,
     val extShowPreviewImages: Boolean?,
-    val extBlockedWords: String?,
 )
 
 fun opmlVersion(value: String): Result<OpmlVersion> {

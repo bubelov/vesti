@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Du har ingen tagger</string>
     <string name="fetch_news_on_startup">Hent nyheter ved oppstart</string>
     <string name="open_entries_in_browser">Åpne innlegg i nettleser</string>
-    <string name="blocked_words">Blokkerte ord</string>
-    <string name="comma_separated">kommaseparert</string>
     <string name="fetch_news_in_background">Synkroniser i bakgrunnen</string>
     <string name="sync">Synkroniser</string>
     <string name="you_have_no_feeds">Du har ingen feeder</string>

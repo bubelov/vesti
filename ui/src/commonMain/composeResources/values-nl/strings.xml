@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Je hebt geen tags</string>
     <string name="fetch_news_on_startup">Nieuws ophalen bij opstarten</string>
     <string name="open_entries_in_browser">Berichten openen in browser</string>
-    <string name="blocked_words">Geblokkeerde woorden</string>
-    <string name="comma_separated">kommagescheiden</string>
     <string name="fetch_news_in_background">Op de achtergrond synchroniseren</string>
     <string name="sync">Synchroniseren</string>
     <string name="you_have_no_feeds">Je hebt geen feeds</string>

@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">Δεν έχετε ετικέτες</string>
     <string name="fetch_news_on_startup">Λήψη ειδήσεων κατά την εκκίνηση</string>
     <string name="open_entries_in_browser">Άνοιγμα καταχωρίσεων στο πρόγραμμα περιήγησης</string>
-    <string name="blocked_words">Αποκλεισμένες λέξεις</string>
-    <string name="comma_separated">χωρισμένες με κόμμα</string>
     <string name="fetch_news_in_background">Συγχρονισμός στο παρασκήνιο</string>
     <string name="sync">Συγχρονισμός</string>
     <string name="you_have_no_feeds">Δεν έχετε ροές</string>

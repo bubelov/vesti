@@ -137,7 +137,6 @@ class MinifluxMappingTest {
         // null) is the historical default this mapping has always produced.
         assertNull(feed.extShowPreviewImages)
         assertEquals(false, feed.extOpenEntriesInBrowser)
-        assertEquals("", feed.extBlockedWords)
 
         val links = MinifluxMapping.toFeedLinks(dto)
         assertEquals(2, links.size)

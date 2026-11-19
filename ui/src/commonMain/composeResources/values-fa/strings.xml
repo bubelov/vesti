@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">هیچ برچسبی ندارید</string>
     <string name="fetch_news_on_startup">دریافت خبرها هنگام راه‌اندازی</string>
     <string name="open_entries_in_browser">باز کردن مطالب در مرورگر</string>
-    <string name="blocked_words">واژه‌های مسدودشده</string>
-    <string name="comma_separated">جداشده با کاما</string>
     <string name="fetch_news_in_background">همگام‌سازی در پس‌زمینه</string>
     <string name="sync">همگام‌سازی</string>
     <string name="you_have_no_feeds">هیچ خوراکی ندارید</string>

@@ -33,8 +33,6 @@
     <string name="you_have_no_tags">您没有标签</string>
     <string name="fetch_news_on_startup">启动时获取新闻</string>
     <string name="open_entries_in_browser">在浏览器中打开文章</string>
-    <string name="blocked_words">屏蔽词</string>
-    <string name="comma_separated">以逗号分隔</string>
     <string name="fetch_news_in_background">后台同步</string>
     <string name="sync">同步</string>
     <string name="you_have_no_feeds">您没有订阅源</string>
