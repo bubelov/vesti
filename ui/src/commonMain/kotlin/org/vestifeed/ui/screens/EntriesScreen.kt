@@ -278,6 +278,36 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
         }
     }
 
+    // Removing the row that was partly scrolled off at the top leaves the next
+    // row at the same offset, so its top edge stays hidden. Snap the list back
+    // to the very top instead. Removing a row further down keeps the position.
+    fun snapToTopIfRemovingFirstVisibleRow(row: EntryRow) {
+        if (entriesView == ConfTable.EntriesView.Cards) {
+            val removedRow = gridState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == row.id }?.row
+            val partlyScrolled = shouldSnapToTopAfterRemoval(
+                firstVisibleItemIndex = gridState.firstVisibleItemIndex,
+                firstVisibleItemScrollOffset = gridState.firstVisibleItemScrollOffset,
+                removedItemRow = removedRow,
+            )
+            if (partlyScrolled) gridState.requestScrollToItem(0, 0)
+        } else {
+            val removedRow = if (
+                listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key == row.id
+            ) {
+                0
+            } else {
+                null
+            }
+            val partlyScrolled = shouldSnapToTopAfterRemoval(
+                firstVisibleItemIndex = listState.firstVisibleItemIndex,
+                firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset,
+                removedItemRow = removedRow,
+            )
+            if (partlyScrolled) listState.requestScrollToItem(0, 0)
+        }
+    }
+
     fun onEntryBookmark(row: EntryRow) {
         scope.launch {
             val next = bookmarked[row.id] != true
@@ -290,7 +320,10 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 EntriesList.Bookmarked -> !next
                 else -> false
             }
-            if (leavesList) rows = rows.filterNot { it.id == row.id }
+            if (leavesList) {
+                snapToTopIfRemovingFirstVisibleRow(row)
+                rows = rows.filterNot { it.id == row.id }
+            }
             state.refreshUnreadCount()
             state.sync.pushInBackground()
         }
@@ -303,6 +336,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             // the others just dim it. A fast sync can finish between frames, so
             // we cannot rely on the running-state reload to do this.
             rows = if (screen.list is EntriesList.Unread) {
+                snapToTopIfRemovingFirstVisibleRow(row)
                 rows.filterNot { it.id == row.id }
             } else {
                 rows.map { if (it.id == row.id) it.copy(read = true) else it }
@@ -460,6 +494,22 @@ internal fun shouldScrollToTopFor(reason: SyncReason, newEntries: Long): Boolean
     SyncReason.Startup -> newEntries > 0
     SyncReason.Background -> false
 }
+
+/**
+ * Whether removing [removedItemRow] from the first visible row should snap the
+ * list back to the top. This only applies when the list is scrolled a little
+ * into its first row: the row that replaces the removed one would otherwise
+ * inherit the same offset and start partly hidden. Removing a row from any
+ * later row, or removing a first-row item while the list is already fully at
+ * the top, leaves the scroll position alone.
+ */
+internal fun shouldSnapToTopAfterRemoval(
+    firstVisibleItemIndex: Int,
+    firstVisibleItemScrollOffset: Int,
+    removedItemRow: Int?,
+): Boolean = firstVisibleItemIndex == 0 &&
+    firstVisibleItemScrollOffset > 0 &&
+    removedItemRow == 0
 
 /**
  * The entry-list container. On hosts with a touch pull gesture it wraps the
