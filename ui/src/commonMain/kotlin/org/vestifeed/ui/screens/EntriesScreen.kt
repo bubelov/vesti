@@ -90,6 +90,7 @@ import org.vestifeed.ui.RetryingAsyncImage
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.EntryRow
 import org.vestifeed.ui.entries.emptyMessage
+import org.vestifeed.ui.entries.entrySubtitle
 import org.vestifeed.ui.entries.isAwaitingSync
 import org.vestifeed.ui.entries.load
 import org.vestifeed.ui.entries.toRow
@@ -413,6 +414,11 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         gridItems(rows, key = { it.id }) { row ->
+                            val subtitle = entrySubtitle(
+                                row = row,
+                                showAuthor = state.conf.showAuthorName,
+                                language = state.conf.language,
+                            )
                             SwipeableEntry(
                                 enabled = swipesEnabled,
                                 markReadRemoves = screen.list is EntriesList.Unread,
@@ -424,6 +430,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                             ) {
                                 EntryGridCard(
                                     row = row,
+                                    subtitle = subtitle,
                                     isBookmarked = bookmarked[row.id] == true,
                                     onClick = { onEntryClick(row) },
                                     onToggleBookmark = { onEntryBookmark(row) },
@@ -441,6 +448,11 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(rows, key = { it.id }) { row ->
+                            val subtitle = entrySubtitle(
+                                row = row,
+                                showAuthor = state.conf.showAuthorName,
+                                language = state.conf.language,
+                            )
                             SwipeableEntry(
                                 enabled = swipesEnabled,
                                 markReadRemoves = screen.list is EntriesList.Unread,
@@ -452,6 +464,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                             ) {
                                 EntryListCard(
                                     row = row,
+                                    subtitle = subtitle,
                                     isBookmarked = bookmarked[row.id] == true,
                                     onClick = { onEntryClick(row) },
                                     onToggleBookmark = { onEntryBookmark(row) },
@@ -857,6 +870,7 @@ private fun SwipeBackground(markingRead: Boolean, modifier: Modifier = Modifier)
 @Composable
 private fun EntryListCard(
     row: EntryRow,
+    subtitle: String,
     isBookmarked: Boolean,
     onClick: () -> Unit,
     onToggleBookmark: () -> Unit,
@@ -899,7 +913,7 @@ private fun EntryListCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = row.subtitle,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -953,6 +967,7 @@ private fun EntryListCard(
 @Composable
 private fun EntryGridCard(
     row: EntryRow,
+    subtitle: String,
     isBookmarked: Boolean,
     onClick: () -> Unit,
     onToggleBookmark: () -> Unit,
@@ -1016,7 +1031,7 @@ private fun EntryGridCard(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = row.subtitle,
+                        text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

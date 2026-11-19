@@ -180,4 +180,17 @@
     <string name="sync_cursor">Kurzor synchronizace</string>
     <string name="syncing">Synchronizuje se…</string>
     <string name="tables">Tabulky</string>
+    <string name="time_just_now">Právě teď</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="few">před %1$d minutami</item>
+        <item quantity="many">před %1$d minutami</item>
+        <item quantity="one">před %1$d minutou</item>
+        <item quantity="other">před %1$d minutami</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="few">před %1$d hodinami</item>
+        <item quantity="many">před %1$d hodinami</item>
+        <item quantity="one">před %1$d hodinou</item>
+        <item quantity="other">před %1$d hodinami</item>
+    </plurals>
 </resources>

@@ -180,4 +180,13 @@
     <string name="sync_cursor">Cursor de sincronització</string>
     <string name="syncing">S'està sincronitzant…</string>
     <string name="tables">Taules</string>
+    <string name="time_just_now">Ara mateix</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">fa %1$d minut</item>
+        <item quantity="other">fa %1$d minuts</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">fa %1$d hora</item>
+        <item quantity="other">fa %1$d hores</item>
+    </plurals>
 </resources>

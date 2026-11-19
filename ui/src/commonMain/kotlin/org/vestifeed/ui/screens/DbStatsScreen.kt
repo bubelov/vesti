@@ -14,12 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlin.time.Duration
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.table.ConfTable
 import org.vestifeed.dbstats.DbStats
 import org.vestifeed.dbstats.TableStats
 import org.vestifeed.ui.AppState
+import org.vestifeed.ui.i18n.formatLocalizedDateTime
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.backend
@@ -141,7 +141,7 @@ private fun statsSections(
                         StatsEntry(
                             label = stringResource(Res.string.last_sync),
                             value = conf.lastSyncAt
-                                ?.let { formatTimestamp(it) ?: it }
+                                ?.let { formatTimestamp(it, language = conf.language) ?: it }
                                 ?: stringResource(Res.string.never),
                         ),
                     )
@@ -153,7 +153,7 @@ private fun statsSections(
                             StatsEntry(
                                 label = stringResource(Res.string.sync_cursor),
                                 value = conf.minifluxIncrementalSyncTimestamp
-                                    ?.let { formatTimestamp(it) ?: it }
+                                    ?.let { formatTimestamp(it, language = conf.language) ?: it }
                                     ?: stringResource(Res.string.never),
                             ),
                         )
@@ -173,7 +173,7 @@ private fun statsSections(
                             StatsEntry(
                                 label = stringResource(Res.string.last_prune),
                                 value = conf.lastPruneAt
-                                    ?.let { formatTimestamp(it) ?: it }
+                                    ?.let { formatTimestamp(it, language = conf.language) ?: it }
                                     ?: stringResource(Res.string.never),
                             ),
                         )
@@ -312,20 +312,12 @@ internal fun formatSyncDuration(duration: Duration): String {
     return "${seconds / 60}m ${seconds % 60}s"
 }
 
-/** Renders a timestamp as a local date and time, e.g. `Oct 31, 2026 09:14`. */
+/** Renders a timestamp as a localized date and time in [timeZone]. */
 internal fun formatTimestamp(
     raw: String,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    language: String? = null,
 ): String? {
     val instant = raw.toInstantOrNull() ?: return null
-    val local = instant.toLocalDateTime(timeZone)
-    val month = MONTH_NAMES[local.month.ordinal]
-    val hour = local.hour.toString().padStart(2, '0')
-    val minute = local.minute.toString().padStart(2, '0')
-    return "$month ${local.day}, ${local.year} $hour:$minute"
+    return formatLocalizedDateTime(instant, timeZone, language)
 }
-
-private val MONTH_NAMES = listOf(
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-)

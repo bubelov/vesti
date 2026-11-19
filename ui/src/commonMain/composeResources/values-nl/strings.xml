@@ -180,4 +180,13 @@
     <string name="sync_cursor">Synchronisatiecursor</string>
     <string name="syncing">Synchroniseren…</string>
     <string name="tables">Tabellen</string>
+    <string name="time_just_now">Zojuist</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d minuut geleden</item>
+        <item quantity="other">%1$d minuten geleden</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d uur geleden</item>
+        <item quantity="other">%1$d uur geleden</item>
+    </plurals>
 </resources>

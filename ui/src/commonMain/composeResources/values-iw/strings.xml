@@ -180,4 +180,15 @@
     <string name="sync_cursor">סמן סנכרון</string>
     <string name="syncing">מסנכרן…</string>
     <string name="tables">טבלאות</string>
+    <string name="time_just_now">עכשיו</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">לפני %1$d דקה</item>
+        <item quantity="other">לפני %1$d דקות</item>
+        <item quantity="two">לפני %1$d דקות</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">לפני %1$d שעה</item>
+        <item quantity="other">לפני %1$d שעות</item>
+        <item quantity="two">לפני %1$d שעות</item>
+    </plurals>
 </resources>

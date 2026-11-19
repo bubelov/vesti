@@ -180,4 +180,13 @@
     <string name="sync_cursor">Senkronizasyon imleci</string>
     <string name="syncing">Senkronize ediliyor…</string>
     <string name="tables">Tablolar</string>
+    <string name="time_just_now">Şimdi</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d dakika önce</item>
+        <item quantity="other">%1$d dakika önce</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d saat önce</item>
+        <item quantity="other">%1$d saat önce</item>
+    </plurals>
 </resources>

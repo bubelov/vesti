@@ -3,6 +3,7 @@ package org.vestifeed.ui.screens
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.datetime.TimeZone
@@ -36,14 +37,12 @@ class DbStatsFormattingTest {
 
     @Test
     fun formatTimestamp_rendersInTheGivenZone() {
-        assertEquals(
-            "Oct 31, 2026 09:14",
-            formatTimestamp("2026-10-31T09:14:00Z", TimeZone.UTC),
-        )
-        assertEquals(
-            "Oct 31, 2026 12:14",
-            formatTimestamp("2026-10-31T09:14:00Z", TimeZone.of("Europe/Moscow")),
-        )
+        val utc = formatTimestamp("2026-10-31T09:14:00Z", TimeZone.UTC, "en")!!
+        assertTrue(utc.contains("2026"), "expected the year in \"$utc\"")
+        assertTrue(utc.contains("9:14"), "expected 09:14 in \"$utc\"")
+
+        val moscow = formatTimestamp("2026-10-31T09:14:00Z", TimeZone.of("Europe/Moscow"), "en")!!
+        assertTrue(moscow.contains("12:14"), "expected 12:14 in \"$moscow\"")
     }
 
     @Test

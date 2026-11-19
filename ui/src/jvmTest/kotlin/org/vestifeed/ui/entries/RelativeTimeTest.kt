@@ -6,26 +6,45 @@ import kotlin.time.Instant
 
 class RelativeTimeTest {
 
+    private val now = Instant.parse("2026-08-12T12:00:00Z")
+
     @Test
-    fun formatCalendarDate_isHumanReadable() {
-        assertEquals("Aug 12, 2026", formatCalendarDate(Instant.parse("2026-08-12T09:30:00Z")))
+    fun futureAndSubMinuteDatesAreJustNow() {
+        assertEquals(
+            RelativeTime.JustNow,
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-12T11:59:30Z")),
+        )
+        assertEquals(
+            RelativeTime.JustNow,
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-12T12:30:00Z")),
+        )
     }
 
     @Test
-    fun formatCalendarDate_doesNotPadTheDay() {
-        assertEquals("Jan 5, 2026", formatCalendarDate(Instant.parse("2026-01-05T23:59:00Z")))
+    fun underAnHourIsMinutes() {
+        assertEquals(
+            RelativeTime.MinutesAgo(2),
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-12T11:58:00Z")),
+        )
+        assertEquals(
+            RelativeTime.MinutesAgo(59),
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-12T11:01:00Z")),
+        )
     }
 
     @Test
-    fun formatRelativeTime_olderThanDayUsesCalendarDate() {
-        val now = Instant.parse("2026-08-20T00:00:00Z")
-        val published = Instant.parse("2026-08-12T09:30:00Z")
-        assertEquals("Aug 12, 2026", formatRelativeTime(now, published))
+    fun underADayIsHours() {
+        assertEquals(
+            RelativeTime.HoursAgo(3),
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-12T09:00:00Z")),
+        )
     }
 
     @Test
-    fun formatRelativeTime_recentEntriesStayRelative() {
-        val now = Instant.parse("2026-08-12T12:00:00Z")
-        assertEquals("2 h ago", formatRelativeTime(now, Instant.parse("2026-08-12T10:00:00Z")))
+    fun olderThanDayFallsBackToTheCalendarDate() {
+        assertEquals(
+            RelativeTime.OlderThanDay,
+            RelativeTimeCalculator.compute(now, Instant.parse("2026-08-11T11:59:00Z")),
+        )
     }
 }

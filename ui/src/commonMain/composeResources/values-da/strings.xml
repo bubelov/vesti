@@ -180,4 +180,13 @@
     <string name="sync_cursor">Synkroniseringsmarkør</string>
     <string name="syncing">Synkroniserer…</string>
     <string name="tables">Tabeller</string>
+    <string name="time_just_now">Lige nu</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">for %1$d minut siden</item>
+        <item quantity="other">for %1$d minutter siden</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">for %1$d time siden</item>
+        <item quantity="other">for %1$d timer siden</item>
+    </plurals>
 </resources>

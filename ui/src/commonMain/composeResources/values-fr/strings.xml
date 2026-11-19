@@ -180,4 +180,13 @@
     <string name="sync_cursor">Curseur de synchronisation</string>
     <string name="syncing">Synchronisation…</string>
     <string name="tables">Tables</string>
+    <string name="time_just_now">À l’instant</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">il y a %1$d minute</item>
+        <item quantity="other">il y a %1$d minutes</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">il y a %1$d heure</item>
+        <item quantity="other">il y a %1$d heures</item>
+    </plurals>
 </resources>

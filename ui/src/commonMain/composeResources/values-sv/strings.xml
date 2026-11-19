@@ -180,4 +180,13 @@
     <string name="sync_cursor">Synkroniseringsmarkör</string>
     <string name="syncing">Synkroniserar…</string>
     <string name="tables">Tabeller</string>
+    <string name="time_just_now">Just nu</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">för %1$d minut sedan</item>
+        <item quantity="other">för %1$d minuter sedan</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">för %1$d timme sedan</item>
+        <item quantity="other">för %1$d timmar sedan</item>
+    </plurals>
 </resources>

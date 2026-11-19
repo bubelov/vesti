@@ -180,4 +180,13 @@
     <string name="sync_cursor">Δείκτης συγχρονισμού</string>
     <string name="syncing">Γίνεται συγχρονισμός…</string>
     <string name="tables">Πίνακες</string>
+    <string name="time_just_now">Μόλις τώρα</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">πριν %1$d λεπτό</item>
+        <item quantity="other">πριν %1$d λεπτά</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">πριν %1$d ώρα</item>
+        <item quantity="other">πριν %1$d ώρες</item>
+    </plurals>
 </resources>

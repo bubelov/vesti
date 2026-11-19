@@ -180,4 +180,13 @@
     <string name="sync_cursor">Sinchroniseerposisie</string>
     <string name="syncing">Sinchroniseer tans…</string>
     <string name="tables">Tabelle</string>
+    <string name="time_just_now">Netnou</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d min gelede</item>
+        <item quantity="other">%1$d min gelede</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d uur gelede</item>
+        <item quantity="other">%1$d uur gelede</item>
+    </plurals>
 </resources>

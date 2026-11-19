@@ -7,6 +7,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.tag_feed_count
+import org.vestifeed.ui.resources.time_hours_ago
+import org.vestifeed.ui.resources.time_minutes_ago
 import org.vestifeed.ui.resources.unread_entry_count
 
 /**
@@ -35,6 +37,21 @@ class PluralFormattingTest {
 
             assertTrue("expected $count in \"$text\"", text.contains(count.toString()))
             assertFalse("unsubstituted specifier in \"$text\"", text.contains("%"))
+        }
+    }
+
+    @Test
+    fun relativeTimePluralsSubstituteTheNumber() = runBlocking {
+        listOf(0, 1, 2, 5, 11, 22).forEach { count ->
+            listOf(
+                Res.plurals.time_minutes_ago,
+                Res.plurals.time_hours_ago,
+            ).forEach { plural ->
+                val text = getPluralString(plural, count, count)
+
+                assertTrue("expected $count in \"$text\"", text.contains(count.toString()))
+                assertFalse("unsubstituted specifier in \"$text\"", text.contains("%"))
+            }
         }
     }
 }

@@ -181,4 +181,21 @@
     <string name="pending_changes">Pending changes</string>
     <string name="server">Server</string>
     <string name="bookmarked">Bookmarked</string>
+    <string name="time_just_now">Just now</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="zero">%1$d mins ago</item>
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="two">%1$d mins ago</item>
+        <item quantity="few">%1$d mins ago</item>
+        <item quantity="many">%1$d mins ago</item>
+        <item quantity="other">%1$d mins ago</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="zero">%1$d hours ago</item>
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="two">%1$d hours ago</item>
+        <item quantity="few">%1$d hours ago</item>
+        <item quantity="many">%1$d hours ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
 </resources>

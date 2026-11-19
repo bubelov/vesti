@@ -180,4 +180,13 @@
     <string name="sync_cursor">نشانگر همگام‌سازی</string>
     <string name="syncing">در حال همگام‌سازی…</string>
     <string name="tables">جدول‌ها</string>
+    <string name="time_just_now">هم اکنون</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d دقیقه پیش</item>
+        <item quantity="other">%1$d دقیقه پیش</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d ساعت پیش</item>
+        <item quantity="other">%1$d ساعت پیش</item>
+    </plurals>
 </resources>

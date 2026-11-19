@@ -180,4 +180,11 @@
     <string name="sync_cursor">同步游标</string>
     <string name="syncing">正在同步…</string>
     <string name="tables">表</string>
+    <string name="time_just_now">刚刚</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="other">%1$d 分钟前</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="other">%1$d 小时前</item>
+    </plurals>
 </resources>

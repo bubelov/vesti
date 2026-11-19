@@ -33,6 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.Screen
 import org.vestifeed.ui.entries.EntryRow
+import org.vestifeed.ui.entries.entrySubtitle
 import org.vestifeed.ui.entries.toRow
 import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.no_results
@@ -93,6 +94,11 @@ fun SearchScreen(state: AppState) {
 
             else -> LazyColumn(Modifier.weight(1f)) {
                 items(rows, key = { it.id }) { row ->
+                    val subtitle = entrySubtitle(
+                        row = row,
+                        showAuthor = state.conf.showAuthorName,
+                        language = state.conf.language,
+                    )
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -103,7 +109,7 @@ fun SearchScreen(state: AppState) {
                             Text(row.title, style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                row.subtitle,
+                                subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

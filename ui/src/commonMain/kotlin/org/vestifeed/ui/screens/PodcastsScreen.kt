@@ -38,7 +38,7 @@ import org.vestifeed.db.table.LinkTable
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.Screen
-import org.vestifeed.ui.entries.formatCalendarDate
+import org.vestifeed.ui.i18n.formatLocalizedDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.resources.Res
@@ -192,7 +192,7 @@ fun PodcastsScreen(state: AppState) {
                                     Text(row.entryTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 },
                                 supportingContent = {
-                                    Text("${row.feedTitle} · ${formatCalendarDate(row.entryPublished)}")
+                                    Text("${row.feedTitle} · ${formatLocalizedDate(row.entryPublished, state.conf.language)}")
                                 },
                                 trailingContent = {
                                     when {

@@ -180,4 +180,13 @@
     <string name="sync_cursor">Szinkronizálási kurzor</string>
     <string name="syncing">Szinkronizálás…</string>
     <string name="tables">Táblák</string>
+    <string name="time_just_now">Épp most</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d perce</item>
+        <item quantity="other">%1$d perce</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d órája</item>
+        <item quantity="other">%1$d órája</item>
+    </plurals>
 </resources>

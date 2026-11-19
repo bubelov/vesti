@@ -49,7 +49,7 @@ import org.vestifeed.parser.AtomLinkRel
 import org.vestifeed.platform.proxiedUrl
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.RetryingAsyncImage
-import org.vestifeed.ui.entries.formatCalendarDate
+import org.vestifeed.ui.i18n.formatLocalizedDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.resources.Res
@@ -229,7 +229,7 @@ fun EntryScreen(state: AppState, entryId: String) {
                             append(current.authorName)
                         }
                         if (isNotEmpty()) append(" · ")
-                        append(formatCalendarDate(current.published))
+                        append(formatLocalizedDate(current.published, state.conf.language))
                     }
                     Text(
                         meta,

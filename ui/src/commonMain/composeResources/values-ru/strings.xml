@@ -180,4 +180,17 @@
     <string name="sync_cursor">Курсор синхронизации</string>
     <string name="syncing">Синхронизация…</string>
     <string name="tables">Таблицы</string>
+    <string name="time_just_now">Только что</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d минуту назад</item>
+        <item quantity="few">%1$d минуты назад</item>
+        <item quantity="many">%1$d минут назад</item>
+        <item quantity="other">%1$d минут назад</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d час назад</item>
+        <item quantity="few">%1$d часа назад</item>
+        <item quantity="many">%1$d часов назад</item>
+        <item quantity="other">%1$d часов назад</item>
+    </plurals>
 </resources>
