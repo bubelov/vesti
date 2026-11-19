@@ -850,7 +850,7 @@ class EntryTable(private val conn: SQLiteConnection) {
     ) : org.vestifeed.entries.EntryRowMappable
 
     suspend fun selectByQuery(query: String): List<SelectByQuery> {
-        val searchQuery = "%$query%"
+        val searchQuery = "%${escapeLikePattern(query)}%"
         val sql = """
             SELECT e.id, f.ext_show_preview_images, e.ext_og_image_url,
                    e.title, f.title as feed_title, e.published,
@@ -858,7 +858,10 @@ class EntryTable(private val conn: SQLiteConnection) {
                    e.ext_bookmarked
             FROM entry e
             JOIN feed f ON f.id = e.feed_id
-            WHERE e.title LIKE ? OR e.summary LIKE ? OR e.content_text LIKE ?
+            WHERE e.title LIKE ? ESCAPE '\'
+               OR e.summary LIKE ? ESCAPE '\'
+               OR e.content_text LIKE ? ESCAPE '\'
+            ORDER BY e.published DESC
             LIMIT 500
         """.trimIndent()
 
@@ -871,6 +874,20 @@ class EntryTable(private val conn: SQLiteConnection) {
                     add(statementToSelectByQuery(stmt))
                 }
             }
+        }
+    }
+
+    /**
+     * Escapes the characters `LIKE` treats specially — plus the escape
+     * character itself — so searching for `100%` or `a_b` matches those
+     * literals instead of every row.
+     */
+    private fun escapeLikePattern(query: String): String = buildString(query.length) {
+        query.forEach { character ->
+            when (character) {
+                '\\', '%', '_' -> append('\\')
+            }
+            append(character)
         }
     }
 }

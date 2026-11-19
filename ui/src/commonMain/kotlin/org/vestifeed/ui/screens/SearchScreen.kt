@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.ui.AppState
 import org.vestifeed.ui.Screen
@@ -37,6 +38,9 @@ import org.vestifeed.ui.resources.Res
 import org.vestifeed.ui.resources.no_results
 import org.vestifeed.ui.resources.search
 import org.vestifeed.ui.resources.type_at_least_3_characters_to_search
+
+/** Coalesce keystrokes before running the (full-table) search query. */
+private const val SearchDebounceMillis = 300L
 
 @Composable
 fun SearchScreen(state: AppState) {
@@ -50,6 +54,9 @@ fun SearchScreen(state: AppState) {
             rows = emptyList()
             loading = false
         } else {
+            // This effect is cancelled and restarted on every keystroke, so
+            // the delay turns a fast typist's input into one query.
+            delay(SearchDebounceMillis)
             loading = true
             rows = state.withDb {
                 state.db.entry.selectByQuery(trimmed).map { it.toRow(state.conf) }

@@ -108,6 +108,51 @@ class EntryQueriesTest {
     }
 
     @Test
+    fun selectByQuery_treatsLikeWildcardsLiterally() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+
+        val percent = entry().copy(feedId = feed.id, contentText = "100% complete")
+        val plain = entry().copy(feedId = feed.id, contentText = "100 complete")
+        val underscore = entry().copy(feedId = feed.id, contentText = "snake_case")
+        val letters = entry().copy(feedId = feed.id, contentText = "snakeXcase")
+        val backslash = entry().copy(feedId = feed.id, contentText = """path\to""")
+        db.entry.insertOrReplace(listOf(percent, plain, underscore, letters, backslash))
+
+        assertEquals(listOf(percent.id), db.entry.selectByQuery("%").map { it.id })
+        assertEquals(listOf(underscore.id), db.entry.selectByQuery("_").map { it.id })
+        assertEquals(listOf(backslash.id), db.entry.selectByQuery("""\""").map { it.id })
+    }
+
+    @Test
+    fun selectByQuery_ordersByPublishedDescending() = runBlocking<Unit> {
+        val feed = createFeed()
+        db.feed.insertOrReplace(feed)
+
+        val older = entry().copy(
+            feedId = feed.id,
+            contentText = "needle older",
+            published = Instant.parse("2024-01-01T00:00:00Z"),
+        )
+        val newer = entry().copy(
+            feedId = feed.id,
+            contentText = "needle newer",
+            published = Instant.parse("2026-01-01T00:00:00Z"),
+        )
+        val middle = entry().copy(
+            feedId = feed.id,
+            contentText = "needle middle",
+            published = Instant.parse("2025-01-01T00:00:00Z"),
+        )
+        db.entry.insertOrReplace(listOf(older, newer, middle))
+
+        assertEquals(
+            listOf(newer.id, middle.id, older.id),
+            db.entry.selectByQuery("needle").map { it.id },
+        )
+    }
+
+    @Test
     fun selectUnread() = runBlocking<Unit> {
         val feed1 = createFeed(title = "Feed 1")
         val feed2 = createFeed(title = "Feed 2")
