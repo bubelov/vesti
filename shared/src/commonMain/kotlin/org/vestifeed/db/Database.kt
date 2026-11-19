@@ -271,7 +271,7 @@ class Database(driver: SQLiteDriver, val path: String) {
      * whose target id is already taken is skipped rather than merged, so an
      * unusual collision cannot destroy either subscription.
      */
-    private fun rekeyEmbeddedFeedsBySelfLink(conn: SQLiteConnection) {
+    private suspend fun rekeyEmbeddedFeedsBySelfLink(conn: SQLiteConnection) {
         val remaps = mutableListOf<Pair<String, String>>()
         val seen = mutableSetOf<String>()
         conn.prepare(
@@ -322,7 +322,7 @@ class Database(driver: SQLiteDriver, val path: String) {
         }
     }
 
-    private fun feedExists(conn: SQLiteConnection, id: String): Boolean =
+    private suspend fun feedExists(conn: SQLiteConnection, id: String): Boolean =
         conn.prepare("SELECT 1 FROM feed WHERE id = ?;").use { stmt ->
             stmt.bindText(1, id)
             stmt.step()
