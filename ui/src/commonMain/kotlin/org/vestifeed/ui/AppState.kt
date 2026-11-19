@@ -201,6 +201,26 @@ class AppState(
         }
     }
 
+    /**
+     * Deletes [feedId] locally and best-effort on the server, then refreshes
+     * the counts that depend on it. Shared by the feeds list and the feed
+     * settings screen so both keep the unread badge and the Podcasts tab in
+     * step.
+     */
+    suspend fun deleteFeed(feedId: String) {
+        withDb {
+            // A server-side delete is best effort; the local rows go either way.
+            runCatching { backend(db, userAgent).deleteFeed(feedId) }
+            db.transaction {
+                db.link.deleteForFeed(feedId)
+                db.entry.deleteByFeedId(feedId)
+                db.feed.deleteById(feedId)
+            }
+        }
+        refreshUnreadCount()
+        refreshHasPodcasts()
+    }
+
     /** Loads [curatedCatalog] once, caching it for the session. */
     suspend fun curatedFeeds(): CuratedCatalog {
         curatedCatalog?.let { return it }

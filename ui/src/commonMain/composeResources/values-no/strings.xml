@@ -189,4 +189,5 @@
         <item quantity="one">%1$d time siden</item>
         <item quantity="other">%1$d timer siden</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Can not find entry with id %1$s</string>
 </resources>

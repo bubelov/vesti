@@ -191,4 +191,5 @@
         <item quantity="other">לפני %1$d שעות</item>
         <item quantity="two">לפני %1$d שעות</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Can not find entry with id %1$s</string>
 </resources>

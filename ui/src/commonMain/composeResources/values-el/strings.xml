@@ -189,4 +189,5 @@
         <item quantity="one">πριν %1$d ώρα</item>
         <item quantity="other">πριν %1$d ώρες</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Can not find entry with id %1$s</string>
 </resources>

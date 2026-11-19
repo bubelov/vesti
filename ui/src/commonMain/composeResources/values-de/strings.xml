@@ -189,4 +189,5 @@
         <item quantity="one">vor %1$d Stunde</item>
         <item quantity="other">vor %1$d Stunden</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Eintrag mit Id %1$s nicht gefunden</string>
 </resources>

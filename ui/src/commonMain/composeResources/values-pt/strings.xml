@@ -189,4 +189,5 @@
         <item quantity="one">há %1$d hora</item>
         <item quantity="other">há %1$d horas</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Não foi possível encontrar entrada com a ID %1$s</string>
 </resources>

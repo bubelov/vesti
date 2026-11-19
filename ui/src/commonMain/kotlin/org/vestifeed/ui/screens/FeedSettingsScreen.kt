@@ -157,14 +157,7 @@ fun FeedSettingsScreen(state: AppState, feedId: String) {
         OutlinedButton(
             onClick = {
                 scope.launch {
-                    state.withDb {
-                        runCatching { backend(state.db, state.userAgent).deleteFeed(feedId) }
-                        state.db.transaction {
-                            state.db.link.deleteForFeed(feedId)
-                            state.db.entry.deleteByFeedId(feedId)
-                            state.db.feed.deleteById(feedId)
-                        }
-                    }
+                    state.deleteFeed(feedId)
                     state.pop()
                 }
             },

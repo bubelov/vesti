@@ -189,4 +189,5 @@
         <item quantity="one">il y a %1$d heure</item>
         <item quantity="other">il y a %1$d heures</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Impossible de trouver l’élément avec l’id %1$s</string>
 </resources>

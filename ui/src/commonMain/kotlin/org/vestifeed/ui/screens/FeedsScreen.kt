@@ -161,16 +161,7 @@ fun FeedsScreen(state: AppState) {
             busy = true
             message = null
             try {
-                // Best-effort server-side delete; the local rows go either way.
-                state.withDb {
-                    runCatching { backend(state.db, state.userAgent).deleteFeed(feedId) }
-                    state.db.transaction {
-                        state.db.link.deleteForFeed(feedId)
-                        state.db.entry.deleteByFeedId(feedId)
-                        state.db.feed.deleteById(feedId)
-                    }
-                }
-                state.refreshUnreadCount()
+                state.deleteFeed(feedId)
                 message = getString(Res.string.removed_feed, title)
                 messageIsError = false
                 refreshKey++

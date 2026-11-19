@@ -53,6 +53,7 @@ import org.vestifeed.ui.i18n.formatLocalizedDate
 import org.vestifeed.ui.icons.MaterialSymbol
 import org.vestifeed.ui.icons.MaterialSymbols
 import org.vestifeed.ui.resources.Res
+import org.vestifeed.ui.resources.cannot_find_entry_with_id_s
 import org.vestifeed.ui.resources.close_search
 import org.vestifeed.ui.resources.find_in_page
 import org.vestifeed.ui.resources.find_match_n_of_n
@@ -74,6 +75,9 @@ import org.vestifeed.ui.resources.previous_match
 fun EntryScreen(state: AppState, entryId: String) {
     var entry by remember { mutableStateOf<EntryTable.Entry?>(null) }
     var feedTitle by remember { mutableStateOf("") }
+    // Distinguishes "the query has not returned yet" from "the entry is gone"
+    // (for example, pruned or deleted on the server while the screen was open).
+    var loaded by remember { mutableStateOf(false) }
 
     // In-entry find state. Local because only this screen uses it.
     var searchQuery by remember { mutableStateOf("") }
@@ -85,23 +89,28 @@ fun EntryScreen(state: AppState, entryId: String) {
     val textTops = remember { mutableMapOf<Int, Float>() }
 
     suspend fun reload() {
-        val loaded = state.withDb { state.db.entry.selectById(entryId) }
-        entry = loaded
+        val loadedEntry = state.withDb { state.db.entry.selectById(entryId) }
+        entry = loadedEntry
         // Publish what the app bar needs to render and perform this entry's
         // actions.
-        state.entryTitle = loaded?.title.orEmpty()
-        state.entryBookmarked = loaded?.extBookmarked ?: false
-        state.entryRead = loaded?.extRead ?: false
+        state.entryTitle = loadedEntry?.title.orEmpty()
+        state.entryBookmarked = loadedEntry?.extBookmarked ?: false
+        state.entryRead = loadedEntry?.extRead ?: false
         val links = state.withDb { state.db.link.selectByEntryId(entryId) }
         state.entryHref = links.firstOrNull {
             it.rel == AtomLinkRel.Alternate && it.type?.startsWith("text/html") == true
         }?.href ?: links.firstOrNull { it.rel == AtomLinkRel.Alternate }?.href
         feedTitle = state.withDb {
-            loaded?.let { state.db.feed.selectById(it.feedId)?.title }
+            loadedEntry?.let { state.db.feed.selectById(it.feedId)?.title }
         } ?: ""
+        loaded = true
     }
 
-    LaunchedEffect(entryId) { reload() }
+    LaunchedEffect(entryId) {
+        entry = null
+        loaded = false
+        reload()
+    }
 
     // Clear the find state when switching entries or closing the bar.
     LaunchedEffect(entryId, state.entrySearchVisible) {
@@ -117,7 +126,15 @@ fun EntryScreen(state: AppState, entryId: String) {
     val current = entry
     if (current == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            if (loaded) {
+                Text(
+                    text = stringResource(Res.string.cannot_find_entry_with_id_s, entryId),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                CircularProgressIndicator()
+            }
         }
         return
     }

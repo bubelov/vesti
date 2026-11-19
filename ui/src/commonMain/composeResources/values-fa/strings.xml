@@ -189,4 +189,5 @@
         <item quantity="one">%1$d ساعت پیش</item>
         <item quantity="other">%1$d ساعت پیش</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">مدخل با شناسهٔ %1$s یافت نشد</string>
 </resources>

@@ -187,4 +187,5 @@
     <plurals name="time_hours_ago">
         <item quantity="other">%1$d 小时前</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">找不到 ID 为 %1$s 的条目</string>
 </resources>

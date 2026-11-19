@@ -193,4 +193,5 @@
         <item quantity="one">%1$d годину тому</item>
         <item quantity="other">%1$d годин тому</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Не удалось найти запись с идентификатором %1$s</string>
 </resources>

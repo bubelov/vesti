@@ -193,4 +193,5 @@
         <item quantity="many">%1$d часов назад</item>
         <item quantity="other">%1$d часов назад</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Не удалось найти запись с идентификатором %1$s</string>
 </resources>

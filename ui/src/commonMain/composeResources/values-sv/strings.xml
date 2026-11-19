@@ -189,4 +189,5 @@
         <item quantity="one">för %1$d timme sedan</item>
         <item quantity="other">för %1$d timmar sedan</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Kan inte hitta inlägg med id %1$s</string>
 </resources>

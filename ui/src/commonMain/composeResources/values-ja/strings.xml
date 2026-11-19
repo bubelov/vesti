@@ -187,4 +187,5 @@
     <plurals name="time_hours_ago">
         <item quantity="other">%1$d 時間前</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Can not find entry with id %1$s</string>
 </resources>

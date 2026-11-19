@@ -189,4 +189,5 @@
         <item quantity="one">%1$d uur geleden</item>
         <item quantity="other">%1$d uur geleden</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Kan invoer met id %1$s niet vinden</string>
 </resources>

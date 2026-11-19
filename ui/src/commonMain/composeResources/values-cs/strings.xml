@@ -193,4 +193,5 @@
         <item quantity="one">před %1$d hodinou</item>
         <item quantity="other">před %1$d hodinami</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Nelze najít záznam s id %1$s</string>
 </resources>

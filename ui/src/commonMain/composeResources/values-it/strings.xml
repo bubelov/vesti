@@ -189,4 +189,5 @@
         <item quantity="one">%1$d ora fa</item>
         <item quantity="other">%1$d ore fa</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Non è possibile trovare una voce con identificativo %1$s</string>
 </resources>

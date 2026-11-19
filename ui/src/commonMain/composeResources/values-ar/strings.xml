@@ -197,4 +197,5 @@
         <item quantity="two">قبل %1$d ساعة</item>
         <item quantity="zero">قبل %1$d ساعة</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">لا يمكن العثور على المدخل بمعرف %1$s</string>
 </resources>

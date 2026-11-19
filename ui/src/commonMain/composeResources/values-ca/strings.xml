@@ -189,4 +189,5 @@
         <item quantity="one">fa %1$d hora</item>
         <item quantity="other">fa %1$d hores</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Can not find entry with id %1$s</string>
 </resources>

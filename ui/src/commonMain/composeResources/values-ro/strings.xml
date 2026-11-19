@@ -191,4 +191,5 @@
         <item quantity="one">acum %1$d oră</item>
         <item quantity="other">acum %1$d ore</item>
     </plurals>
+    <string name="cannot_find_entry_with_id_s">Intrarea cu id %1$s nu a fost găsită</string>
 </resources>
