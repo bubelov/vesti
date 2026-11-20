@@ -1,5 +1,3 @@
-@file:OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -39,14 +37,14 @@ kotlin {
             implementation(project(":shared"))
             // Exposed because the Android app hosts these composables, which
             // needs the Compose types on its classpath.
-            api(compose.runtime)
-            api(compose.ui)
-            implementation(compose.foundation)
-            implementation(compose.material3)
+            api(libs.compose.runtime)
+            api(libs.compose.ui)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
             // Bundles the Material Symbols icon font and resolves it on every
             // platform (Android, JVM and wasm).
-            implementation(compose.components.resources)
-            implementation(libs.compose.ui.backhandler)
+            implementation(libs.compose.components.resources)
+            implementation(libs.navigationevent.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.coil.compose)
@@ -54,7 +52,7 @@ kotlin {
         }
 
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            implementation(libs.compose.desktop)
         }
 
         androidMain.dependencies {
@@ -64,7 +62,7 @@ kotlin {
         jvmTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.androidx.sqlite.bundled.jvm)
-            implementation(compose.uiTest)
+            implementation(libs.compose.ui.test)
         }
     }
 }

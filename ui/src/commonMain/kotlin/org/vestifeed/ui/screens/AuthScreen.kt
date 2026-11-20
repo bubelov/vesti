@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -44,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -56,12 +60,12 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.auth.AuthEvents
@@ -255,7 +259,10 @@ private fun BrandPanel(modifier: Modifier = Modifier) {
 private class AuthFormState(conf: ConfTable.Conf) {
     var backend by mutableStateOf(conf.backend ?: ConfTable.Backend.Miniflux)
     var url by mutableStateOf(conf.minifluxUrl ?: "")
-    var token by mutableStateOf(conf.minifluxToken ?: "")
+    // The token lives in a TextFieldState so the field can use the modern
+    // secure-text-field implementation; `token` exposes the current text.
+    val tokenField = TextFieldState(conf.minifluxToken ?: "")
+    val token: String get() = tokenField.text.toString()
     var tokenVisible by mutableStateOf(false)
     var showValidation by mutableStateOf(false)
     var serverError by mutableStateOf<String?>(null)
@@ -283,6 +290,15 @@ private fun AuthForm(
     fun clearErrors() {
         form.showValidation = false
         form.serverError = null
+    }
+
+    // The URL field clears errors from onValueChange; mirror that for the
+    // token's TextFieldState. Dropping the first emission keeps a layout
+    // switch (which restarts this effect) from clearing visible errors.
+    LaunchedEffect(form.tokenField) {
+        snapshotFlow { form.tokenField.text.toString() }
+            .drop(1)
+            .collect { clearErrors() }
     }
 
     fun submit() {
@@ -418,24 +434,19 @@ private fun AuthForm(
                     },
             )
             Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = form.token,
-                onValueChange = {
-                    form.token = it
-                    clearErrors()
-                },
+            OutlinedSecureTextField(
+                state = form.tokenField,
                 label = { Text(stringResource(Res.string.api_token)) },
-                singleLine = true,
                 isError = tokenError,
                 supportingText = if (tokenError) {
                     { Text(stringResource(Res.string.enter_miniflux_api_token)) }
                 } else {
                     null
                 },
-                visualTransformation = if (form.tokenVisible) {
-                    VisualTransformation.None
+                textObfuscationMode = if (form.tokenVisible) {
+                    TextObfuscationMode.Visible
                 } else {
-                    PasswordVisualTransformation()
+                    TextObfuscationMode.Hidden
                 },
                 trailingIcon = {
                     IconButton(onClick = { form.tokenVisible = !form.tokenVisible }) {
@@ -457,7 +468,7 @@ private fun AuthForm(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done,
                 ),
-                keyboardActions = KeyboardActions(onDone = { submit() }),
+                onKeyboardAction = { submit() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(tokenFocus)

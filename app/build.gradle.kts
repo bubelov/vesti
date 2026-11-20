@@ -133,7 +133,7 @@ dependencies {
  * Kept in Gradle so the version code, name and build time in the manifest are
  * exactly the ones baked into the APK.
  */
-val writeUpdateManifest by tasks.registering {
+tasks.register("writeUpdateManifest") {
     val outputFile = layout.buildDirectory.file("updates/vesti-nightly.json")
     outputs.file(outputFile)
     val versionCode = android.defaultConfig.versionCode ?: 1

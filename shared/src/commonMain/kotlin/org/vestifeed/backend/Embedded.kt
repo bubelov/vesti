@@ -4,7 +4,7 @@ import com.fleeksoft.ksoup.Ksoup
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Url
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -61,7 +61,7 @@ open class Embedded(
             }
         } else {
             val result = runCatching {
-                feed(response.readBytes(), contentType)
+                feed(response.readRawBytes(), contentType)
             }.getOrElse {
                 throw Exception("Failed to read response", it)
             }

@@ -2,7 +2,7 @@ package org.vestifeed.backend
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Url
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -41,7 +41,7 @@ internal class EmbeddedFeedFetcher(
             ?: throw Exception("self link is missing")
         val response = httpClient.get(proxiedUrl(feedSelfLink.href))
         if (!response.status.isSuccess()) throw Exception("feed request failed")
-        val feedResult = feed(response.readBytes(), response.contentType()?.toString() ?: "")
+        val feedResult = feed(response.readRawBytes(), response.contentType()?.toString() ?: "")
         return when (feedResult) {
             is FeedResult.Success ->
                 resolveEntryIds(db, feed.id, feedResult.feed.getEntries(feed.id))

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package org.vestifeed.ui
 
@@ -29,12 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.vestifeed.db.Database
@@ -130,7 +131,12 @@ fun VestiApp(
             // closing the app. At the root (nothing to pop) it is left to the
             // platform, which exits as usual. Dialogs sit above this and still
             // consume back themselves.
-            BackHandler(enabled = state.canGoBack()) { state.pop() }
+            val backState = rememberNavigationEventState(NavigationEventInfo.None)
+            NavigationBackHandler(
+                state = backState,
+                isBackEnabled = state.canGoBack(),
+                onBackCompleted = { state.pop() },
+            )
 
             when (val screen = state.screen) {
                 Screen.Auth -> AuthScreen(state)

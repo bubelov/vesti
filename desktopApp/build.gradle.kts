@@ -15,7 +15,7 @@ kotlin {
         getByName("jvmMain").dependencies {
             implementation(project(":shared"))
             implementation(project(":ui"))
-            implementation(compose.desktop.currentOs)
+            implementation(libs.compose.desktop)
             implementation(libs.kotlinx.coroutines.core)
             // In-app audio playback (podcasts): the JVM audio module backed by
             // rodio, so the shared player UI works instead of handing files to

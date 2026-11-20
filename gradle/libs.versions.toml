@@ -8,7 +8,15 @@ agp = "9.4.1"
 kotlin = "2.4.20"
 # Compose Multiplatform
 # https://github.com/JetBrains/compose-multiplatform/releases
-compose-plugin = "1.13.0-beta02"
+compose-plugin = "1.13.0-rc01"
+# Multiplatform back handling; the modern replacement for ui-backhandler's
+# deprecated BackHandler.
+# https://developer.android.com/jetpack/androidx/releases/navigationevent
+navigationevent = "1.1.0"
+# Material3 has its own release train; this is the version the Compose Gradle
+# plugin resolves for org.jetbrains.compose.material3:material3.
+# https://github.com/JetBrains/compose-multiplatform/releases
+compose-material3 = "1.9.0"
 # Enables suspending functions
 # https://github.com/Kotlin/kotlinx.coroutines/releases
 coroutines = "1.11.0"
@@ -108,7 +116,16 @@ coil-network-ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", v
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 # Multiplatform back handling, so the Android system back gesture (and the
 # browser/desktop equivalents) reach the shared UI instead of closing the app.
-compose-ui-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "compose-plugin" }
+navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
+# Compose Multiplatform libraries. The Compose plugin's `compose.*` dependency
+# accessors are deprecated, so every artifact is declared here directly.
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-plugin" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-plugin" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-plugin" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-plugin" }
+# All-OS desktop artifacts; the packaging step strips non-target binaries.
+compose-desktop = { module = "org.jetbrains.compose.desktop:desktop", version.ref = "compose-plugin" }
 # Compose resource loader; the desktop window icon is resolved through it.
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-plugin" }
 
