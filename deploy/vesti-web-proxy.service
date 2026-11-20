@@ -17,6 +17,23 @@ ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Defense in depth against DNS rebinding: the proxy also pins the resolved
+# address in Python, but even a missed case must not reach loopback (except the
+# inbound connection from Caddy), RFC1918, link-local/metadata, CGNAT or
+# multicast. The allow entry overrides the localhost deny for the listener.
+IPAddressAllow=127.0.0.1/32
+IPAddressDeny=localhost
+IPAddressDeny=link-local
+IPAddressDeny=multicast
+IPAddressDeny=10.0.0.0/8
+IPAddressDeny=172.16.0.0/12
+IPAddressDeny=192.168.0.0/16
+IPAddressDeny=100.64.0.0/10
+IPAddressDeny=0.0.0.0/8
+IPAddressDeny=240.0.0.0/4
+IPAddressDeny=fc00::/7
+IPAddressDeny=fe80::/10
+IPAddressDeny=::/128
 RestrictNamespaces=yes
 LockPersonality=yes
 MemoryDenyWriteExecute=yes

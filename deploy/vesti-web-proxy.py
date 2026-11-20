@@ -8,13 +8,14 @@ and returns the bytes.
 
 Safety:
   * only http/https
-  * the host (and every redirect target) must resolve to public IPs -- no
-    loopback, private, link-local, reserved or multicast addresses
   * only GET/HEAD
+  * browser requests must carry Sec-Fetch-Site same-origin/same-site/none
+  * the host (and every redirect target) must be public, and the connection is
+    made to the exact address that was validated (pinning the DNS answer, so a
+    rebinding server cannot swap in a private address after the check)
   * a response size cap and a timeout
-  * browser requests must look same-origin/same-site (Sec-Fetch-Site), which
-    blocks drive-by use from unrelated sites
 """
+import http.client
 import ipaddress
 import socket
 import sys
@@ -28,6 +29,22 @@ MAX_BYTES = 25 * 1024 * 1024
 TIMEOUT = 25
 CHUNK = 64 * 1024
 USER_AGENT = "VestiFeedProxy/1.0 (+https://app.vestifeed.org)"
+ALLOWED_FETCH_SITES = ("same-origin", "same-site", "none")
+
+
+def is_public_ip(text: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return ip.is_global and not (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
 
 
 def is_public_host(host: str) -> bool:
@@ -37,22 +54,53 @@ def is_public_host(host: str) -> bool:
         return False
     if not infos:
         return False
-    for info in infos:
-        addr = info[4][0]
+    return all(is_public_ip(info[4][0]) for info in infos)
+
+
+def create_safe_socket(host: str, port: int, timeout):
+    """Connect to [host] only after validating the very addresses used.
+
+    Resolving here and passing the resulting sockaddr straight to connect()
+    closes the check-then-resolve race: the IP the kernel connects to is the IP
+    is_public_ip() accepted. The Host header and TLS SNI still use [host].
+    """
+    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    public = [info for info in infos if is_public_ip(info[4][0])]
+    if not public:
+        raise OSError("host resolves only to non-public addresses")
+
+    last_error = None
+    for family, socktype, proto, _, sockaddr in public:
+        sock = socket.socket(family, socktype, proto)
         try:
-            ip = ipaddress.ip_address(addr)
-        except ValueError:
-            return False
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
-            return False
-    return True
+            sock.settimeout(timeout)
+            sock.connect(sockaddr)
+            return sock
+        except OSError as error:
+            sock.close()
+            last_error = error
+    raise last_error or OSError("could not connect to host")
+
+
+class SafeHTTPConnection(http.client.HTTPConnection):
+    def connect(self):
+        self.sock = create_safe_socket(self.host, self.port, self.timeout)
+
+
+class SafeHTTPSConnection(http.client.HTTPSConnection):
+    def connect(self):
+        sock = create_safe_socket(self.host, self.port, self.timeout)
+        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+
+
+class SafeHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        return self.do_open(SafeHTTPConnection, req)
+
+
+class SafeHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(SafeHTTPSConnection, req, context=self._context)
 
 
 class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -67,7 +115,15 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-OPENER = urllib.request.build_opener(SafeRedirectHandler)
+# ProxyHandler({}) keeps environment proxy settings from bypassing the pinned
+# connection handlers. build_opener skips the default HTTP/HTTPS/redirect
+# handlers when these subclasses are supplied.
+OPENER = urllib.request.build_opener(
+    urllib.request.ProxyHandler({}),
+    SafeHTTPHandler,
+    SafeHTTPSHandler,
+    SafeRedirectHandler,
+)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -98,8 +154,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
 
-        fetch_site = self.headers.get("Sec-Fetch-Site")
-        if fetch_site and fetch_site not in ("same-origin", "same-site", "none"):
+        # Browser fetches from the app carry this; requiring it keeps casual
+        # scripts from using the relay as an open fetcher. It is not a
+        # security boundary against a determined client, which can send the
+        # header itself, so the address pinning below is the real protection.
+        if self.headers.get("Sec-Fetch-Site") not in ALLOWED_FETCH_SITES:
             self.send_error(403, "forbidden")
             return
 
