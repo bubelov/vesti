@@ -14,7 +14,7 @@
     <string name="downloading">מוריד</string>
     <string name="crop_feed_images">חיתוך תמונות התצוגה המקדימה</string>
     <string name="feeds">פידים</string>
-    <string name="bookmarks">סימניות</string>
+    <string name="saved_n">נשמר (%1$d)</string>
     <string name="add_feed">הוספת פיד</string>
     <string name="add">הוספה</string>
     <string name="show_feed_images">הצגת תמונות תצוגה מקדימה</string>

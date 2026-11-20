@@ -14,7 +14,7 @@
     <string name="downloading">Se descarcă</string>
     <string name="crop_feed_images">Decupează imaginile de previzualizare</string>
     <string name="feeds">Fluxuri</string>
-    <string name="bookmarks">Marcaje</string>
+    <string name="saved_n">Salvat (%1$d)</string>
     <string name="add_feed">Adaugă feed</string>
     <string name="add">Adaugă</string>
     <string name="show_feed_images">Arată imaginile de previzualizare</string>

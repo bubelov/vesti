@@ -14,7 +14,7 @@
     <string name="downloading">Скачивание</string>
     <string name="crop_feed_images">Укорачивать высокие изображения</string>
     <string name="feeds">Подписки</string>
-    <string name="bookmarks">Закладки</string>
+    <string name="saved_n">Сохранено (%1$d)</string>
     <string name="add_feed">Добавить ленту</string>
     <string name="add">Добавить</string>
     <string name="show_feed_images">Показывать изображения</string>

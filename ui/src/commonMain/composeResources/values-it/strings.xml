@@ -14,7 +14,7 @@
     <string name="downloading">Scaricamento</string>
     <string name="crop_feed_images">Ritaglia le immagini di anteprima</string>
     <string name="feeds">Fonti</string>
-    <string name="bookmarks">Segnalibri</string>
+    <string name="saved_n">Salvato (%1$d)</string>
     <string name="add_feed">Aggiungi fonte</string>
     <string name="add">Aggiungi</string>
     <string name="show_feed_images">Mostra le immagini di anteprima</string>

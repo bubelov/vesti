@@ -14,7 +14,7 @@
     <string name="downloading">Downloader</string>
     <string name="crop_feed_images">Beskær forhåndsbilleder</string>
     <string name="feeds">Feeds</string>
-    <string name="bookmarks">Bogmærker</string>
+    <string name="saved_n">Gemt (%1$d)</string>
     <string name="add_feed">Tilføj feed</string>
     <string name="add">Tilføj</string>
     <string name="show_feed_images">Vis forhåndsbilleder</string>

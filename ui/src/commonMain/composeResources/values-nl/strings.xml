@@ -14,7 +14,7 @@
     <string name="downloading">Downloaden</string>
     <string name="crop_feed_images">Voorbeeldafbeeldingen bijsnijden</string>
     <string name="feeds">Feeds</string>
-    <string name="bookmarks">Bladwijzers</string>
+    <string name="saved_n">Opgeslagen (%1$d)</string>
     <string name="add_feed">Feed toevoegen</string>
     <string name="add">Toevoegen</string>
     <string name="show_feed_images">Voorbeeldafbeeldingen tonen</string>

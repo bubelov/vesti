@@ -14,7 +14,7 @@
     <string name="downloading">Téléchargement</string>
     <string name="crop_feed_images">Recadrer les images d’aperçu</string>
     <string name="feeds">Flux</string>
-    <string name="bookmarks">Épingles</string>
+    <string name="saved_n">Enregistré (%1$d)</string>
     <string name="add_feed">Ajouter un flux</string>
     <string name="add">Ajouter</string>
     <string name="show_feed_images">Afficher les images d’aperçu</string>

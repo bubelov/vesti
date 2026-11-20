@@ -14,7 +14,7 @@
     <string name="downloading">Laddar ner</string>
     <string name="crop_feed_images">Beskär artikelbilden</string>
     <string name="feeds">Flöden</string>
-    <string name="bookmarks">Bokmärken</string>
+    <string name="saved_n">Sparat (%1$d)</string>
     <string name="add_feed">Lägg till flöde</string>
     <string name="add">Lägg till</string>
     <string name="show_feed_images">Visa nyhetsbilder</string>

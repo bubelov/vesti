@@ -14,7 +14,7 @@
     <string name="downloading">ダウンロード中</string>
     <string name="crop_feed_images">プレビュー画像を切り抜く</string>
     <string name="feeds">フィード</string>
-    <string name="bookmarks">ブックマーク</string>
+    <string name="saved_n">保存しました (%1$d)</string>
     <string name="add_feed">フィードを追加</string>
     <string name="add">追加</string>
     <string name="show_feed_images">プレビュー画像を表示</string>

@@ -14,7 +14,7 @@
     <string name="downloading">Завантаження</string>
     <string name="crop_feed_images">Обрізати зображення попереднього перегляду</string>
     <string name="feeds">Стрічки</string>
-    <string name="bookmarks">Закладки</string>
+    <string name="saved_n">Збережено (%1$d)</string>
     <string name="add_feed">Додати стрічку</string>
     <string name="add">Додати</string>
     <string name="show_feed_images">Показувати зображення попереднього перегляду</string>

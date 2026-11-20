@@ -14,7 +14,7 @@
     <string name="downloading">正在下载</string>
     <string name="crop_feed_images">裁剪预览图片</string>
     <string name="feeds">订阅源</string>
-    <string name="bookmarks">书签</string>
+    <string name="saved_n">已保存 (%1$d)</string>
     <string name="add_feed">添加订阅源</string>
     <string name="add">添加</string>
     <string name="show_feed_images">显示预览图片</string>

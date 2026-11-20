@@ -47,7 +47,6 @@ import org.vestifeed.ui.resources.add_feed
 import org.vestifeed.ui.resources.app_name
 import org.vestifeed.ui.resources.back
 import org.vestifeed.ui.resources.bookmark
-import org.vestifeed.ui.resources.bookmarks
 import org.vestifeed.ui.resources.browse_curated_feeds
 import org.vestifeed.ui.resources.curated_feeds
 import org.vestifeed.ui.resources.database_statistics
@@ -64,6 +63,7 @@ import org.vestifeed.ui.resources.open_in_browser
 import org.vestifeed.ui.resources.podcasts
 import org.vestifeed.ui.resources.remove_bookmark
 import org.vestifeed.ui.resources.saved
+import org.vestifeed.ui.resources.saved_n
 import org.vestifeed.ui.resources.search
 import org.vestifeed.ui.resources.search_entry
 import org.vestifeed.ui.resources.settings
@@ -207,7 +207,7 @@ private fun AppTopBar(state: AppState, screen: Screen) {
     val title = when (screen) {
         is Screen.Entries -> when (val list = screen.list) {
             EntriesList.Unread -> stringResource(Res.string.unread_n, state.unreadCount)
-            EntriesList.Bookmarked -> stringResource(Res.string.bookmarks)
+            EntriesList.Bookmarked -> stringResource(Res.string.saved_n, state.bookmarkedCount)
             is EntriesList.BelongToFeed -> stringResource(Res.string.feed)
             is EntriesList.BelongToTag -> stringResource(Res.string.tag)
         }

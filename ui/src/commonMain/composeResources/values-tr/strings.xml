@@ -14,7 +14,7 @@
     <string name="downloading">İndiriliyor</string>
     <string name="crop_feed_images">Önizleme görsellerini kırp</string>
     <string name="feeds">Akışlar</string>
-    <string name="bookmarks">Yer işaretleri</string>
+    <string name="saved_n">Kaydedildi (%1$d)</string>
     <string name="add_feed">Akış ekle</string>
     <string name="add">Ekle</string>
     <string name="show_feed_images">Önizleme görsellerini göster</string>

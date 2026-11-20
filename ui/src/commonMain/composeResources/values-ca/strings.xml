@@ -14,7 +14,7 @@
     <string name="downloading">S\'està baixant</string>
     <string name="crop_feed_images">Retalla les imatges de previsualització</string>
     <string name="feeds">Fonts</string>
-    <string name="bookmarks">Marcadors</string>
+    <string name="saved_n">Desat (%1$d)</string>
     <string name="add_feed">Afegeix una font</string>
     <string name="add">Afegeix</string>
     <string name="show_feed_images">Mostra les imatges de previsualització</string>

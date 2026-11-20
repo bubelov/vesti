@@ -14,7 +14,7 @@
     <string name="downloading">Letöltés folyamatban</string>
     <string name="crop_feed_images">Előnézeti képek levágása arányosan</string>
     <string name="feeds">Hírfolyamok</string>
-    <string name="bookmarks">Könyvjelzők</string>
+    <string name="saved_n">Mentve (%1$d)</string>
     <string name="add_feed">Hírfolyam hozzáadása</string>
     <string name="add">Hozzáadás</string>
     <string name="show_feed_images">Előnézeti képek mutatása</string>

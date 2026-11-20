@@ -14,7 +14,7 @@
     <string name="downloading">Ladataan</string>
     <string name="crop_feed_images">Leikkaa esikatselukuvat</string>
     <string name="feeds">Syötteet</string>
-    <string name="bookmarks">Kirjanmerkit</string>
+    <string name="saved_n">Tallennettu (%1$d)</string>
     <string name="add_feed">Lisää syöte</string>
     <string name="add">Lisää</string>
     <string name="show_feed_images">Näytä esikatselukuvat</string>

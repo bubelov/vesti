@@ -14,7 +14,7 @@
     <string name="downloading">Đang tải xuống</string>
     <string name="crop_feed_images">Cắt ảnh xem trước</string>
     <string name="feeds">Nguồn cấp</string>
-    <string name="bookmarks">Dấu trang</string>
+    <string name="saved_n">Đã lưu (%1$d)</string>
     <string name="add_feed">Thêm nguồn cấp</string>
     <string name="add">Thêm</string>
     <string name="show_feed_images">Hiện ảnh xem trước</string>

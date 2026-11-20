@@ -14,7 +14,7 @@
     <string name="downloading">جارٍ التنزيل</string>
     <string name="crop_feed_images">اقتصاص صور المعاينة</string>
     <string name="feeds">الخلاصات</string>
-    <string name="bookmarks">العلامات المرجعية</string>
+    <string name="saved_n">تم الحفظ (%1$d)</string>
     <string name="add_feed">إضافة خلاصة</string>
     <string name="add">إضافة</string>
     <string name="show_feed_images">إظهار صور المعاينة</string>

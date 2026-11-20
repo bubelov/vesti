@@ -80,6 +80,13 @@ class AppState(
         private set
 
     /**
+     * The number of bookmarked entries — the size of the Saved list, shown in
+     * its app-bar title. Kept fresh by [refreshBookmarkedCount].
+     */
+    var bookmarkedCount by mutableStateOf(0)
+        private set
+
+    /**
      * Whether any feed has audio enclosures. The Podcasts tab is hidden even
      * when enabled if there are none, so a reader with no podcast feeds does
      * not see an empty tab. Kept fresh by [refreshHasPodcasts].
@@ -135,7 +142,7 @@ class AppState(
 
     /**
      * Toggles the bookmark on [entryId] for the entry-detail app-bar action,
-     * refreshing [entryBookmarked] and the unread count.
+     * refreshing [entryBookmarked] and the unread and saved counts.
      */
     fun toggleEntryBookmark(entryId: String) {
         scope.launch {
@@ -144,6 +151,7 @@ class AppState(
             withDb { db.entry.updateBookmarkedAndBookmarkedSynced(entryId, next, false) }
             entryBookmarked = next
             refreshUnreadCount()
+            refreshBookmarkedCount()
             sync.pushInBackground()
         }
     }
@@ -386,6 +394,11 @@ class AppState(
         unreadCount = withDb { db.entry.selectUnreadCount() }
     }
 
+    /** Reloads [bookmarkedCount] from the database (see its docs). */
+    suspend fun refreshBookmarkedCount() {
+        bookmarkedCount = withDb { db.entry.selectBookmarkedCount() }
+    }
+
     /** Reloads [hasPodcasts] from the database (see its docs). */
     suspend fun refreshHasPodcasts() {
         hasPodcasts = withDb { db.link.hasAudioEnclosures() }
@@ -463,6 +476,7 @@ class AppState(
             }
             conf = ConfTable.defaultConf()
             unreadCount = 0
+            bookmarkedCount = 0
             hasPodcasts = false
             authNotice = null
             backStack.clear()

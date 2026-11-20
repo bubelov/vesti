@@ -14,7 +14,7 @@
     <string name="downloading">Stahování</string>
     <string name="crop_feed_images">Oříznout náhledy obrázků</string>
     <string name="feeds">Feedy</string>
-    <string name="bookmarks">Záložky</string>
+    <string name="saved_n">Uloženo (%1$d)</string>
     <string name="add_feed">Přidat kanál</string>
     <string name="add">Přidat</string>
     <string name="show_feed_images">Zobrazit náhledy obrázků</string>

@@ -14,7 +14,7 @@
     <string name="downloading">Λήψη</string>
     <string name="crop_feed_images">Περικοπή εικόνων προεπισκόπησης</string>
     <string name="feeds">Ροές</string>
-    <string name="bookmarks">Σελιδοδείκτες</string>
+    <string name="saved_n">Αποθηκεύτηκε (%1$d)</string>
     <string name="add_feed">Προσθήκη ροής</string>
     <string name="add">Προσθήκη</string>
     <string name="show_feed_images">Εμφάνιση εικόνων προεπισκόπησης</string>

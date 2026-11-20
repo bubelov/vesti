@@ -14,7 +14,7 @@
     <string name="downloading">Pobieranie</string>
     <string name="crop_feed_images">Przytnij grafiki podglądu</string>
     <string name="feeds">Kanały</string>
-    <string name="bookmarks">Zakładki</string>
+    <string name="saved_n">Zapisano (%1$d)</string>
     <string name="add_feed">Dodaj kanał</string>
     <string name="add">Dodaj</string>
     <string name="show_feed_images">Pokazuj grafiki podglądu</string>

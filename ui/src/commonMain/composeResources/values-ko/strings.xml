@@ -14,7 +14,7 @@
     <string name="downloading">다운로드 중</string>
     <string name="crop_feed_images">미리보기 이미지 자르기</string>
     <string name="feeds">피드</string>
-    <string name="bookmarks">북마크</string>
+    <string name="saved_n">저장됨 (%1$d)</string>
     <string name="add_feed">피드 추가</string>
     <string name="add">추가</string>
     <string name="show_feed_images">미리보기 이미지 표시</string>

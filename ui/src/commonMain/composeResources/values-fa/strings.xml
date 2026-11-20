@@ -14,7 +14,7 @@
     <string name="downloading">در حال بارگیری</string>
     <string name="crop_feed_images">برش تصاویر پیش‌نمایش</string>
     <string name="feeds">خوراک‌ها</string>
-    <string name="bookmarks">نشانک‌ها</string>
+    <string name="saved_n">ذخیره شد (%1$d)</string>
     <string name="add_feed">افزودن خوراک</string>
     <string name="add">افزودن</string>
     <string name="show_feed_images">نمایش تصاویر پیش‌نمایش</string>

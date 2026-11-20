@@ -14,7 +14,7 @@
     <string name="downloading">Wird heruntergeladen</string>
     <string name="crop_feed_images">Vorschaubilder zuschneiden</string>
     <string name="feeds">Feeds</string>
-    <string name="bookmarks">Lesezeichen</string>
+    <string name="saved_n">Gespeichert (%1$d)</string>
     <string name="add_feed">Feed hinzufügen</string>
     <string name="add">Hinzufügen</string>
     <string name="show_feed_images">Vorschaubilder anzeigen</string>

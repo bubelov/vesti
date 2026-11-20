@@ -14,7 +14,7 @@
     <string name="downloading">Преузимање</string>
     <string name="crop_feed_images">Исеци слике прегледа</string>
     <string name="feeds">Извори</string>
-    <string name="bookmarks">Обележивачи</string>
+    <string name="saved_n">Сачувано (%1$d)</string>
     <string name="add_feed">Додај извор</string>
     <string name="add">Додај</string>
     <string name="show_feed_images">Прикажи слике прегледа</string>

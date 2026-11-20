@@ -14,7 +14,7 @@
     <string name="downloading">Laai tans af</string>
     <string name="crop_feed_images">Sny voorskoubeelde</string>
     <string name="feeds">Feeds</string>
-    <string name="bookmarks">Boekmerke</string>
+    <string name="saved_n">Gestoor (%1$d)</string>
     <string name="add_feed">Voeg feed by</string>
     <string name="add">Voeg by</string>
     <string name="show_feed_images">Wys voorskoubeelde</string>

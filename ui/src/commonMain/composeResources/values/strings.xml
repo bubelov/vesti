@@ -15,7 +15,7 @@
     <string name="downloading">Downloading</string>
     <string name="crop_feed_images">Crop preview images</string>
     <string name="feeds">Feeds</string>
-    <string name="bookmarks">Bookmarks</string>
+    <string name="saved_n">Saved (%1$d)</string>
     <string name="add_feed">Add feed</string>
     <string name="add">Add</string>
     <string name="show_feed_images">Show preview images</string>

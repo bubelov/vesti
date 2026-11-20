@@ -187,6 +187,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
             bookmarked = loaded.associate { it.id to it.extBookmarked }
             feedCount = state.withDb { state.db.feed.selectAll().size }
             state.refreshUnreadCount()
+            state.refreshBookmarkedCount()
         } finally {
             loading = false
             reloadPending = false
@@ -326,6 +327,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                 rows = rows.filterNot { it.id == row.id }
             }
             state.refreshUnreadCount()
+            state.refreshBookmarkedCount()
             state.sync.pushInBackground()
         }
     }
@@ -436,6 +438,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                                     onToggleBookmark = { onEntryBookmark(row) },
                                     onMarkRead = { onEntryMarkRead(row) },
                                     showActions = !swipesEnabled,
+                                    showMarkRead = screen.list !is EntriesList.Bookmarked,
                                 )
                             }
                         }
@@ -470,6 +473,7 @@ fun EntriesScreen(state: AppState, screen: Screen.Entries) {
                                     onToggleBookmark = { onEntryBookmark(row) },
                                     onMarkRead = { onEntryMarkRead(row) },
                                     showActions = !swipesEnabled,
+                                    showMarkRead = screen.list !is EntriesList.Bookmarked,
                                 )
                             }
                         }
@@ -876,8 +880,15 @@ private fun EntryListCard(
     onToggleBookmark: () -> Unit,
     onMarkRead: () -> Unit,
     showActions: Boolean,
+    showMarkRead: Boolean,
 ) {
     val hasImage = row.showImage && row.imageUrl.isNotBlank()
+    // Room for the floating action buttons; one button needs less than two.
+    val actionsWidth = when {
+        !showActions -> 16.dp
+        showMarkRead -> 124.dp
+        else -> 72.dp
+    }
 
     OutlinedCard(
         modifier = Modifier
@@ -896,7 +907,7 @@ private fun EntryListCard(
                     .padding(
                         start = if (hasImage) 108.dp else 16.dp,
                         top = 16.dp,
-                        end = if (showActions) 124.dp else 16.dp,
+                        end = actionsWidth,
                         bottom = 16.dp,
                     ),
             ) {
@@ -954,6 +965,7 @@ private fun EntryListCard(
             if (showActions) {
                 CardActionButtons(
                     isBookmarked = isBookmarked,
+                    showMarkRead = showMarkRead,
                     onMarkRead = onMarkRead,
                     onToggleBookmark = onToggleBookmark,
                     onScrim = false,
@@ -973,8 +985,15 @@ private fun EntryGridCard(
     onToggleBookmark: () -> Unit,
     onMarkRead: () -> Unit,
     showActions: Boolean,
+    showMarkRead: Boolean,
 ) {
     val hasImage = row.showImage && row.imageUrl.isNotBlank()
+    // Room for the floating action buttons; one button needs less than two.
+    val actionsWidth = when {
+        !showActions || hasImage -> 16.dp
+        showMarkRead -> 124.dp
+        else -> 72.dp
+    }
 
     OutlinedCard(
         modifier = Modifier
@@ -1014,7 +1033,7 @@ private fun EntryGridCard(
                     modifier = Modifier.padding(
                         start = 16.dp,
                         top = 16.dp,
-                        end = if (showActions && !hasImage) 124.dp else 16.dp,
+                        end = actionsWidth,
                         bottom = 16.dp,
                     ),
                 ) {
@@ -1057,6 +1076,7 @@ private fun EntryGridCard(
             if (showActions) {
                 CardActionButtons(
                     isBookmarked = isBookmarked,
+                    showMarkRead = showMarkRead,
                     onMarkRead = onMarkRead,
                     onToggleBookmark = onToggleBookmark,
                     onScrim = hasImage,
@@ -1077,6 +1097,7 @@ private fun EntryGridCard(
 @Composable
 private fun CardActionButtons(
     isBookmarked: Boolean,
+    showMarkRead: Boolean,
     onMarkRead: () -> Unit,
     onToggleBookmark: () -> Unit,
     onScrim: Boolean,
@@ -1087,29 +1108,24 @@ private fun CardActionButtons(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (showMarkRead) {
+            CardActionButton(
+                glyph = MaterialSymbols.Visibility,
+                contentDescription = stringResource(Res.string.mark_as_read),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                onScrim = onScrim,
+                onClick = onMarkRead,
+            )
+        }
         CardActionButton(
-            glyph = MaterialSymbols.Visibility,
-            contentDescription = stringResource(Res.string.mark_as_read),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            onScrim = onScrim,
-            onClick = onMarkRead,
-        )
-        CardActionButton(
-            glyph = if (isBookmarked) {
-                MaterialSymbols.BookmarkAdded
-            } else {
-                MaterialSymbols.BookmarkAdd
-            },
+            glyph = if (isBookmarked) MaterialSymbols.Bookmark else MaterialSymbols.BookmarkAdd,
+            filled = isBookmarked,
             contentDescription = if (isBookmarked) {
                 stringResource(Res.string.remove_bookmark)
             } else {
                 stringResource(Res.string.bookmark)
             },
-            tint = if (isBookmarked) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             onScrim = onScrim,
             onClick = onToggleBookmark,
         )
@@ -1129,6 +1145,7 @@ private fun CardActionButton(
     onScrim: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    filled: Boolean = false,
 ) {
     if (onScrim) {
         Surface(
@@ -1138,12 +1155,12 @@ private fun CardActionButton(
             modifier = modifier,
         ) {
             IconButton(onClick = onClick) {
-                MaterialSymbol(glyph, contentDescription, tint = Color.White)
+                MaterialSymbol(glyph, contentDescription, tint = Color.White, filled = filled)
             }
         }
     } else {
         IconButton(onClick = onClick, modifier = modifier) {
-            MaterialSymbol(glyph, contentDescription, tint = tint)
+            MaterialSymbol(glyph, contentDescription, tint = tint, filled = filled)
         }
     }
 }
